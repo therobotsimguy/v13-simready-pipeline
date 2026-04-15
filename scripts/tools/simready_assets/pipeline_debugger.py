@@ -83,6 +83,146 @@ class PipelineDebugger:
         return f"run_{next_num:03d}"
 
     # ═══════════════════════════════════════════════════════════════
+    # LAYER 0: HISTORY CHECK (flywheel feedback)
+    # ═══════════════════════════════════════════════════════════════
+
+    def check_history(self, part_types=None, scale=None):
+        """Check past runs for relevant learnings before starting a new run.
+
+        Reads all run records in ~/SimReady_Debug/, finds matches by:
+          - Same asset name (exact reruns)
+          - Same object_type (e.g. all trolley runs)
+          - Same part types (e.g. all runs with caster wheels)
+          - Scale-related failures
+
+        Returns list of learnings. Also prints them.
+
+        Args:
+            part_types: list of part type strings (e.g. ["wheel", "drawer", "slider"])
+            scale: asset_scale being used (e.g. 5.0) — triggers scale warnings
+        """
+        learnings = []
+        past_runs = []
+
+        # Load all past run records
+        for f in sorted(Path(DEBUG_DIR).glob("run_*.json")):
+            try:
+                with open(f) as fh:
+                    past_runs.append(json.load(fh))
+            except (json.JSONDecodeError, IOError):
+                continue
+
+        if not past_runs:
+            print(f"  [history] No past runs found. First run!")
+            return learnings
+
+        print(f"\n  [history] Checking {len(past_runs)} past runs for relevant learnings...")
+
+        # ── 1. Exact asset matches ──
+        same_asset = [r for r in past_runs if r.get("asset") == self.asset_name]
+        if same_asset:
+            passes = sum(1 for r in same_asset if r.get("verdict") == "PASS")
+            fails = sum(1 for r in same_asset if r.get("verdict") == "FAIL")
+            print(f"  [history] This asset ran {len(same_asset)} times before: {passes} pass, {fails} fail")
+            # Surface failure notes
+            for r in same_asset:
+                if r.get("verdict") == "FAIL":
+                    note = r.get("user_notes", "")
+                    variant = r.get("variant", "")
+                    learning = f"PAST FAIL ({r.get('id','')}): {variant} — {note}"
+                    learnings.append(learning)
+                    print(f"    !! {learning}")
+                # Surface learnings
+                if r.get("learning"):
+                    learnings.append(f"PAST LEARNING: {r['learning']}")
+                    print(f"    >> PAST LEARNING: {r['learning']}")
+
+        # ── 2. Same object type matches ──
+        same_type = [r for r in past_runs if r.get("object_type") == self.object_type]
+        if same_type and self.object_type != "unknown":
+            passes = sum(1 for r in same_type if r.get("verdict") == "PASS")
+            fails = sum(1 for r in same_type if r.get("verdict") == "FAIL")
+            total = len(same_type)
+            rate = passes / total * 100 if total > 0 else 0
+            print(f"  [history] Object type '{self.object_type}': {total} runs, {rate:.0f}% pass rate")
+
+            # Extract common parameters from passing runs
+            pass_runs = [r for r in same_type if r.get("verdict") == "PASS"]
+            fail_runs = [r for r in same_type if r.get("verdict") == "FAIL"]
+
+            # Surface failure patterns for this type
+            for r in fail_runs:
+                note = r.get("user_notes", "")
+                if note:
+                    learning = f"PAST {self.object_type} FAIL: {note[:100]}"
+                    if learning not in learnings:
+                        learnings.append(learning)
+                        print(f"    !! {learning}")
+
+        # ── 3. Scale-related warnings ──
+        if scale and scale > 1:
+            scale_fails = [r for r in past_runs
+                          if r.get("verdict") == "FAIL"
+                          and (f"{scale:.0f}x" in r.get("variant", "")
+                               or f"{scale:.0f}x" in r.get("user_notes", "")
+                               or "scale" in r.get("user_notes", "").lower())]
+            if scale_fails:
+                learning = f"SCALE WARNING: {len(scale_fails)} past failures at scale={scale}x. PhysX prismatic limits don't auto-scale — teleop pre-scale fix required."
+                learnings.append(learning)
+                print(f"    !! {learning}")
+            # Check if pre-scale fix exists
+            prescale_passes = [r for r in past_runs
+                              if r.get("verdict") == "PASS"
+                              and "prescale" in r.get("variant", "")]
+            if prescale_passes and scale_fails:
+                learning = f"SCALE FIX AVAILABLE: pre-scaling prismatic limits in temp USD works ({len(prescale_passes)} confirmed passes)"
+                learnings.append(learning)
+                print(f"    >> {learning}")
+
+        # ── 4. Part-type specific learnings ──
+        if part_types:
+            for pt in part_types:
+                pt_lower = pt.lower()
+                # Search all past runs for notes mentioning this part type
+                relevant = []
+                for r in past_runs:
+                    notes = (r.get("user_notes", "") + " " + r.get("learning", "")).lower()
+                    variant = r.get("variant", "").lower()
+                    if pt_lower in notes or pt_lower in variant:
+                        relevant.append(r)
+
+                if relevant:
+                    passes = sum(1 for r in relevant if r.get("verdict") == "PASS")
+                    fails = sum(1 for r in relevant if r.get("verdict") == "FAIL")
+                    if fails > 0:
+                        for r in relevant:
+                            if r.get("verdict") == "FAIL":
+                                note = r.get("user_notes", "")[:80]
+                                learning = f"PART '{pt}' had failures: {note}"
+                                if learning not in learnings:
+                                    learnings.append(learning)
+                                    print(f"    !! {learning}")
+                    if passes > 0:
+                        learning = f"PART '{pt}': {passes} past successes"
+                        learnings.append(learning)
+                        print(f"    OK {learning}")
+
+        # ── 5. Summary stats ──
+        if os.path.exists(SUMMARY_PATH):
+            with open(SUMMARY_PATH) as f:
+                summary = json.load(f)
+            total = summary.get("total_runs", 0)
+            p = summary.get("pass_count", 0)
+            fail = summary.get("fail_count", 0)
+            print(f"  [history] Flywheel: {total} total runs, {p} pass, {fail} fail ({p/total*100:.0f}% pass rate)" if total > 0 else "")
+
+        if not learnings:
+            print(f"  [history] No relevant warnings or learnings found. Clean slate.")
+
+        self.history_learnings = learnings
+        return learnings
+
+    # ═══════════════════════════════════════════════════════════════
     # LAYER 1: SKILL TRACE
     # ═══════════════════════════════════════════════════════════════
 
