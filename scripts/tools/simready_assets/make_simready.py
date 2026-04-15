@@ -1294,7 +1294,7 @@ def normalize_to_meters(stage):
 
 
 def apply_physics(stage, classification, output_usd, dynamic_body=False,
-                  gemini_mass=None, gemini_density=None):
+                  gemini_mass=None, gemini_density=None, gemini_articulation=None):
     """Phase 3: Apply all missing physics based on classification."""
     default_prim = stage.GetDefaultPrim()
     dp_path = default_prim.GetPath()
@@ -1592,12 +1592,29 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                         is_slider = True
 
             if is_slider:
-                # Bidirectional: GENEROUS limits both ways. Don't try to compute
-                # exact range — the physical geometry (collision) is the real
-                # constraint. Tight limits only cut off useful range. (F37)
-                lower_m = -depth * 2.0
-                upper_m = depth * 0.6
-                print(f"    (slider detected — generous bidirectional [{lower_m:.3f}, {upper_m:.3f}])")
+                # V13: Slider travels full body length, both directions.
+                # The driving part slides along the body (ruler). It can go
+                # left until its outer end (part_hi) reaches body_lo, and
+                # right until its inner end (part_lo) reaches body_hi.
+                if bbox and body_bbox:
+                    body_lo = body_bbox[0][axis_idx]
+                    body_hi = body_bbox[1][axis_idx]
+                    part_lo = bbox[0][axis_idx]  # inner end (jaw)
+                    part_hi = bbox[1][axis_idx]  # outer end
+
+                    # Slide right: inner end (part_lo) reaches body far end
+                    upper_m = body_hi - part_lo
+                    # Slide left: outer end (part_hi) reaches body near end
+                    lower_m = body_lo - part_hi
+
+                    body_len = body_hi - body_lo
+                    travel = upper_m - lower_m
+                    print(f"    (slider — full ruler travel both ways: [{lower_m:.3f}, {upper_m:.3f}]m = {travel*100:.0f}cm, body={body_len*100:.0f}cm)")
+                else:
+                    body_len = abs(body_bbox[1][axis_idx] - body_bbox[0][axis_idx]) if body_bbox else depth
+                    lower_m = -body_len * 0.45
+                    upper_m = body_len * 0.45
+                    print(f"    (slider — geometry fallback: [{lower_m:.3f}, {upper_m:.3f}]m)")
             elif bbox and body_bbox:
                 # Drawer: one direction, face toward body exterior
                 body_center_ax = (body_bbox[0][axis_idx] + body_bbox[1][axis_idx]) / 2
@@ -1639,6 +1656,7 @@ def run(input_usd, fix=False, provider="anthropic", model=None, output_dir=None,
     # Load Gemini object understanding if provided
     gemini_mass = None
     gemini_density = None
+    gemini_articulation = {}  # part_name → {range_meters, limits_bidirectional}
     if object_json and os.path.exists(object_json):
         with open(object_json) as f:
             obj_data = json.load(f)
@@ -1646,6 +1664,17 @@ def run(input_usd, fix=False, provider="anthropic", model=None, output_dir=None,
         gemini_density = obj_data.get("material_density_kg_m3")
         if gemini_mass:
             print(f"  Gemini mass: {gemini_mass}kg, density: {gemini_density} kg/m³")
+        # V13: Extract articulation ranges from Gemini (range_meters per part)
+        for ap in obj_data.get("movable_parts", []):
+            pname = ap.get("name", "")
+            rm = ap.get("range_meters")
+            if pname and rm and rm > 0:
+                gemini_articulation[pname] = {
+                    "range_meters": rm,
+                    "limits_bidirectional": ap.get("limits_bidirectional", False),
+                }
+        if gemini_articulation:
+            print(f"  Gemini articulation: {len(gemini_articulation)} parts with range data")
     print(f"\n{'='*60}")
     print(f"  make_simready (V8)")
     print(f"{'='*60}")
@@ -1698,7 +1727,8 @@ def run(input_usd, fix=False, provider="anthropic", model=None, output_dir=None,
 
     out_stage = Usd.Stage.Open(output_usd)
     apply_physics(out_stage, classification, output_usd, dynamic_body=dynamic_body,
-                  gemini_mass=gemini_mass, gemini_density=gemini_density)
+                  gemini_mass=gemini_mass, gemini_density=gemini_density,
+                  gemini_articulation=gemini_articulation)
 
     # Re-audit
     final_stage = Usd.Stage.Open(output_usd)
