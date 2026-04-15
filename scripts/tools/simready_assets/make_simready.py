@@ -1427,11 +1427,25 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     body_bbox = mesh_world_bbox(stage, body_path)
 
     # Mass estimation priority: Gemini > mesh_volume > bbox
+    # V13 fix: ALWAYS use Gemini mass when available, distribute by volume ratio.
+    # Old V11 bug: Gemini mass only used for body when no movable parts.
     use_density = gemini_density if gemini_density else (80.0 if dynamic_body else 600.0)
 
-    if gemini_mass and not movables:
-        # Gemini mass for single-body objects (use directly)
-        body_mass = gemini_mass
+    # Compute mesh volumes for ALL parts (body + movables) for proportional distribution
+    body_vol = estimate_mass_from_mesh(stage, body_path, density=1.0) or 0.0  # density=1 → volume
+    part_volumes = {}
+    for name, info in movables.items():
+        pv = estimate_mass_from_mesh(stage, info["path"], density=1.0)
+        part_volumes[name] = pv if pv else 0.0
+    total_vol = body_vol + sum(part_volumes.values())
+
+    if gemini_mass:
+        # Distribute Gemini total mass by volume ratio
+        if total_vol > 0:
+            body_mass = gemini_mass * (body_vol / total_vol)
+        else:
+            # Fallback: 60% body, 40% parts
+            body_mass = gemini_mass * 0.6
         mass_method = "gemini"
     else:
         body_mass_mesh = estimate_mass_from_mesh(stage, body_path, density=use_density)
@@ -1448,21 +1462,24 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     body_mode = "dynamic" if dynamic_body else "kinematic"
     print(f"    body: {body_mode}, mass={body_mass:.1f}kg ({mass_method}, density={use_density})")
 
-    # Compute per-part mass: distribute Gemini total mass across parts by volume ratio
+    # Per-part mass: distribute remaining Gemini mass by volume ratio
     part_density = gemini_density if gemini_density else 500.0
+    remaining_mass = gemini_mass - body_mass if gemini_mass else 0
+    total_part_vol = sum(part_volumes.values())
+
     for name, info in movables.items():
         path = info["path"]
         apply_rigid_body(stage, path)
         bbox = mesh_world_bbox(stage, path)
 
-        if gemini_mass and len(movables) == 1:
-            # Single movable part: Gemini mass is for the whole object,
-            # give ~30% to the movable part (empirical for scissors/clamps)
-            mass = gemini_mass * 0.3
+        if gemini_mass and total_part_vol > 0:
+            # Distribute remaining mass proportionally by volume
+            vol_ratio = part_volumes.get(name, 0) / total_part_vol
+            mass = remaining_mass * vol_ratio
             m_method = "gemini"
         elif gemini_mass:
-            # Multiple movable parts: distribute proportionally (equal for now)
-            mass = gemini_mass / (len(movables) + 1)  # +1 for body
+            # Equal distribution fallback
+            mass = remaining_mass / max(len(movables), 1)
             m_method = "gemini"
         else:
             mass_mesh = estimate_mass_from_mesh(stage, path, density=part_density)
