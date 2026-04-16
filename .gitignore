@@ -1,0 +1,3 @@
+__pycache__/
+*.pyc
+scripts/tools/api_keys.json
