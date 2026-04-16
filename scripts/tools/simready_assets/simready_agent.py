@@ -305,15 +305,26 @@ async def run_pipeline(input_usd: str, dynamic: bool = False, max_retries: int =
     })
     print()
 
-    # ── Load skills ──
+    # ── Load all 8 relevant skills ──
     dbg.start_stage("skill_loading")
+    # Core 5 (always needed)
     behaviors_skill = load_skill("simready-behaviors")
     criteria_skill = load_skill("simready-criteria")
     failure_skill = load_skill("failure-modes")
+    joint_params_skill = load_skill("simready-joint-params")
+    robot_model_skill = load_skill("robot-model")
+    # Situational 3 (loaded always, agent uses when relevant)
+    collision_skill = load_skill("simready-collision")
+    mechanism_skill = load_skill("simready-mechanism-lookup")
+    physx_schemas_skill = load_skill("usd-physx-schemas")
 
-    # Log which skills were loaded into the classifier agent
-    for skill_name in ["simready-behaviors", "simready-criteria", "failure-modes"]:
-        dbg.log_skill(skill_name, f"Loaded into classifier agent system prompt", impact="info")
+    ALL_SKILLS = [
+        "simready-behaviors", "simready-criteria", "failure-modes",
+        "simready-joint-params", "robot-model",
+        "simready-collision", "simready-mechanism-lookup", "usd-physx-schemas",
+    ]
+    for skill_name in ALL_SKILLS:
+        dbg.log_skill(skill_name, "Loaded into classifier agent system prompt", impact="info")
 
     # ── Build agent options ──
     dynamic_flag = " --dynamic" if dynamic else ""
@@ -324,11 +335,26 @@ Given a USD hierarchy, classify each part so physics can be applied by make_simr
 ## Behavior Knowledge
 {behaviors_skill}
 
+## Joint Parameters Reference
+{joint_params_skill}
+
+## Robot Model (Franka Panda) — Hard Constraints
+{robot_model_skill}
+
 ## SimReady Criteria
 {criteria_skill}
 
 ## Failure Modes to Avoid
 {failure_skill}
+
+## Collision Strategy
+{collision_skill}
+
+## Mechanism Lookup (for unknown objects)
+{mechanism_skill}
+
+## USD PhysX Schema Compatibility
+{physx_schemas_skill}
 
 ## Your Task
 
@@ -368,6 +394,15 @@ WHY it failed and propose a corrected classify.json that will fix the issue.
 
 ## Failure Modes
 {failure_skill}
+
+## Joint Parameters Reference
+{joint_params_skill}
+
+## Robot Model Constraints
+{robot_model_skill}
+
+## Collision Strategy
+{collision_skill}
 
 ## Your Task
 
