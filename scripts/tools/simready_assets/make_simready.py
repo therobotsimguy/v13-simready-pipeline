@@ -1645,6 +1645,23 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     print(f"    GripMaterial on {n_grip} handle meshes")
     print(f"    Physics material binding on {n_body_fric} body meshes")
 
+    # --- V13: ArticulationRootAPI on default prim ---
+    # Matches Lightwheel + Palatial approach: placed on the common ancestor
+    # Xform (default prim) that contains all rigid bodies. Enables:
+    # - shift+drag in Isaac Sim viewport
+    # - ArticulationCfg drive targets for RL
+    # - reduced-coordinate solver (more stable)
+    print(f"\n  ARTICULATION:")
+    dp_spec = stage.GetRootLayer().GetPrimAtPath(dp_path)
+    schemas = dp_spec.GetInfo("apiSchemas")
+    items = list(schemas.prependedItems) if schemas and hasattr(schemas, "prependedItems") else []
+    if "PhysicsArticulationRootAPI" not in items:
+        items.append("PhysicsArticulationRootAPI")
+        new_list = Sdf.TokenListOp()
+        new_list.prependedItems = items
+        dp_spec.SetInfo("apiSchemas", new_list)
+    print(f"    ArticulationRootAPI on '{default_prim.GetName()}' (default prim)")
+
     # --- Save ---
     stage.GetRootLayer().Save()
     print(f"\n  SAVED: {output_usd}")
