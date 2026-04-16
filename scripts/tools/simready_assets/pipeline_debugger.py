@@ -207,7 +207,37 @@ class PipelineDebugger:
                         learnings.append(learning)
                         print(f"    OK {learning}")
 
-        # ── 5. Summary stats ──
+        # ── 5. Surface learnings from ALL past runs (pass or fail) ──
+        seen_learnings = set()
+        for r in past_runs:
+            rl = r.get("learning", "")
+            if not rl:
+                continue
+            # Show if same object type or same asset
+            is_relevant = (r.get("object_type") == self.object_type
+                          or r.get("asset") == self.asset_name)
+            # Also show if learning mentions any of our part types
+            if part_types and not is_relevant:
+                rl_lower = rl.lower()
+                if any(pt.lower() in rl_lower for pt in part_types):
+                    is_relevant = True
+            if is_relevant and rl not in seen_learnings:
+                seen_learnings.add(rl)
+                learnings.append(f"LEARNING: {rl}")
+                print(f"    >> LEARNING: {rl}")
+
+        # ── 6. Surface fix_applied from past runs for same object type ──
+        for r in past_runs:
+            fix = r.get("fix_applied", "")
+            if not fix:
+                continue
+            if r.get("object_type") == self.object_type or r.get("asset") == self.asset_name:
+                if fix not in seen_learnings:
+                    seen_learnings.add(fix)
+                    learnings.append(f"FIX APPLIED: {fix}")
+                    print(f"    >> FIX APPLIED: {fix}")
+
+        # ── 7. Summary stats ──
         if os.path.exists(SUMMARY_PATH):
             with open(SUMMARY_PATH) as f:
                 summary = json.load(f)

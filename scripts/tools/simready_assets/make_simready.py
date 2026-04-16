@@ -1013,8 +1013,10 @@ def apply_rigid_body(stage, path, kinematic=False, dynamic_body=False):
     if kinematic:
         prim.CreateAttribute("physics:kinematicEnabled", Sdf.ValueTypeNames.Bool).Set(True)
     if dynamic_body:
-        prim.CreateAttribute("physics:linearDamping", Sdf.ValueTypeNames.Float).Set(100.0)
-        prim.CreateAttribute("physics:angularDamping", Sdf.ValueTypeNames.Float).Set(200.0)
+        # V13: lowered from 100/200 — too sluggish for trolley pushing.
+        # 10/20 provides stability without resisting Franka-level forces.
+        prim.CreateAttribute("physics:linearDamping", Sdf.ValueTypeNames.Float).Set(10.0)
+        prim.CreateAttribute("physics:angularDamping", Sdf.ValueTypeNames.Float).Set(20.0)
 
 
 def apply_mass(stage, path, mass_kg):
@@ -1426,27 +1428,41 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     apply_rigid_body(stage, body_path, kinematic=body_kinematic, dynamic_body=dynamic_body)
     body_bbox = mesh_world_bbox(stage, body_path)
 
-    # Mass estimation priority: Gemini > mesh_volume > bbox
-    # V13 fix: ALWAYS use Gemini mass when available, distribute by volume ratio.
-    # Old V11 bug: Gemini mass only used for body when no movable parts.
+    # Mass estimation: Gemini total → skill-based part masses → body gets remainder.
+    # V13: Use skill-recommended mass ranges for known part types (wheels, doors,
+    # drawers) instead of volume ratio. Volume ratio gives wheels too much mass
+    # because wheel meshes (fixer+bolts+body+disc+tire) are disproportionately large.
     use_density = gemini_density if gemini_density else (80.0 if dynamic_body else 600.0)
 
-    # Compute mesh volumes for ALL parts (body + movables) for proportional distribution
-    body_vol = estimate_mass_from_mesh(stage, body_path, density=1.0) or 0.0  # density=1 → volume
-    part_volumes = {}
-    for name, info in movables.items():
-        pv = estimate_mass_from_mesh(stage, info["path"], density=1.0)
-        part_volumes[name] = pv if pv else 0.0
-    total_vol = body_vol + sum(part_volumes.values())
+    # Skill-recommended mass per joint type (from simready-joint-params)
+    SKILL_MASS = {
+        "continuous": 0.5,    # cart/caster wheel: 0.2-1.0kg, use 0.5
+        "revolute":   5.0,    # door: 2-15kg, use 5.0 as default
+        "prismatic":  2.0,    # drawer: 0.5-5kg, use 2.0 as default
+        "fixed":      1.0,
+    }
 
     if gemini_mass:
-        # Distribute Gemini total mass by volume ratio
-        if total_vol > 0:
-            body_mass = gemini_mass * (body_vol / total_vol)
-        else:
-            # Fallback: 60% body, 40% parts
-            body_mass = gemini_mass * 0.6
-        mass_method = "gemini"
+        # Step 1: Assign skill-recommended mass to each part
+        part_masses = {}
+        total_parts_mass = 0
+        for name, info in movables.items():
+            skill_mass = SKILL_MASS.get(info["joint"], 1.0)
+            part_masses[name] = skill_mass
+            total_parts_mass += skill_mass
+
+        # Step 2: If parts would take more than 80% of total, scale them down
+        max_parts_fraction = 0.4  # parts get at most 40% of total mass
+        if total_parts_mass > gemini_mass * max_parts_fraction:
+            scale = (gemini_mass * max_parts_fraction) / total_parts_mass
+            for name in part_masses:
+                part_masses[name] *= scale
+            total_parts_mass = sum(part_masses.values())
+
+        # Step 3: Body gets the remainder
+        body_mass = gemini_mass - total_parts_mass
+        body_mass = max(1.0, body_mass)  # body always at least 1kg
+        mass_method = "gemini+skill"
     else:
         body_mass_mesh = estimate_mass_from_mesh(stage, body_path, density=use_density)
         body_mass_bbox = estimate_mass(body_bbox, mpu, density=use_density)
@@ -1456,45 +1472,33 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
         else:
             body_mass = body_mass_bbox
             mass_method = "bbox"
-    if dynamic_body and mass_method != "gemini":
+    if dynamic_body and mass_method not in ("gemini+skill", "gemini"):
         body_mass = max(5.0, min(100.0, body_mass))
     apply_mass(stage, body_path, body_mass)
     body_mode = "dynamic" if dynamic_body else "kinematic"
-    print(f"    body: {body_mode}, mass={body_mass:.1f}kg ({mass_method}, density={use_density})")
+    print(f"    body: {body_mode}, mass={body_mass:.1f}kg ({mass_method})")
 
-    # Per-part mass: distribute remaining Gemini mass by volume ratio
+    # Per-part mass
     part_density = gemini_density if gemini_density else 500.0
-    remaining_mass = gemini_mass - body_mass if gemini_mass else 0
-    total_part_vol = sum(part_volumes.values())
-
     for name, info in movables.items():
         path = info["path"]
         apply_rigid_body(stage, path)
         bbox = mesh_world_bbox(stage, path)
 
-        if gemini_mass and total_part_vol > 0:
-            # Distribute remaining mass proportionally by volume
-            vol_ratio = part_volumes.get(name, 0) / total_part_vol
-            mass = remaining_mass * vol_ratio
-            m_method = "gemini"
-        elif gemini_mass:
-            # Equal distribution fallback
-            mass = remaining_mass / max(len(movables), 1)
-            m_method = "gemini"
+        if gemini_mass:
+            mass = part_masses.get(name, 1.0)
+            m_method = "gemini+skill"
         else:
             mass_mesh = estimate_mass_from_mesh(stage, path, density=part_density)
             mass_bbox = estimate_mass(bbox, mpu, density=part_density)
             mass = mass_mesh if mass_mesh else mass_bbox
             m_method = "mesh_vol" if mass_mesh else "bbox"
 
-        if m_method == "gemini":
-            # Trust Gemini mass — only apply a soft minimum (0.01kg)
-            mass = max(0.01, mass)
-        else:
+        if m_method != "gemini+skill":
             clamp = MASS_CLAMPS.get(info["joint"], (0.1, 50.0))
             mass = max(clamp[0], min(clamp[1], mass))
         apply_mass(stage, path, mass)
-        print(f"    {name}: dynamic, mass={mass:.2f}kg ({m_method}, density={part_density})")
+        print(f"    {name}: dynamic, mass={mass:.2f}kg ({m_method})")
 
     # --- C2: Collision Shapes ---
     print(f"\n  COLLIDERS:")
