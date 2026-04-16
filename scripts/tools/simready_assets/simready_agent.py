@@ -652,6 +652,64 @@ Test with Franka teleop:
     dbg.print_report()
     dbg.save()
 
+    # ── Auto-push to GitHub ──
+    # Push debug data + classify JSONs + output asset (on PASS/PENDING) to V13 repo.
+    # Never pushes pipeline code changes — only data.
+    V13_REPO = Path(os.path.expanduser("~/v13-simready-pipeline"))
+    try:
+        import subprocess as _sp
+        print(f"\n[Auto-push] Syncing data to GitHub...")
+
+        # Copy debug history
+        repo_debug = V13_REPO / "debug_history"
+        repo_debug.mkdir(exist_ok=True)
+        import shutil as _sh
+        for f in Path(os.path.expanduser("~/SimReady_Debug")).glob("*.json"):
+            _sh.copy2(str(f), str(repo_debug / f.name))
+
+        # Copy classify JSONs
+        repo_classify = V13_REPO / "classify"
+        repo_classify.mkdir(exist_ok=True)
+        classify_dir = OUTPUT_ROOT / "classify"
+        if classify_dir.exists():
+            for f in classify_dir.glob("*.json"):
+                _sh.copy2(str(f), str(repo_classify / f.name))
+
+        # Copy output asset (only if run produced output)
+        if output_usd and Path(str(output_usd)).exists():
+            repo_example = V13_REPO / "examples" / asset_name
+            repo_example.mkdir(parents=True, exist_ok=True)
+            _sh.copy2(str(output_usd), str(repo_example / Path(str(output_usd)).name))
+            # Copy textures
+            tex_src = Path(str(output_usd)).parent / "Textures"
+            tex_dst = repo_example / "Textures"
+            if tex_src.is_dir() and not tex_dst.is_dir():
+                _sh.copytree(str(tex_src), str(tex_dst))
+
+        # Git add + commit + push
+        _sp.run(["git", "add", "debug_history/", "classify/", "examples/"],
+                cwd=str(V13_REPO), capture_output=True)
+        commit_msg = f"data: {dbg.run_id} {asset_name} — {dbg.verdict or 'PENDING'}"
+        result = _sp.run(
+            ["git", "-c", "user.name=therobotsimguy",
+             "-c", "user.email=therobotsimguy@users.noreply.github.com",
+             "commit", "-m", commit_msg],
+            cwd=str(V13_REPO), capture_output=True, text=True)
+        if result.returncode == 0:
+            push = _sp.run(["git", "push", "origin", "main"],
+                          cwd=str(V13_REPO), capture_output=True, text=True)
+            if push.returncode == 0:
+                print(f"  [Auto-push] Pushed: {commit_msg}")
+            else:
+                print(f"  [Auto-push] Commit OK but push failed: {push.stderr[:100]}")
+        else:
+            if "nothing to commit" in result.stdout:
+                print(f"  [Auto-push] No new data to push")
+            else:
+                print(f"  [Auto-push] Commit failed: {result.stderr[:100]}")
+    except Exception as e:
+        print(f"  [Auto-push] Failed: {e}")
+
     print(f"\n{'=' * 70}")
     print("  V13 Pipeline Complete")
     print(f"{'=' * 70}")
@@ -660,6 +718,7 @@ Test with Franka teleop:
         print(f"  Test:")
         print(f"    ./isaaclab.sh -p ~/v13-simready-pipeline/scripts/environments/teleoperation/teleop_se3_agent_cinematic.py --asset {output_usd} --device cpu")
     print(f"  Debug log: ~/SimReady_Debug/{dbg.run_id}_{asset_name}.json")
+    print(f"  GitHub: https://github.com/therobotsimguy/v13-simready-pipeline")
     print(f"{'=' * 70}")
 
 
