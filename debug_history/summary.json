@@ -1,0 +1,95 @@
+{
+  "total_runs": 27,
+  "pass_count": 24,
+  "fail_count": 2,
+  "unlabeled": 1,
+  "by_object_type": {
+    "trolley": {
+      "runs": 7,
+      "pass": 7,
+      "fail": 0
+    },
+    "caliper": {
+      "runs": 13,
+      "pass": 11,
+      "fail": 2
+    },
+    "fridge": {
+      "runs": 6,
+      "pass": 6,
+      "fail": 0
+    },
+    "furniture": {
+      "runs": 1,
+      "pass": 0,
+      "fail": 0
+    }
+  },
+  "by_part_type": {},
+  "skill_effectiveness": {
+    "simready-behaviors": {
+      "times_fired": 2,
+      "in_pass_runs": 1,
+      "in_fail_runs": 0,
+      "overrides": 0,
+      "confirmations": 1,
+      "warnings": 0
+    },
+    "simready-joint-params": {
+      "times_fired": 2,
+      "in_pass_runs": 1,
+      "in_fail_runs": 0,
+      "overrides": 1,
+      "confirmations": 0,
+      "warnings": 0
+    },
+    "failure-modes": {
+      "times_fired": 7,
+      "in_pass_runs": 6,
+      "in_fail_runs": 0,
+      "overrides": 0,
+      "confirmations": 4,
+      "warnings": 2
+    },
+    "robot-model": {
+      "times_fired": 3,
+      "in_pass_runs": 2,
+      "in_fail_runs": 0,
+      "overrides": 0,
+      "confirmations": 1,
+      "warnings": 0
+    },
+    "simready-criteria": {
+      "times_fired": 1,
+      "in_pass_runs": 0,
+      "in_fail_runs": 0,
+      "overrides": 0,
+      "confirmations": 0,
+      "warnings": 0
+    },
+    "simready-collision": {
+      "times_fired": 1,
+      "in_pass_runs": 0,
+      "in_fail_runs": 0,
+      "overrides": 0,
+      "confirmations": 0,
+      "warnings": 0
+    },
+    "simready-mechanism-lookup": {
+      "times_fired": 1,
+      "in_pass_runs": 0,
+      "in_fail_runs": 0,
+      "overrides": 0,
+      "confirmations": 0,
+      "warnings": 0
+    },
+    "usd-physx-schemas": {
+      "times_fired": 1,
+      "in_pass_runs": 0,
+      "in_fail_runs": 0,
+      "overrides": 0,
+      "confirmations": 0,
+      "warnings": 0
+    }
+  }
+}

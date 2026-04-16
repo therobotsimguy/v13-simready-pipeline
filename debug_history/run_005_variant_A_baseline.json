@@ -1,0 +1,13 @@
+{
+  "id": "run_005",
+  "asset": "Caliper_A01_01",
+  "object_type": "caliper",
+  "variant": "variant_A_baseline",
+  "description": "Caliper baseline: kinematic body, convexHull",
+  "timestamp": "2026-04-15T15:36:15",
+  "audit_score": "7/7",
+  "verdict": "PASS",
+  "user_notes": "Works, no noticeable difference between variants at teleop stage",
+  "ab_test": true,
+  "baseline": "run_005"
+}

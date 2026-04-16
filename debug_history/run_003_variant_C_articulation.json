@@ -1,0 +1,13 @@
+{
+  "id": "run_003",
+  "asset": "InstrumentTrolley_B01_01",
+  "object_type": "trolley",
+  "variant": "variant_C_articulation",
+  "description": "ArticulationRootAPI added on default prim",
+  "timestamp": "2026-04-15T15:32:11",
+  "audit_score": "7/7",
+  "verdict": "PASS",
+  "user_notes": "Works, no noticeable difference from baseline at teleop stage",
+  "ab_test": true,
+  "baseline": "run_001"
+}

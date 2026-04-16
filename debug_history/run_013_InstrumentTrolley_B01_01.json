@@ -1,0 +1,11 @@
+{
+  "id": "run_013",
+  "asset": "InstrumentTrolley_B01_01",
+  "object_type": "trolley",
+  "variant": "v13_gemini_mass_fix",
+  "description": "V13 mass fix: Gemini 20kg distributed by volume",
+  "timestamp": "2026-04-15T15:46:23",
+  "audit_score": "7/7",
+  "verdict": "PASS",
+  "user_notes": "Mass fix works, behavior same as baseline"
+}

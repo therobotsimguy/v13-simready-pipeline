@@ -1,0 +1,9 @@
+{
+  "id": "run_017",
+  "asset": "Caliper_A01_01",
+  "object_type": "caliper",
+  "variant": "v13_bidir_limits_5x",
+  "timestamp": "2026-04-15T16:27:12",
+  "verdict": "FAIL",
+  "user_notes": "5x: travels both ways but not full ruler. PhysX doesn't scale prismatic limits with asset_scale. 3x is the correct working scale."
+}

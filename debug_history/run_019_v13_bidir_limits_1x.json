@@ -1,0 +1,10 @@
+{
+  "id": "run_019",
+  "asset": "Caliper_A01_01",
+  "object_type": "caliper",
+  "variant": "v13_bidir_limits_1x",
+  "timestamp": "2026-04-15T16:42:13",
+  "verdict": "PASS",
+  "user_notes": "1x: blade travels full ruler both ways, connected by last overlap at max extension. Physically correct for caliper. Key learning: sliders (light) can have minimal overlap, drawers (heavy) need 20% retention.",
+  "learning": "Two rules needed: slider=full travel (light parts), drawer=85% travel with 20% retention (heavy parts). Pipeline already handles this via is_slider detection."
+}

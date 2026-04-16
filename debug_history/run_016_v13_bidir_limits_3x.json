@@ -1,0 +1,9 @@
+{
+  "id": "run_016",
+  "asset": "Caliper_A01_01",
+  "object_type": "caliper",
+  "variant": "v13_bidir_limits_3x",
+  "timestamp": "2026-04-15T16:27:12",
+  "verdict": "PASS",
+  "user_notes": "Full ruler travel both ways at 3x scale \u2014 correct"
+}

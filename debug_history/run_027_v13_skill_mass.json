@@ -1,0 +1,23 @@
+{
+  "id": "run_027",
+  "asset": "InstrumentTrolley_B01_01",
+  "object_type": "trolley",
+  "variant": "v13_skill_mass_distribution",
+  "timestamp": "2026-04-15T19:44:20",
+  "verdict": "PASS",
+  "user_notes": "Wheels spin much easier. Body 18kg (was 4kg), wheels 0.5kg each (was 4kg). Body damping 10 (was 100). User could push trolley with normal force.",
+  "learning": "Volume-based mass distribution gives wheels too much mass (4kg each). Skill-recommended mass (0.5kg for wheels, body gets remainder) is correct. Also body linearDamping=100 was too sluggish, reduced to 10.",
+  "fix_applied": "SKILL_MASS dict in make_simready.py: continuous=0.5kg, revolute=5kg, prismatic=2kg. Body gets Gemini total minus parts. Body damping 100\u219210, angDamping 200\u219220.",
+  "before": {
+    "body_mass": 4.0,
+    "wheel_mass": 4.0,
+    "body_linDamp": 100,
+    "body_angDamp": 200
+  },
+  "after": {
+    "body_mass": 18.0,
+    "wheel_mass": 0.5,
+    "body_linDamp": 10,
+    "body_angDamp": 20
+  }
+}

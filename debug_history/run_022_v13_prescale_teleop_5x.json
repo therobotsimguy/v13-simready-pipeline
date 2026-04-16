@@ -1,0 +1,10 @@
+{
+  "id": "run_022",
+  "asset": "Caliper_A01_01",
+  "object_type": "caliper",
+  "variant": "v13_prescale_teleop_5x",
+  "timestamp": "2026-04-15T16:50:00",
+  "verdict": "PASS",
+  "user_notes": "5x: FIXED. Pre-scaling prismatic limits in temp USD before spawn. Blade now travels full ruler at 5x. Previous post-spawn scaling caused detachment.",
+  "fix_applied": "teleop pre-scales prismatic limits in temp USD copy before PhysX loads them"
+}

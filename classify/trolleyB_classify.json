@@ -1,0 +1,21 @@
+{
+  "body": "sm_instrumenttrolley_b01_01",
+  "parts": {
+    "sm_wheel_b01_01": {
+      "class": "movable:continuous",
+      "axis": "X"
+    },
+    "sm_wheel_b02_01": {
+      "class": "movable:continuous",
+      "axis": "X"
+    },
+    "sm_wheel_b03_01": {
+      "class": "movable:continuous",
+      "axis": "X"
+    },
+    "sm_wheel_b04_01": {
+      "class": "movable:continuous",
+      "axis": "X"
+    }
+  }
+}

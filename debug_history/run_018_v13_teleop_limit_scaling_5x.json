@@ -1,0 +1,9 @@
+{
+  "id": "run_018",
+  "asset": "Caliper_A01_01",
+  "object_type": "caliper",
+  "variant": "v13_teleop_limit_scaling_5x",
+  "timestamp": "2026-04-15T16:27:12",
+  "verdict": "FAIL",
+  "user_notes": "Attempted to scale joint limits in teleop by 5x \u2014 blade detached completely. Scaling doubled up. Reverted."
+}

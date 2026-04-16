@@ -1,0 +1,13 @@
+{
+  "id": "run_011",
+  "asset": "Refrigerator_A01_01",
+  "object_type": "fridge",
+  "variant": "variant_C_articulation",
+  "description": "ArticulationRootAPI on default prim",
+  "timestamp": "2026-04-15T15:40:25",
+  "audit_score": "7/7",
+  "verdict": "PASS",
+  "user_notes": "Works, all variants functional",
+  "ab_test": true,
+  "baseline": "run_009"
+}

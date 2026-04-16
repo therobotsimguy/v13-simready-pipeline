@@ -1,0 +1,13 @@
+{
+  "id": "run_009",
+  "asset": "Refrigerator_A01_01",
+  "object_type": "fridge",
+  "variant": "variant_A_baseline",
+  "description": "Fridge baseline: 2037kg body, 28kg doors/wheels",
+  "timestamp": "2026-04-15T15:40:25",
+  "audit_score": "7/7",
+  "verdict": "PASS",
+  "user_notes": "Works, all variants functional",
+  "ab_test": true,
+  "baseline": "run_009"
+}

@@ -1,0 +1,53 @@
+{
+  "object_name": "instrument trolley",
+  "object_type": "furniture",
+  "material": "stainless_steel",
+  "material_density_kg_m3": 7800,
+  "estimated_mass_kg": 20.0,
+  "is_articulated": true,
+  "movable_parts": [
+    {
+      "name": "sm_wheel_b01_01",
+      "behavior": "wheel",
+      "motion": "swivels around vertical axis to steer",
+      "range_description": "continuous 360 degrees",
+      "range_meters": 0.0,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_wheel_b02_01",
+      "behavior": "wheel",
+      "motion": "swivels around vertical axis to steer",
+      "range_description": "continuous 360 degrees",
+      "range_meters": 0.0,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_wheel_b03_01",
+      "behavior": "wheel",
+      "motion": "swivels around vertical axis to steer",
+      "range_description": "continuous 360 degrees",
+      "range_meters": 0.0,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_wheel_b04_01",
+      "behavior": "wheel",
+      "motion": "swivels around vertical axis to steer",
+      "range_description": "continuous 360 degrees",
+      "range_meters": 0.0,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    }
+  ],
+  "special_notes": "Caster wheels require two joints for realistic physics: a vertical swivel joint and a horizontal rolling joint. The current USD groups the entire wheel assembly under one Xform, which may need further decomposition to allow the tire to roll independently of the swivel bracket.",
+  "is_graspable": false,
+  "grip_location": "handle bar on one side"
+}

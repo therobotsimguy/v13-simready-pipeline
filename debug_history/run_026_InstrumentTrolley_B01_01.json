@@ -1,0 +1,310 @@
+{
+  "id": "run_026",
+  "asset": "InstrumentTrolley_B01_01",
+  "object_type": "furniture",
+  "timestamp": "2026-04-15T18:41:47",
+  "elapsed_s": 148.31,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 37.41
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 37.41
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 37.41
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 37.41
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 37.41
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 37.41
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 37.41
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 37.41
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.006,
+        "decisions": {
+          "prims": 6
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 19.373,
+        "decisions": {
+          "n_movable_seen": 4
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 18.019,
+        "decisions": {
+          "object_name": "instrument trolley with caster wheels",
+          "mass_kg": 20.0
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.006,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 77.733,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 2.268,
+        "decisions": {
+          "mujoco": "19/20 pass, 1 warn, 0 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 30.896,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.006
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 19.373
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 18.019
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.006
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 77.733
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 2.268
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 30.896
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.001
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 1.0,
+        "masses": {
+          "sm_instrumenttrolley_b01_01": 4.0,
+          "sm_wheel_b01_01": 4.0,
+          "sm_wheel_b02_01": 4.0,
+          "sm_wheel_b03_01": 4.0,
+          "sm_wheel_b04_01": 4.0
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "19/20 pass, 1 warn, 0 fail",
+  "verdict": "PENDING",
+  "user_notes": "Waiting for user test in Isaac Sim",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "instrument trolley with caster wheels",
+    "object_type": "furniture",
+    "material": "stainless_steel",
+    "material_density_kg_m3": 7800,
+    "estimated_mass_kg": 20.0,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_wheel_b01_01",
+        "behavior": "wheel",
+        "motion": "spins around its axle to allow the trolley to roll",
+        "range_description": "continuous rotation",
+        "range_meters": 0.0,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_b02_01",
+        "behavior": "wheel",
+        "motion": "spins around its axle to allow the trolley to roll",
+        "range_description": "continuous rotation",
+        "range_meters": 0.0,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_b03_01",
+        "behavior": "wheel",
+        "motion": "spins around its axle to allow the trolley to roll",
+        "range_description": "continuous rotation",
+        "range_meters": 0.0,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_b04_01",
+        "behavior": "wheel",
+        "motion": "spins around its axle to allow the trolley to roll",
+        "range_description": "continuous rotation",
+        "range_meters": 0.0,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      }
+    ],
+    "special_notes": "Caster wheels typically require both a swivel (Z-axis) and a roll (X/Y-axis) joint. The current hierarchy groups the bracket ('fixer') and the wheel ('tire'/'body') under a single Xform. To simulate full caster behavior, the wheel meshes must be separated from the bracket into nested Xforms.",
+    "is_graspable": false,
+    "grip_location": "handles on the top shelf for pushing/pulling"
+  }
+}

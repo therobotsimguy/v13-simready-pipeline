@@ -1,0 +1,11 @@
+{
+  "id": "run_025",
+  "asset": "Caliper_A01_01",
+  "object_type": "caliper",
+  "variant": "v13_articulation_persistent_3x",
+  "timestamp": "2026-04-15T18:09:30",
+  "verdict": "PASS",
+  "user_notes": "ArticulationRootAPI + bidir slider + Gemini mass at 3x scale. Full ruler travel.",
+  "output_dir": "~/SimReady_Output/caliper",
+  "persistent": true
+}

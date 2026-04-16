@@ -1,0 +1,13 @@
+{
+  "id": "run_010",
+  "asset": "Refrigerator_A01_01",
+  "object_type": "fridge",
+  "variant": "variant_B_mass_fix",
+  "description": "Mass fix: Gemini 200kg (body=168, doors=15, wheels=0.5)",
+  "timestamp": "2026-04-15T15:40:25",
+  "audit_score": "7/7",
+  "verdict": "PASS",
+  "user_notes": "Works, all variants functional",
+  "ab_test": true,
+  "baseline": "run_009"
+}

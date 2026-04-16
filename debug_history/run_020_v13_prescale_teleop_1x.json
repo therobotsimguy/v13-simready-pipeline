@@ -1,0 +1,10 @@
+{
+  "id": "run_020",
+  "asset": "Caliper_A01_01",
+  "object_type": "caliper",
+  "variant": "v13_prescale_teleop_1x",
+  "timestamp": "2026-04-15T16:50:00",
+  "verdict": "PASS",
+  "user_notes": "1x: full ruler travel both ways, pre-scale not needed (no scale applied). Baseline confirmed.",
+  "fix_applied": "teleop pre-scales prismatic limits in temp USD copy before PhysX loads them"
+}

@@ -1,0 +1,297 @@
+{
+  "id": "run_001",
+  "asset": "InstrumentTrolley_B01_01",
+  "object_type": "trolley",
+  "timestamp": "2026-04-15T15:02:54",
+  "elapsed_s": 3.21,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "4 wheel Xforms \u2192 behavior #16 ROLLING \u2192 continuous",
+        "decision": "all 4 wheels \u2192 movable:continuous",
+        "impact": "confirmation",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Cart wheel: damping=2.0, mass=0.2-1.0kg, axis=thin bbox dim",
+        "decision": "damping=2.0 (pipeline default=10.0 for general joints)",
+        "impact": "override",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "F06: fixer/bolts/body/mount in wheel children \u2192 structural",
+        "decision": "Pipeline wheel_split handles this automatically",
+        "impact": "confirmation",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "F09: Wheel axis must come from tire bbox, not LLM",
+        "decision": "Set axis=X as starting point, pipeline auto-detects from geometry",
+        "impact": "warning",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "F15: Anchor = tire center AFTER structural split",
+        "decision": "Pipeline computes tire center post-split",
+        "impact": "confirmation",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "F27: All wheel meshes \u2192 convexDecomposition (not hull)",
+        "decision": "apply_collision_wheels() does this",
+        "impact": "confirmation",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "F23: Wheel mass 0.05-1.0kg range",
+        "decision": "Gemini 20kg/5parts=4kg per wheel \u2014 exceeds F23 range, pipeline clamps",
+        "impact": "warning",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "W01: Bracket must not rotate with wheel",
+        "decision": "split_wheel_structural_parts() moves fixer/bolts/body to body",
+        "impact": "confirmation",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Dynamic trolley body mass must be 5-100kg (F21)",
+        "decision": "Gemini 20kg total \u2192 body ~16kg \u2192 within range",
+        "impact": "confirmation",
+        "elapsed_s": 0.0
+      },
+      {
+        "skill": "robot-model",
+        "reason": "No graspable handles \u2014 trolley is pushed, not grasped",
+        "decision": "No GripMaterial binding needed",
+        "impact": "info",
+        "elapsed_s": 0.0
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 1,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 1,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 6,
+        "overrides": 0,
+        "confirmations": 4,
+        "warnings": 2
+      },
+      "robot-model": {
+        "calls": 2,
+        "overrides": 0,
+        "confirmations": 1,
+        "warnings": 0
+      }
+    },
+    "total_activations": 10,
+    "total_overrides": 1
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 0.0,
+        "decisions": {
+          "object_name": "instrument trolley with caster wheels",
+          "mass_kg": 20.0,
+          "material": "stainless_steel",
+          "n_movable": 4
+        }
+      },
+      {
+        "stage": "classification",
+        "part": null,
+        "elapsed_s": 0.0,
+        "decisions": {
+          "body": "sm_instrumenttrolley_b01_01",
+          "n_movable": 4,
+          "joint_types": [
+            "continuous"
+          ]
+        }
+      },
+      {
+        "stage": "make_simready",
+        "part": null,
+        "elapsed_s": 0.802,
+        "decisions": {
+          "returncode": 0,
+          "audit": "7/7"
+        }
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 2.397,
+        "decisions": {
+          "mujoco": "19/20 pass, 1 warn, 0 fail \u2192 PASS"
+        }
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.012,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 0.0
+      },
+      "classification": {
+        "calls": 1,
+        "total_s": 0.0
+      },
+      "make_simready": {
+        "calls": 1,
+        "total_s": 0.802
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 2.397
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.012
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 15.6,
+        "masses": {
+          "sm_instrumenttrolley_b01_01": 62.58300018310547,
+          "sm_wheel_b01_01": 4.0,
+          "sm_wheel_b02_01": 4.0,
+          "sm_wheel_b03_01": 4.0,
+          "sm_wheel_b04_01": 4.0
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "19/20 pass, 1 warn, 0 fail \u2192 PASS",
+  "verdict": "PASS",
+  "user_notes": "Wheels spin correctly, trolley pushable in Isaac Sim",
+  "issues_found": [],
+  "classification": {
+    "body": "sm_instrumenttrolley_b01_01",
+    "parts": {
+      "sm_wheel_b01_01": {
+        "class": "movable:continuous",
+        "axis": "X"
+      },
+      "sm_wheel_b02_01": {
+        "class": "movable:continuous",
+        "axis": "X"
+      },
+      "sm_wheel_b03_01": {
+        "class": "movable:continuous",
+        "axis": "X"
+      },
+      "sm_wheel_b04_01": {
+        "class": "movable:continuous",
+        "axis": "X"
+      }
+    }
+  },
+  "gemini_output": {
+    "object_name": "instrument trolley with caster wheels",
+    "object_type": "furniture",
+    "material": "stainless_steel",
+    "material_density_kg_m3": 7800,
+    "estimated_mass_kg": 20.0,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_wheel_b01_01",
+        "behavior": "wheel",
+        "motion": "caster assembly swivels around vertical axis",
+        "range_description": "continuous 360 degrees",
+        "range_meters": 0.0,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_b02_01",
+        "behavior": "wheel",
+        "motion": "caster assembly swivels around vertical axis",
+        "range_description": "continuous 360 degrees",
+        "range_meters": 0.0,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_b03_01",
+        "behavior": "wheel",
+        "motion": "caster assembly swivels around vertical axis",
+        "range_description": "continuous 360 degrees",
+        "range_meters": 0.0,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_b04_01",
+        "behavior": "wheel",
+        "motion": "caster assembly swivels around vertical axis",
+        "range_description": "continuous 360 degrees",
+        "range_meters": 0.0,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      }
+    ],
+    "special_notes": "Caster wheels require two joints for realistic physics: a vertical swivel axis and a horizontal rolling axis. The current USD groups the wheel tire and fork under a single Xform, which may require further decomposition to allow the wheels to both swivel and roll independently. The cart is designed to be pushed, not lifted.",
+    "is_graspable": false,
+    "grip_location": "handle bar on the side"
+  }
+}
