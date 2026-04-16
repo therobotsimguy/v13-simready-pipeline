@@ -646,10 +646,31 @@ Test with Franka teleop:
         dbg.run_diagnostics(str(output_usd))
         dbg.end_stage()
 
-    # ── Debugger report + save ──
+    # ── Debugger report (pre-verdict) ──
     dbg.audit_score = "7/7"  # If we got here, agent achieved 7/7
-    dbg.set_verdict("PENDING", "Waiting for user test in Isaac Sim")
     dbg.print_report()
+
+    # ── Terminal verdict collection ──
+    if output_usd:
+        print(f"\n  {'─' * 58}")
+        print(f"  TEST THE ASSET:")
+        print(f"    ./isaaclab.sh -p ~/v13-simready-pipeline/scripts/environments/teleoperation/teleop_se3_agent_cinematic.py \\")
+        print(f"      --asset {output_usd} --device cpu")
+        print(f"  {'─' * 58}")
+        print(f"  Run the command above in another terminal, then come back here.\n")
+
+        try:
+            verdict = ""
+            while verdict not in ("PASS", "FAIL", "SKIP"):
+                verdict = input("  Verdict (PASS / FAIL / SKIP): ").strip().upper()
+            notes = input("  Quick note (or Enter to skip): ").strip()
+            dbg.set_verdict(verdict, notes)
+        except (EOFError, KeyboardInterrupt):
+            print(f"\n  Skipped — verdict set to PENDING")
+            dbg.set_verdict("PENDING", "User skipped verdict")
+    else:
+        dbg.set_verdict("FAIL", "No output USD produced")
+
     dbg.save()
 
     # ── Auto-push to GitHub ──
