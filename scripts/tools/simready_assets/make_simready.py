@@ -1671,6 +1671,209 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     print(f"\n  SAVED: {output_usd}")
 
 
+def export_physics_json(usd_path, object_data=None):
+    """Export Palatial-compatible physics sidecar JSON.
+
+    Reads the physics USD and produces a JSON with:
+    - parts: per-body metadata (mass, bounds, material, friction, description)
+    - joint_relations: parent/child, type, axis, limits, damping, stiffness
+    - base_link, object_description, total_mass
+    """
+    import math
+
+    stage = Usd.Stage.Open(str(usd_path))
+    if not stage:
+        return None
+
+    dp = stage.GetDefaultPrim()
+    parts = []
+    joints_list = []
+    total_mass = 0
+    base_link = None
+
+    # ── Collect parts (rigid bodies) ──
+    part_idx = 0
+    for prim in stage.Traverse():
+        if not prim.HasAPI(UsdPhysics.RigidBodyAPI):
+            continue
+
+        name = prim.GetName()
+        mass_attr = prim.GetAttribute("physics:mass")
+        mass = mass_attr.Get() if mass_attr and mass_attr.HasValue() else 0
+        total_mass += mass
+
+        kin = prim.GetAttribute("physics:kinematicEnabled")
+        is_kin = kin.Get() if kin and kin.HasValue() else False
+
+        # Bounds
+        bmin = [1e30]*3; bmax = [-1e30]*3; found = False
+        for desc in Usd.PrimRange(prim):
+            if desc.GetTypeName() != "Mesh": continue
+            pts = desc.GetAttribute("points")
+            if not pts or not pts.HasValue(): continue
+            l2w = UsdGeom.Xformable(desc).ComputeLocalToWorldTransform(Usd.TimeCode.Default())
+            for pt in pts.Get():
+                wp = l2w.TransformAffine(Gf.Vec3d(float(pt[0]), float(pt[1]), float(pt[2])))
+                for i in range(3):
+                    bmin[i] = min(bmin[i], wp[i])
+                    bmax[i] = max(bmax[i], wp[i])
+                found = True
+
+        bounds = None
+        volume = 0
+        if found:
+            center = [round((bmin[i]+bmax[i])/2, 6) for i in range(3)]
+            bounds = {
+                "center": center,
+                "max": [round(bmax[i], 6) for i in range(3)],
+                "min": [round(bmin[i], 6) for i in range(3)],
+            }
+            w = abs(bmax[0]-bmin[0])
+            d = abs(bmax[1]-bmin[1])
+            h = abs(bmax[2]-bmin[2])
+            volume = w * d * h
+
+        # Friction from material binding
+        sf = df = rest = 0
+        bind = UsdShade.MaterialBindingAPI(prim)
+        phys_bind = bind.GetDirectBinding("physics")
+        if phys_bind and phys_bind.GetMaterialPath():
+            mat_prim = stage.GetPrimAtPath(phys_bind.GetMaterialPath())
+            if mat_prim:
+                sfa = mat_prim.GetAttribute("physics:staticFriction")
+                dfa = mat_prim.GetAttribute("physics:dynamicFriction")
+                ra = mat_prim.GetAttribute("physics:restitution")
+                sf = round(sfa.Get(), 4) if sfa and sfa.HasValue() else 0
+                df = round(dfa.Get(), 4) if dfa and dfa.HasValue() else 0
+                rest = round(ra.Get(), 4) if ra and ra.HasValue() else 0
+
+        # Collider count
+        n_col = sum(1 for d in Usd.PrimRange(prim) if d.HasAPI(UsdPhysics.CollisionAPI))
+
+        # Determine if this is the base link (body/kinematic or first rigid body)
+        if is_kin or (base_link is None and part_idx == 0):
+            base_link = name
+            is_root = True
+        else:
+            is_root = False
+
+        # Material name from Gemini or guess from USD material
+        material_name = "unknown"
+        if object_data:
+            material_name = object_data.get("material", "unknown")
+
+        part = {
+            "canonical_name": name,
+            "part_name": name,
+            "part_index": part_idx,
+            "part_id": name,
+            "material_name": material_name,
+            "material": material_name,
+            "mass": round(mass, 4),
+            "density": 0,
+            "volume": round(volume, 8),
+            "bounds": bounds,
+            "static_friction": sf,
+            "dynamic_friction": df,
+            "restitution": rest,
+            "friction_combine_mode": "average",
+            "restitution_combine_mode": "average",
+            "physics_type": "rigid",
+            "is_structural_root": is_root,
+            "collider_count": n_col,
+            "confidence": "high",
+        }
+        parts.append(part)
+        part_idx += 1
+
+    # ── Collect joints ──
+    for prim in stage.Traverse():
+        if not prim.IsA(UsdPhysics.Joint):
+            continue
+
+        jtype_raw = prim.GetTypeName()
+        jtype = "fixed"
+        if "Revolute" in jtype_raw: jtype = "revolute"
+        elif "Prismatic" in jtype_raw: jtype = "prismatic"
+
+        axis_attr = prim.GetAttribute("physics:axis")
+        axis_val = axis_attr.Get() if axis_attr and axis_attr.HasValue() else ""
+        axis_vec = {"X": [1,0,0], "Y": [0,1,0], "Z": [0,0,1]}.get(axis_val, [])
+
+        lo_attr = prim.GetAttribute("physics:lowerLimit")
+        hi_attr = prim.GetAttribute("physics:upperLimit")
+        lo = lo_attr.Get() if lo_attr and lo_attr.HasValue() else None
+        hi = hi_attr.Get() if hi_attr and hi_attr.HasValue() else None
+        motion_limits = {"min": round(lo, 4), "max": round(hi, 4)} if lo is not None and hi is not None else None
+
+        lp0 = prim.GetAttribute("physics:localPos0")
+        lp0_val = lp0.Get() if lp0 and lp0.HasValue() else None
+        origin = [round(float(lp0_val[i]), 6) for i in range(3)] if lp0_val else [0,0,0]
+
+        b0 = prim.GetRelationship("physics:body0").GetTargets()
+        b1 = prim.GetRelationship("physics:body1").GetTargets()
+        parent = b0[0].name if b0 else ""
+        child = b1[0].name if b1 else ""
+
+        # Drive params
+        damping = stiffness = 0
+        for attr in prim.GetAttributes():
+            n = attr.GetName()
+            if "damping" in n.lower() and "drive" in n.lower() and attr.HasValue():
+                damping = round(attr.Get(), 4)
+            if "stiffness" in n.lower() and "drive" in n.lower() and attr.HasValue():
+                stiffness = round(attr.Get(), 4)
+
+        # Joint friction
+        jf = prim.GetAttribute("physxJoint:jointFriction")
+        friction = round(jf.Get(), 4) if jf and jf.HasValue() else 0
+
+        joint = {
+            "child": child,
+            "parent": parent,
+            "joint_type": jtype,
+            "name": prim.GetName(),
+            "damping": damping,
+            "effort": 0,
+            "friction": friction,
+            "stiffness": stiffness,
+            "velocity": 0,
+            "origin": origin,
+            "axis": axis_vec,
+            "motion_limits": motion_limits,
+            "score": 0.95,
+            "joint_origin_local": origin,
+        }
+        if axis_vec:
+            joint["joint_axis_vector_local"] = axis_vec
+        if jtype == "revolute":
+            joint["revolute_mode"] = "hinge"
+        joints_list.append(joint)
+
+    # ── Build final JSON ──
+    obj_desc = ""
+    if object_data:
+        obj_desc = f"{object_data.get('object_name', 'unknown')}. {object_data.get('special_notes', '')}"
+
+    physics_json = {
+        "parts": parts,
+        "joint_relations": joints_list,
+        "base_link": base_link,
+        "object_description": obj_desc.strip(),
+        "total_mass": round(total_mass, 4),
+        "center_of_mass": None,
+        "inertia": None,
+    }
+
+    # Save next to USD
+    json_path = str(usd_path).replace("_physics.usd", "_physics.json").replace(".usd", "_physics.json")
+    import json as _json
+    with open(json_path, "w") as f:
+        _json.dump(physics_json, f, indent=2)
+    print(f"\n  PHYSICS JSON: {json_path}")
+    return json_path
+
+
 def run(input_usd, fix=False, provider="anthropic", model=None, output_dir=None,
         classify_json=None, dynamic_body=False, object_json=None):
     """Main entry point: audit, optionally classify + fix."""
@@ -1761,6 +1964,13 @@ def run(input_usd, fix=False, provider="anthropic", model=None, output_dir=None,
     n_col = sum(1 for p in final_stage.Traverse() if p.HasAPI(UsdPhysics.CollisionAPI))
     n_joints = sum(1 for p in final_stage.Traverse() if "Joint" in p.GetTypeName())
     print(f"\n  SUMMARY: {n_rigid} rigid bodies, {n_col} colliders, {n_joints} joints")
+
+    # V13: Physics JSON sidecar (Palatial-compatible)
+    obj_data = None
+    if object_json and os.path.exists(object_json):
+        with open(object_json) as f:
+            obj_data = json.load(f)
+    export_physics_json(output_usd, object_data=obj_data)
 
     # Ready-to-run commands
     abs_output = os.path.abspath(output_usd)
