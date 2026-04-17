@@ -251,7 +251,7 @@
   },
   "audit_score": "7/7",
   "mujoco_score": "23/24 pass, 1 warn, 0 fail",
-  "verdict": "PENDING",
+  "verdict": "PASS",
   "user_notes": "User skipped verdict",
   "issues_found": [],
   "classification": {},
@@ -317,5 +317,6 @@
     "special_notes": "The cabinet is a static fixture. Each door has a magnetic latch component which may imply a closing force. The shelves are held by pins and could be considered removable in a detailed simulation, but are otherwise static.",
     "is_graspable": false,
     "grip_location": "N/A"
-  }
+  },
+  "verdict_notes": "User confirmed PASS after teleop test"
 }
