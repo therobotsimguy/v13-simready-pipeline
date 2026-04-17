@@ -1,0 +1,17 @@
+{
+  "run_id": "run_032_EmergencyTrolley_A01_01",
+  "asset_name": "EmergencyTrolley_A01_01",
+  "timestamp": "2026-04-17T00:30:00",
+  "input_usd": "/home/msi/SimReady_Output/raw_challenge_assets/EmergencyTrolley_A01_01.usd",
+  "output_dir": "~/SimReady_Output/simready/EmergencyTrolley_A01_01",
+  "audit_score": "7/7",
+  "mujoco_score": "CRASHED (KeyError warn_count, now fixed in commit 51a086d)",
+  "urdf_export": "FAILED \u2014 USD\u2192URDF conversion error",
+  "verdict": "FAIL",
+  "verdict_notes": "Wheels detached from trolley body at physics init, sitting around the trolley. Joint anchors for wheel attachment not placed at wheel pivots. Same class of bug as earlier trolley variants A/B/C/D.",
+  "symptoms": [
+    "wheels_detached",
+    "wheel_joint_anchors_incorrect"
+  ],
+  "suspected_root_cause": "make_simready.py wheel joint creation places joint anchor at wrong local position \u2014 not at the wheel axle."
+}
