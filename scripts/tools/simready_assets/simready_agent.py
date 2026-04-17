@@ -368,18 +368,43 @@ ambiguous names. Gemini can see handles, hinges, and materials you can't
 infer from prim names alone.
 
 1. Identify the BODY — the main structural Xform (largest, most meshes/vertices).
-2. For each Xform child of the body (or default prim), classify:
+2. For each Xform in the hierarchy, classify:
    - Door/lid/flap (hinged): "movable:revolute" + axis (Z=vertical hinge, X=horizontal)
    - Drawer/slider: "movable:prismatic" + axis (Y=depth, X=lateral)
    - Wheel/caster: "movable:continuous" + axis (thin bbox dimension = axle)
+   - Kinematic-chain link (boom arm, robot arm segment): "movable:revolute" or "movable:prismatic" + parent
    - Shelf/divider/interior: "structural"
    - Bolts/clips/LEDs/logos: "decorative"
 3. Use name AND geometry (bbox, mesh count, pivot ops) to decide.
-4. Only DIRECT children of body can be movable. Grandchildren are structural.
-5. Output ONLY valid JSON. No markdown fences, no explanation.
+4. Declare a "parent" for every movable:
+   - Flat topology (wheels on trolley, doors on fridge): parent = body.
+   - Serial chain (arm segments, nested pivots): parent = the movable it hinges to. Walk the pivot chain Gemini identified.
+   - If unsure, default parent = body.
+5. Grandchildren CAN be movable ONLY when declared as a kinematic-chain link with a movable parent (not body). Otherwise treat grandchildren as structural (PhysX swallows them silently).
+6. Output ONLY valid JSON. No markdown fences, no explanation.
 
 ## Output Format
-{{"body": "<body_xform_name>", "parts": {{"<part>": {{"class": "movable:revolute", "axis": "Z"}}, "<part>": {{"class": "structural"}}}}}}
+{{"body": "<body_xform_name>", "parts": {{"<part>": {{"class": "movable:revolute", "axis": "Z", "parent": "<parent_name_or_body>"}}, "<part>": {{"class": "structural"}}}}}}
+
+## Kinematic-Chain Example (medical boom arm)
+Hierarchy:
+  body
+  ├── base                (structural mount)
+  └── mechanism [pivot]
+      └── arm [pivot]
+          └── column [pivot]
+              ├── plate1 [pivot]
+              └── plate2 [pivot]
+
+Correct output:
+{{"body": "body", "parts": {{
+  "base":      {{"class": "structural"}},
+  "mechanism": {{"class": "movable:revolute", "axis": "Z", "parent": "body"}},
+  "arm":       {{"class": "movable:revolute", "axis": "Y", "parent": "mechanism"}},
+  "column":    {{"class": "movable:revolute", "axis": "Z", "parent": "arm"}},
+  "plate1":    {{"class": "movable:revolute", "axis": "Y", "parent": "column"}},
+  "plate2":    {{"class": "movable:revolute", "axis": "Y", "parent": "column"}}
+}}}}
 
 ## Pre-Flight Checks (MUST verify before output)
 - F05: Every part name you output must exist in the hierarchy above
@@ -387,7 +412,8 @@ infer from prim names alone.
 - F07: Movable keywords (door/drawer/wheel/lid/flap) → movable
 - F08: Joint type matches part type (hinged=revolute, sliding=prismatic, spinning=continuous)
 - F09: Axis matches physics (vertical hinge=Z, horizontal=X, wheel=thin bbox dimension)
-- F10: No grandchildren classified as movable"""
+- F10: Every movable has a "parent" field; parent is either "body" or another movable's name
+- F11: If Gemini lists N movable_parts nested in hierarchy, produce N movables with declared parent chain (do NOT collapse to 1)"""
 
     auditor_system = f"""You are a SimReady audit diagnostician.
 When a USD asset fails the 7-criteria audit after make_simready.py --fix, you diagnose
@@ -428,7 +454,22 @@ Or if not fixable:
 {{"diagnosis": "what failed and why",
   "fixable": false,
   "pipeline_issue": "description of the bug"
-}}"""
+}}
+
+## Serial-Chain Fix Pattern
+
+If the audit reports `C5 CHAIN COLLAPSE: classifier declared N movable parts
+but only M joints produced`, the previous classify.json was missing the
+`"parent"` field for kinematic-chain links (boom arms, robot arms, support
+arms). The corrected classification MUST include a `"parent"` field per
+movable — either `"body"` or the name of another movable that the link
+hinges to. Example:
+
+{{"parts": {{
+  "mechanism": {{"class": "movable:revolute", "axis": "Z", "parent": "body"}},
+  "arm":       {{"class": "movable:revolute", "axis": "Y", "parent": "mechanism"}},
+  "column":    {{"class": "movable:revolute", "axis": "Z", "parent": "arm"}}
+}}}}"""
 
     options = ClaudeAgentOptions(
         model="claude-opus-4-6",

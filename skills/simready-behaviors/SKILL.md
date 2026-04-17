@@ -72,14 +72,16 @@ maps each part to a behavior from the tables above.
 {
   "body": "<name of the main body Xform>",
   "parts": {
-    "<part_name>": {"joint": "revolute", "axis": "Z"},
-    "<part_name>": {"joint": "prismatic", "axis": "Y"},
-    "<part_name>": {"joint": "continuous", "axis": "X"},
-    "<part_name>": {"joint": "fixed"},
+    "<part_name>": {"joint": "revolute", "axis": "Z", "parent": "body"},
+    "<part_name>": {"joint": "prismatic", "axis": "Y", "parent": "body"},
+    "<part_name>": {"joint": "continuous", "axis": "X", "parent": "body"},
+    "<part_name>": {"joint": "fixed",  "parent": "body"},
     "<part_name>": {"joint": "structural"}
   }
 }
 ```
+
+The `"parent"` field names either `"body"` (default; flat fan-out — wheels on a trolley, doors on a fridge) or another movable in the same manifest (serial kinematic chain — boom arm segments, robot-arm links). See **usd-physx-schemas → Serial Kinematic Chains** for the flat-reparent + chained-body0 pattern that `make_simready.py` applies. Omitting the field is treated as `"parent": "body"`.
 
 ### Behavior to joint mapping
 

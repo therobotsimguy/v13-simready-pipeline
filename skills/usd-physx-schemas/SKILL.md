@@ -167,7 +167,7 @@ Properties extracted from Isaac Sim's PhysxSchema module. These EXTEND the base 
 | RigidBodyAPI | MassAPI | **WORKS** | MassAPI overrides auto-computed mass. Can apply on body or child meshes. |
 | RigidBodyAPI | kinematicEnabled=true | **WORKS** | Body follows animated pose, pushes dynamic bodies with infinite mass. |
 | RigidBodyAPI (parent) | RigidBodyAPI (child) | **CAUTION** | USD spec says nested rigid body creates independent subtree. **PhysX behavior differs**: child body is merged into parent in many cases. Reparent to siblings instead. |
-| RigidBodyAPI (grandchild) | — | **BREAKS SILENTLY** | PhysX swallows grandchild rigid bodies. They become part of the nearest ancestor rigid body. F11 in failure-modes. |
+| RigidBodyAPI (grandchild) | — | **BREAKS SILENTLY** | PhysX swallows grandchild rigid bodies. They become part of the nearest ancestor rigid body. F11 in failure-modes. **Mitigation for kinematic chains (boom arms, robot arms): flatten all chain links as siblings of the body via `reparent_prims_preserve_world_xform`, then wire each joint's `body0` to its declared parent link (not the body). See "Serial Kinematic Chains" below.** |
 | ArticulationRootAPI | kinematicEnabled=true | **BREAKS SILENTLY** | Articulation links CANNOT be kinematic (PhysX restriction). The body won't move. Use FixedJoint to world instead. |
 | ArticulationRootAPI | RigidBodyAPI (same prim) | **WORKS** | Standard for floating-base articulation root. |
 | ArticulationRootAPI | Flat sibling hierarchy | **WORKS** | Our pipeline pattern: body + parts as siblings under /root, ArticulationRootAPI on /root or body. |
@@ -236,6 +236,67 @@ Properties extracted from Isaac Sim's PhysxSchema module. These EXTEND the base 
 | **Floating** | Default (no flag) | Root moves freely | Mobile robot, ragdoll |
 
 **Fixed-base is superior to FixedJoint-to-world** because the immovable property is solved perfectly, not approximately.
+
+## Serial Kinematic Chains (boom arms, robot arms, articulated support)
+
+The V13 pipeline default pattern — **reparent all movables as flat siblings of the body, hinge every joint to the body** — works for *flat fan-out* assets (trolleys with wheels, fridges with doors, cabinets with drawers). It **catastrophically fails for serial chains**, where a child's joint must hinge to its moving parent, not to the fixed body.
+
+### Failure Mode: collapsed chain
+
+Original hierarchy (medical boom arm):
+```
+body
+├── base                (structural mount)
+└── mechanism [pivot]   (yaw at wall)
+    └── arm [pivot]     (elbow pitch)
+        └── column [pivot]  (wrist yaw)
+            ├── plate1 [pivot]   (tilt)
+            └── plate2 [pivot]   (tilt)
+```
+
+With the *grandchildren-are-structural* rule, the classifier produces only `mechanism → revolute`. The arm, column, and plates collapse into the mechanism body, their pivots ignored. Symptom in teleop: arm bends once at the base and everything downstream is rigid. If mass is unbalanced, colliders can fall through the ground because most geometry has no body of its own.
+
+### Fix: declared parent chain
+
+The classifier must output a `"parent"` field per movable naming either `"body"` or another movable. Chain links declare each other as parent; flat parts declare `body`.
+
+```json
+{
+  "body": "root",
+  "parts": {
+    "base":      {"class": "structural"},
+    "mechanism": {"class": "movable:revolute", "axis": "Z", "parent": "body"},
+    "arm":       {"class": "movable:revolute", "axis": "Y", "parent": "mechanism"},
+    "column":    {"class": "movable:revolute", "axis": "Z", "parent": "arm"},
+    "plate1":    {"class": "movable:revolute", "axis": "Y", "parent": "column"},
+    "plate2":    {"class": "movable:revolute", "axis": "Y", "parent": "column"}
+  }
+}
+```
+
+`make_simready.py` then:
+
+1. **Reparents every movable to a sibling of the body** (flat physical layout — safe for PhysX, no nested rigid bodies). Deepest paths flatten first; world pose preserved via local = inv(new_parent_world) × world.
+2. **Wires each joint** with `body0 = movables[parent_name]["path"]` instead of the hard-coded body path. `body1 = path` unchanged.
+3. **Skips the nested-movable guard** when the declared parent matches the enclosing movable (valid chain). Undeclared nesting still deletes the inner movable as structural.
+4. **Continuous joints (wheels) always attach to body** regardless of parent declaration — wheels don't chain.
+
+### Rules of thumb
+
+| Topology | Signal | Parent field |
+|---|---|---|
+| Flat fan-out | Gemini lists movables that are all direct children of the body | omit or `"body"` |
+| Serial chain | Gemini lists movables nested multiple levels deep, each with its own pivot | walk the pivot chain, declare each link's immediate movable ancestor |
+| Mixed (boom arm on a rolling cart) | Some movables direct-child, some nested | flat ones → `"body"`; chain links → their ancestor |
+
+### Validation
+
+After build, audit should confirm:
+- Every classified movable has a corresponding joint (no collapse).
+- Every joint's `body0` resolves to either the body prim or another movable's reparented path.
+- No movable is a grandchild of the default prim in the output USD (all flat).
+
+If `len(classification.movable_parts) > len(joints_in_USD)`, the chain got collapsed — check the classifier's parent declarations and the nested-movable guard in `make_simready.py`.
 
 ## Joint Schema Details
 

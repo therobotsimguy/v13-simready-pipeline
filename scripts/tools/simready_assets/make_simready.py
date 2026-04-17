@@ -54,8 +54,14 @@ FRICTION_TABLE = {
 # PHASE 1 — AUDIT
 # ═══════════════════════════════════════════════════════════════════
 
-def audit(stage):
-    """Check all 7 SimReady criteria. Returns dict of criterion -> {pass, details}."""
+def audit(stage, classification=None):
+    """Check all 7 SimReady criteria. Returns dict of criterion -> {pass, details}.
+
+    When `classification` is provided, C5 also verifies every classified
+    movable part produced a joint — catches serial-chain collapse where the
+    classifier declared N links but only 1 joint survived (e.g. boom arm
+    before the declared-parent fix).
+    """
     results = {}
 
     rigid_bodies = []
@@ -407,15 +413,35 @@ def audit(stage):
             c5_detail += (f" — {len(backward_drawers)} drawer(s) open the wrong direction "
                           f"(e.g. {backward_drawers[0]}) — check prismatic direction-selection "
                           f"compares in body-local frame, not world")
+        # Serial-chain collapse: classifier declared N movables but pipeline
+        # produced fewer joints. Root cause: nested movables dropped without
+        # declared "parent" chain, or classifier omitted parent field entirely.
+        # See usd-physx-schemas: Serial Kinematic Chains.
+        if classification is not None:
+            expected_movable = sum(
+                1 for spec in classification.get("parts", {}).values()
+                if str(spec.get("class", "")).startswith("movable:")
+            )
+            if len(joints) < expected_movable:
+                c5_pass = False
+                c5_detail += (f" — CHAIN COLLAPSE: classifier declared {expected_movable} "
+                              f"movable parts but only {len(joints)} joints produced "
+                              f"— check parent field in classify.json (see "
+                              f"usd-physx-schemas: Serial Kinematic Chains)")
     else:
         c5_pass = True
         c5_detail = "no movable parts — joints N/A"
     results["C5 Joints"] = {"pass": c5_pass, "detail": c5_detail, "na": not has_movables}
 
     # C6: Joint Drives + stiffness/damping validation (F18, F32)
+    # FixedJoints are 0-DOF and do not need drives — exclude them from the
+    # expected count (required for welded structural links in serial chains,
+    # e.g. plate1 rigidly attached to a column so it forms a non-adjacent
+    # sibling for the sliding plate2 to collide with).
     if joints:
-        c6_pass = len(drives) >= len(joints)
-        c6_detail = f"{len(drives)} drives for {len(joints)} joints"
+        joints_needing_drive = [j for j in joints if j.get("type") != "PhysicsFixedJoint"]
+        c6_pass = len(drives) >= len(joints_needing_drive)
+        c6_detail = f"{len(drives)} drives for {len(joints_needing_drive)} DOF joints ({len(joints)} total, {len(joints)-len(joints_needing_drive)} fixed)"
         # F18: Check stiffness=0 on all drives (non-zero jams doors)
         # F32: Check damping>0 on all drives (zero causes oscillation)
         for prim in stage.Traverse():
@@ -1037,8 +1063,12 @@ def apply_collision_q1(stage, xform_path, is_body=False):
     """Apply CollisionAPI: decomp on large concave body meshes, hull on small parts.
 
     For body: recurse into all descendant meshes.
-    For movable parts: direct child meshes only — interior sub-Xform meshes
-    (door shelves, rack bins) would clip with body internals when closed.
+    For movable parts: direct child meshes PLUS descendants of any structural
+    child Xforms (welded attachments like a plate rigidly bolted to a column).
+    Other rigid-body child Xforms are skipped — they have their own collision.
+    Interior sub-Xform meshes (door shelves, rack bins) that belong to
+    a rigid body descendant stay out, preventing them from clipping with
+    body internals when closed.
     """
     prim = stage.GetPrimAtPath(xform_path)
     if not prim:
@@ -1047,11 +1077,26 @@ def apply_collision_q1(stage, xform_path, is_body=False):
     if is_body:
         meshes = [(m, _mesh_vert_count(m)) for m in _get_all_descendant_meshes(prim)]
     else:
-        raw = [m for m in prim.GetChildren() if m.GetTypeName() == "Mesh"]
-        raw = _filter_movable_collision_meshes(raw)
+        # Direct Mesh children of the movable — filter interior/rail hardware
+        # substrings ('frame', 'mechanism', etc.) to avoid clipping.
+        direct_meshes = [m for m in prim.GetChildren() if m.GetTypeName() == "Mesh"]
+        direct_meshes = _filter_movable_collision_meshes(direct_meshes)
+        # Structural child Xforms (welded attachments without RigidBodyAPI):
+        # include all their descendant meshes UNFILTERED — a plate welded to
+        # a column carries its 'frame' mesh as actual collision geometry, not
+        # rail hardware. Filtering drops the plate body.
+        structural_meshes = []
+        for child in prim.GetChildren():
+            if child.GetTypeName() != "Xform":
+                continue
+            if child.HasAPI(UsdPhysics.RigidBodyAPI):
+                continue
+            structural_meshes.extend(_get_all_descendant_meshes(child))
+        raw = direct_meshes + structural_meshes
         meshes = [(m, _mesh_vert_count(m)) for m in raw]
-        # Fallback: if no direct Mesh children (deeply nested Xform→Xform→Mesh),
-        # search recursively. Common on small tools (scissors, forceps).
+        # Fallback: if no meshes at all (deeply nested Xform→Xform→Mesh under
+        # the movable itself), search recursively. Common on small tools
+        # (scissors, forceps).
         if not meshes:
             raw = list(_get_all_descendant_meshes(prim))
             raw = _filter_movable_collision_meshes(raw)
@@ -1393,7 +1438,12 @@ def resolve_body_xform(stage, default_prim, body_name):
 
 
 def resolve_movable_parts(stage, body_path, dp_path, classification):
-    """Resolve classified movable parts to prim paths and joint info."""
+    """Resolve classified movable parts to prim paths and joint info.
+
+    Each movable carries a "parent" name (classifier output, default "body")
+    used to wire serial kinematic chains. Joint body0 will be the parent's
+    prim path (after reparent), not the hard-coded body for every joint.
+    """
     movables = {}
     for name, spec in classification["parts"].items():
         cls = spec.get("class", "")
@@ -1402,6 +1452,7 @@ def resolve_movable_parts(stage, body_path, dp_path, classification):
 
         joint_type = cls.split(":")[1]
         axis = spec.get("axis", "Z" if joint_type == "revolute" else "Y")
+        parent_name = spec.get("parent", "body")
 
         path = body_path.AppendChild(name)
         if not stage.GetPrimAtPath(path).IsValid():
@@ -1415,7 +1466,12 @@ def resolve_movable_parts(stage, body_path, dp_path, classification):
             print(f"  WARNING: Part '{name}' not found in USD, skipping")
             continue
 
-        movables[name] = {"path": path, "joint": joint_type, "axis": axis}
+        movables[name] = {
+            "path": path,
+            "joint": joint_type,
+            "axis": axis,
+            "parent": parent_name,
+        }
     return movables
 
 
@@ -1489,16 +1545,28 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     body_path = resolve_body_xform(stage, default_prim, classification["body"])
     movables = resolve_movable_parts(stage, body_path, dp_path, classification)
 
-    # Guard: skip movables nested inside other movables (physically wrong —
-    # they'd get jointed to body instead of their parent movable)
+    # Guard: skip movables nested inside other movables ONLY when the nesting
+    # is undeclared. A nested movable with a valid "parent" field pointing at
+    # the enclosing movable is a kinematic-chain link (boom arms, robot arms)
+    # — keep it; its joint will hinge to the declared parent after reparent.
     movable_path_strs = {str(info["path"]) for info in movables.values()}
-    nested = [name for name, info in movables.items()
-              if any(str(info["path"]).startswith(mp + "/")
-                     for mp in movable_path_strs - {str(info["path"])})]
-    if nested:
-        print(f"\n  NESTED MOVABLES (treating as structural — move with parent):")
-        for name in nested:
-            print(f"    {name}")
+    name_by_path = {str(info["path"]): name for name, info in movables.items()}
+    nested_undeclared = []
+    for name, info in movables.items():
+        enclosing_paths = [mp for mp in movable_path_strs - {str(info["path"])}
+                           if str(info["path"]).startswith(mp + "/")]
+        if not enclosing_paths:
+            continue
+        parent_name = info.get("parent", "body")
+        # Valid chain: declared parent matches an enclosing movable
+        enclosing_names = {name_by_path[p] for p in enclosing_paths}
+        if parent_name in enclosing_names:
+            continue
+        nested_undeclared.append(name)
+    if nested_undeclared:
+        print(f"\n  NESTED MOVABLES without declared parent chain (treating as structural — move with parent):")
+        for name in nested_undeclared:
+            print(f"    {name} (parent='{movables[name].get('parent','body')}')")
             del movables[name]
 
     print(f"\n  Body: {body_path}")
@@ -1691,9 +1759,16 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
 
     for name, info in movables.items():
         is_wheel = info["joint"] == "continuous"
+        # Fixed-joint movables are welded structural links (e.g. a plate
+        # rigidly attached to a column so a sibling prismatic can collide
+        # with it). They need full mesh coverage — skip the rail-keyword
+        # filter and descend all meshes, matching body collision treatment.
+        is_fixed = info["joint"] == "fixed"
         if is_wheel:
             n_col = apply_collision_wheels(stage, info["path"])
             n_d = n_col
+        elif is_fixed:
+            n_col, n_d = apply_collision_q1(stage, info["path"], is_body=True)
         else:
             n_col, n_d = apply_collision_q1(stage, info["path"], is_body=False)
         total_decomp += n_d
@@ -1714,33 +1789,51 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
         axis = info["axis"]
         joint_path = joints_scope.AppendChild(f"{name}_joint")
 
+        # Resolve parent link. Default = body. For serial chains (boom arms,
+        # robot arms) the classifier declares "parent" pointing at another
+        # movable — joint body0 becomes that movable's reparented path so
+        # joints hinge to their parent link, not always to the body.
+        parent_name = info.get("parent", "body")
+        if parent_name == "body" or parent_name not in movables:
+            parent_path = body_path
+            parent_bbox = body_bbox
+        else:
+            parent_path = movables[parent_name]["path"]
+            parent_bbox = mesh_world_bbox(stage, parent_path) or body_bbox
+
         anchor = saved_anchors[name]
-        lp0 = world_point_to_local(stage, body_path, anchor)
+        lp0 = world_point_to_local(stage, parent_path, anchor)
         lp0_f = Gf.Vec3f(float(lp0[0]), float(lp0[1]), float(lp0[2]))
         lp1 = world_point_to_local(stage, path, anchor)
         lp1_f = Gf.Vec3f(float(lp1[0]), float(lp1[1]), float(lp1[2]))
 
         if jtype == "revolute":
             hinge = detect_hinge_edge(stage, path, anchor_world=anchor)
-            make_revolute_joint(stage, joint_path, body_path, path,
+            make_revolute_joint(stage, joint_path, parent_path, path,
                                 lp0_f, lp1_f, axis=axis, hinge_edge=hinge)
-            print(f"    RevoluteJoint  {name}  axis={axis} hinge={hinge}")
+            print(f"    RevoluteJoint  {name}  axis={axis} hinge={hinge} parent={parent_name}")
         elif jtype == "prismatic":
+            # For prismatic joints, travel is computed against the PARENT
+            # link's bbox (not the root body). In flat fan-out assets
+            # parent_bbox == body_bbox so behavior is unchanged; for serial
+            # chains (e.g. a height-adjust plate sliding on a column) the
+            # slide range is correctly scoped to the column, not the whole
+            # fixture.
             bbox = mesh_world_bbox(stage, path)
             axis_idx = {"X": 0, "Y": 1, "Z": 2}[axis]
             part_depth = abs(bbox[1][axis_idx] - bbox[0][axis_idx]) if bbox else 0.4
-            body_depth = abs(body_bbox[1][axis_idx] - body_bbox[0][axis_idx]) if body_bbox else part_depth
-            # Use the overlap region between part and body on the slide axis.
-            # For overlapping parts (caliper blade over ruler), the useful travel
-            # is how far the part can slide before exiting the body.
-            if bbox and body_bbox:
-                overlap_min = max(bbox[0][axis_idx], body_bbox[0][axis_idx])
-                overlap_max = min(bbox[1][axis_idx], body_bbox[1][axis_idx])
+            body_depth = abs(parent_bbox[1][axis_idx] - parent_bbox[0][axis_idx]) if parent_bbox else part_depth
+            # Use the overlap region between part and parent on the slide axis.
+            # For overlapping parts (caliper blade over ruler, plate on column),
+            # the useful travel is how far the part can slide before exiting
+            # the parent.
+            if bbox and parent_bbox:
+                overlap_min = max(bbox[0][axis_idx], parent_bbox[0][axis_idx])
+                overlap_max = min(bbox[1][axis_idx], parent_bbox[1][axis_idx])
                 overlap = max(0, overlap_max - overlap_min)
                 if overlap > 0 and overlap < part_depth * 0.95:
-                    # Part overlaps body partially (caliper, sliding tool) —
-                    # use full overlap as travel (not 85%), since the useful
-                    # range IS the overlap region
+                    # Part overlaps parent partially (caliper, sliding tool,
+                    # plate on column) — use full overlap as travel.
                     depth = overlap
                 else:
                     depth = min(part_depth, body_depth)
@@ -1748,15 +1841,20 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                 depth = min(part_depth, body_depth)
             # If drawer has rail mechanism meshes, limit travel to maintain
             # rail-track overlap (rail must not fully exit the body track).
+            # Only applies to flat-topology prismatic (drawer in cabinet);
+            # chained prismatics like a plate sliding on a column routinely
+            # contain 'frame'/'mechanism' meshes that are part structure, not
+            # rail hardware — false-positive caps travel to a few cm.
             has_rail = False
-            drawer_prim = stage.GetPrimAtPath(path)
-            if drawer_prim:
-                for child in Usd.PrimRange(drawer_prim):
-                    if child.IsA(UsdGeom.Mesh) and any(
-                            kw in child.GetName().lower() for kw in _DRAWER_RAIL_KEYWORDS):
-                        has_rail = True
-                        break
-            is_overlap_travel = (bbox and body_bbox and overlap > 0 and overlap < part_depth * 0.95)
+            if parent_name == "body":
+                drawer_prim = stage.GetPrimAtPath(path)
+                if drawer_prim:
+                    for child in Usd.PrimRange(drawer_prim):
+                        if child.IsA(UsdGeom.Mesh) and any(
+                                kw in child.GetName().lower() for kw in _DRAWER_RAIL_KEYWORDS):
+                            has_rail = True
+                            break
+            is_overlap_travel = (bbox and parent_bbox and overlap > 0 and overlap < part_depth * 0.95)
             if has_rail:
                 travel = depth * 0.45   # ~45% of total depth keeps rail overlapped
                 print(f"    (rail detected — limiting travel to {travel:.3f}m for overlap)")
@@ -1765,78 +1863,100 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                 print(f"    (overlap-based travel: {travel:.3f}m = full ruler/slide range)")
             else:
                 travel = depth * 0.85
-            # Detect slider vs drawer: a slider (caliper, measuring tool)
-            # spans nearly the FULL body length on the slide axis (>70%).
-            # A drawer is much shorter than the body. Sliders need
-            # bidirectional limits; drawers need one-directional.
+            # Detect slider vs drawer: a slider (caliper, measuring tool, or
+            # column height-slide) spans nearly the FULL parent length on the
+            # slide axis (>70%). A drawer is much shorter than the parent.
+            # Sliders need bidirectional limits; drawers need one-directional.
             is_slider = False
-            if bbox and body_bbox:
+            if bbox and parent_bbox:
                 part_extent = abs(bbox[1][axis_idx] - bbox[0][axis_idx])
-                body_extent = abs(body_bbox[1][axis_idx] - body_bbox[0][axis_idx])
-                if body_extent > 0:
-                    span_ratio = part_extent / body_extent
+                parent_extent = abs(parent_bbox[1][axis_idx] - parent_bbox[0][axis_idx])
+                if parent_extent > 0:
+                    span_ratio = part_extent / parent_extent
                     if span_ratio > 0.9:
                         is_slider = True
 
-            if is_slider:
-                # V13: Slider travels full body length, both directions.
-                # The driving part slides along the body (ruler). It can go
-                # left until its outer end (part_hi) reaches body_lo, and
-                # right until its inner end (part_lo) reaches body_hi.
-                if bbox and body_bbox:
-                    body_lo = body_bbox[0][axis_idx]
-                    body_hi = body_bbox[1][axis_idx]
-                    part_lo = bbox[0][axis_idx]  # inner end (jaw)
-                    part_hi = bbox[1][axis_idx]  # outer end
+            # Chained slider: part is small relative to its (non-body) parent
+            # and slides ALONG the parent (e.g. plate on a column). Travel is
+            # the remaining space above/below the part within the parent,
+            # computed bidirectionally from the part's current position.
+            is_chain_slider = (
+                parent_name != "body"
+                and bbox and parent_bbox
+                and abs(parent_bbox[1][axis_idx] - parent_bbox[0][axis_idx]) > 0
+                and (abs(bbox[1][axis_idx] - bbox[0][axis_idx])
+                     / abs(parent_bbox[1][axis_idx] - parent_bbox[0][axis_idx])) < 0.5
+            )
 
-                    # Slide right: inner end (part_lo) reaches body far end
-                    upper_m = body_hi - part_lo
-                    # Slide left: outer end (part_hi) reaches body near end
-                    lower_m = body_lo - part_hi
+            if is_chain_slider:
+                parent_lo = parent_bbox[0][axis_idx]
+                parent_hi = parent_bbox[1][axis_idx]
+                part_lo = bbox[0][axis_idx]
+                part_hi = bbox[1][axis_idx]
+                # Up/positive = room above the part; down/negative = room below.
+                upper_m = max(0.0, parent_hi - part_hi)
+                lower_m = min(0.0, parent_lo - part_lo)
+                travel = upper_m - lower_m
+                parent_len = parent_hi - parent_lo
+                print(f"    (chain slider — along parent axis: [{lower_m:.3f}, {upper_m:.3f}]m = {travel*100:.0f}cm, parent={parent_len*100:.0f}cm)")
+            elif is_slider:
+                # V13: Slider travels full parent length, both directions.
+                # The driving part slides along the parent (ruler, caliper).
+                # It can go left until its outer end reaches parent_lo,
+                # and right until its inner end reaches parent_hi.
+                if bbox and parent_bbox:
+                    parent_lo = parent_bbox[0][axis_idx]
+                    parent_hi = parent_bbox[1][axis_idx]
+                    part_lo = bbox[0][axis_idx]
+                    part_hi = bbox[1][axis_idx]
 
-                    body_len = body_hi - body_lo
+                    upper_m = parent_hi - part_lo
+                    lower_m = parent_lo - part_hi
+
+                    parent_len = parent_hi - parent_lo
                     travel = upper_m - lower_m
-                    print(f"    (slider — full ruler travel both ways: [{lower_m:.3f}, {upper_m:.3f}]m = {travel*100:.0f}cm, body={body_len*100:.0f}cm)")
+                    print(f"    (slider — full parent travel both ways: [{lower_m:.3f}, {upper_m:.3f}]m = {travel*100:.0f}cm, parent={parent_len*100:.0f}cm)")
                 else:
-                    body_len = abs(body_bbox[1][axis_idx] - body_bbox[0][axis_idx]) if body_bbox else depth
-                    lower_m = -body_len * 0.45
-                    upper_m = body_len * 0.45
+                    parent_len = abs(parent_bbox[1][axis_idx] - parent_bbox[0][axis_idx]) if parent_bbox else depth
+                    lower_m = -parent_len * 0.45
+                    upper_m = parent_len * 0.45
                     print(f"    (slider — geometry fallback: [{lower_m:.3f}, {upper_m:.3f}]m)")
-            elif bbox and body_bbox:
-                # Drawer: one direction, face toward body exterior.
-                # Compare in BODY-LOCAL frame so the sign matches the joint
-                # axis direction regardless of the body's world rotation.
-                # Seen on EmergencyTrolley (chassis Z-rotation 181.9°): doing
-                # the comparison in world space inverted the direction and
-                # drawers slid out the back of the chassis.
-                body_prim = stage.GetPrimAtPath(body_path)
-                body_w2l = UsdGeom.Xformable(body_prim).ComputeLocalToWorldTransform(
+            elif bbox and parent_bbox:
+                # Drawer / non-slider prismatic: one direction, face toward
+                # parent exterior. Compare in PARENT-LOCAL frame so the sign
+                # matches the joint axis direction regardless of the parent's
+                # world rotation. Seen on EmergencyTrolley (chassis Z-rotation
+                # 181.9°): doing this in world space inverted direction.
+                parent_prim = stage.GetPrimAtPath(parent_path)
+                parent_w2l = UsdGeom.Xformable(parent_prim).ComputeLocalToWorldTransform(
                     Usd.TimeCode.Default()).GetInverse()
                 dc_world = Gf.Vec3d((bbox[0][0] + bbox[1][0]) / 2,
                                     (bbox[0][1] + bbox[1][1]) / 2,
                                     (bbox[0][2] + bbox[1][2]) / 2)
-                bc_world = Gf.Vec3d((body_bbox[0][0] + body_bbox[1][0]) / 2,
-                                    (body_bbox[0][1] + body_bbox[1][1]) / 2,
-                                    (body_bbox[0][2] + body_bbox[1][2]) / 2)
-                dc_local = body_w2l.TransformAffine(dc_world)
-                bc_local = body_w2l.TransformAffine(bc_world)
+                bc_world = Gf.Vec3d((parent_bbox[0][0] + parent_bbox[1][0]) / 2,
+                                    (parent_bbox[0][1] + parent_bbox[1][1]) / 2,
+                                    (parent_bbox[0][2] + parent_bbox[1][2]) / 2)
+                dc_local = parent_w2l.TransformAffine(dc_world)
+                bc_local = parent_w2l.TransformAffine(bc_world)
                 if dc_local[axis_idx] < bc_local[axis_idx]:
                     lower_m, upper_m = -travel, 0.0
                 else:
                     lower_m, upper_m = 0.0, travel
             else:
                 lower_m, upper_m = 0.0, travel
-            make_prismatic_joint(stage, joint_path, body_path, path,
+            make_prismatic_joint(stage, joint_path, parent_path, path,
                                  lp0_f, lp1_f, axis=axis,
                                  lower_m=lower_m, upper_m=upper_m)
-            print(f"    PrismaticJoint {name}  axis={axis} travel=[{lower_m:.3f}, {upper_m:.3f}]m")
+            print(f"    PrismaticJoint {name}  axis={axis} travel=[{lower_m:.3f}, {upper_m:.3f}]m parent={parent_name}")
         elif jtype == "continuous":
+            # Continuous joints are wheels/casters — always attach to body,
+            # never to another movable (wheels don't chain).
             make_continuous_joint(stage, joint_path, body_path, path,
                                   lp0_f, lp1_f, axis=axis)
             print(f"    ContinuousJoint {name}  axis={axis}")
         elif jtype == "fixed":
-            make_fixed_joint(stage, joint_path, body_path, path, lp0_f, lp1_f)
-            print(f"    FixedJoint      {name}")
+            make_fixed_joint(stage, joint_path, parent_path, path, lp0_f, lp1_f)
+            print(f"    FixedJoint      {name}  parent={parent_name}")
 
     # --- C3 + C6: Friction ---
     print(f"\n  FRICTION:")
@@ -2151,9 +2271,10 @@ def run(input_usd, fix=False, provider="anthropic", model=None, output_dir=None,
                   gemini_mass=gemini_mass, gemini_density=gemini_density,
                   gemini_articulation=gemini_articulation)
 
-    # Re-audit
+    # Re-audit — pass classification so C5 can catch serial-chain collapse
+    # (classifier declared N movables, pipeline produced fewer joints).
     final_stage = Usd.Stage.Open(output_usd)
-    final_results = audit(final_stage)
+    final_results = audit(final_stage, classification=classification)
     print_audit(final_results, label="AUDIT (after fix)")
 
     # Summary
