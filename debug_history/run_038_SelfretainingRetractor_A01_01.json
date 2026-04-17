@@ -1,0 +1,298 @@
+{
+  "id": "run_038",
+  "asset": "SelfretainingRetractor_A01_01",
+  "object_type": "instrument",
+  "timestamp": "2026-04-17T16:08:50",
+  "elapsed_s": 151.88,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 45.73
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 45.73
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 45.73
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 45.73
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 45.73
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 45.73
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 45.73
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 45.73
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.012,
+        "decisions": {
+          "prims": 10
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 20.727,
+        "decisions": {
+          "n_movable_seen": 3
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 24.988,
+        "decisions": {
+          "object_name": "Weitlaner self-retaining retractor",
+          "mass_kg": 0.25
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 94.88,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 0.751,
+        "decisions": {
+          "mujoco": "11/12 pass, 1 warn, 0 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 10.517,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.012
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 20.727
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 24.988
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 94.88
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 0.751
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 10.517
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.001
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 20.0,
+        "masses": {
+          "sm_selfretainingretractor_a01_01": 1.0,
+          "sm_selfretainingretractor_a01_trigger_01": 0.05000000074505806,
+          "sm_selfretainingretractor_a01_dx_01": 0.05000000074505806
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "11/12 pass, 1 warn, 0 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "Weitlaner self-retaining retractor",
+    "object_type": "instrument",
+    "material": "stainless_steel",
+    "material_density_kg_m3": 7800,
+    "estimated_mass_kg": 0.25,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_selfretainingretractor_a01_dx_01",
+        "behavior": "lever",
+        "motion": "The right arm pivots around the central screw, causing the prongs to spread apart from the left arm.",
+        "range_description": "Pivots approximately 0-25 degrees from its closed position.",
+        "range_meters": 0.08,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_selfretainingretractor_a01_sx_01",
+        "behavior": "lever",
+        "motion": "The left arm pivots around the central screw, causing the prongs to spread apart from the right arm.",
+        "range_description": "Pivots approximately 0-25 degrees from its closed position.",
+        "range_meters": 0.08,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_selfretainingretractor_a01_trigger_01",
+        "behavior": "lever",
+        "motion": "A small release lever that pivots on the right arm to disengage the ratchet mechanism, allowing the retractor to close.",
+        "range_description": "Pivots approximately 0-15 degrees.",
+        "range_meters": 0.005,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": false
+      }
+    ],
+    "special_notes": "This is a ratchet-locking instrument. As the arms are opened, a ratchet mechanism locks them in place at discrete intervals. The 'trigger' part must be actuated to release the lock and allow the arms to close.",
+    "is_graspable": true,
+    "grip_location": "The finger rings on the handles."
+  }
+}

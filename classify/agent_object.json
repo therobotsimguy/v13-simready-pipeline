@@ -1,8 +1,43 @@
 {
-  "name": "self-retaining retractor",
-  "type": "instrument",
+  "object_name": "Weitlaner self-retaining retractor",
+  "object_type": "instrument",
   "material": "stainless_steel",
-  "density": 7800,
-  "mass": 0.4,
-  "articulated": true
+  "material_density_kg_m3": 7800,
+  "estimated_mass_kg": 0.25,
+  "is_articulated": true,
+  "movable_parts": [
+    {
+      "name": "sm_selfretainingretractor_a01_dx_01",
+      "behavior": "lever",
+      "motion": "The right arm pivots around the central screw, causing the prongs to spread apart from the left arm.",
+      "range_description": "Pivots approximately 0-25 degrees from its closed position.",
+      "range_meters": 0.08,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_selfretainingretractor_a01_sx_01",
+      "behavior": "lever",
+      "motion": "The left arm pivots around the central screw, causing the prongs to spread apart from the right arm.",
+      "range_description": "Pivots approximately 0-25 degrees from its closed position.",
+      "range_meters": 0.08,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_selfretainingretractor_a01_trigger_01",
+      "behavior": "lever",
+      "motion": "A small release lever that pivots on the right arm to disengage the ratchet mechanism, allowing the retractor to close.",
+      "range_description": "Pivots approximately 0-15 degrees.",
+      "range_meters": 0.005,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": false
+    }
+  ],
+  "special_notes": "This is a ratchet-locking instrument. As the arms are opened, a ratchet mechanism locks them in place at discrete intervals. The 'trigger' part must be actuated to release the lock and allow the arms to close.",
+  "is_graspable": true,
+  "grip_location": "The finger rings on the handles."
 }

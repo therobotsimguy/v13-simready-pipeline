@@ -1,8 +1,8 @@
 {
-  "total_runs": 36,
+  "total_runs": 37,
   "pass_count": 24,
   "fail_count": 2,
-  "unlabeled": 10,
+  "unlabeled": 11,
   "by_object_type": {
     "trolley": {
       "runs": 7,
@@ -35,7 +35,7 @@
       "fail": 0
     },
     "instrument": {
-      "runs": 1,
+      "runs": 2,
       "pass": 0,
       "fail": 0
     }
@@ -43,7 +43,7 @@
   "by_part_type": {},
   "skill_effectiveness": {
     "simready-behaviors": {
-      "times_fired": 11,
+      "times_fired": 12,
       "in_pass_runs": 1,
       "in_fail_runs": 0,
       "overrides": 0,
@@ -51,7 +51,7 @@
       "warnings": 0
     },
     "simready-joint-params": {
-      "times_fired": 11,
+      "times_fired": 12,
       "in_pass_runs": 1,
       "in_fail_runs": 0,
       "overrides": 1,
@@ -59,7 +59,7 @@
       "warnings": 0
     },
     "failure-modes": {
-      "times_fired": 16,
+      "times_fired": 17,
       "in_pass_runs": 6,
       "in_fail_runs": 0,
       "overrides": 0,
@@ -67,7 +67,7 @@
       "warnings": 2
     },
     "robot-model": {
-      "times_fired": 12,
+      "times_fired": 13,
       "in_pass_runs": 2,
       "in_fail_runs": 0,
       "overrides": 0,
@@ -75,7 +75,7 @@
       "warnings": 0
     },
     "simready-criteria": {
-      "times_fired": 10,
+      "times_fired": 11,
       "in_pass_runs": 0,
       "in_fail_runs": 0,
       "overrides": 0,
@@ -83,7 +83,7 @@
       "warnings": 0
     },
     "simready-collision": {
-      "times_fired": 10,
+      "times_fired": 11,
       "in_pass_runs": 0,
       "in_fail_runs": 0,
       "overrides": 0,
@@ -91,7 +91,7 @@
       "warnings": 0
     },
     "simready-mechanism-lookup": {
-      "times_fired": 10,
+      "times_fired": 11,
       "in_pass_runs": 0,
       "in_fail_runs": 0,
       "overrides": 0,
@@ -99,7 +99,7 @@
       "warnings": 0
     },
     "usd-physx-schemas": {
-      "times_fired": 10,
+      "times_fired": 11,
       "in_pass_runs": 0,
       "in_fail_runs": 0,
       "overrides": 0,
