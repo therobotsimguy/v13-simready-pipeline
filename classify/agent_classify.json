@@ -1,41 +1,28 @@
 {
-  "body": "sm_emergencytrolley_a01_01",
+  "body": "sm_articulatedsupportarm_a01_01",
   "parts": {
-    "sm_emergencytrolley_a01_wheel1_01": {
-      "class": "movable:continuous",
+    "sm_articulatedsupportarm_a01_base_01": {
+      "class": "structural"
+    },
+    "sm_articulatedsupportarm_a01_mechanism_01": {
+      "class": "movable:revolute",
       "axis": "Z"
     },
-    "sm_emergencytrolley_a01_wheel2_01": {
-      "class": "movable:continuous",
+    "sm_articulatedsupportarm_a01_arm_01": {
+      "class": "movable:revolute",
       "axis": "Z"
     },
-    "sm_emergencytrolley_a01_wheel3_01": {
-      "class": "movable:continuous",
+    "sm_articulatedsupportarm_a01_column_01": {
+      "class": "movable:revolute",
       "axis": "Z"
     },
-    "sm_emergencytrolley_a01_wheel4_01": {
-      "class": "movable:continuous",
+    "sm_articulatedsupportarm_a01_plate2_01": {
+      "class": "movable:revolute",
       "axis": "Z"
     },
-    "sm_emergencytrolley_a01_drawer1_01": {
-      "class": "movable:prismatic",
-      "axis": "Y",
-      "range_meters": [0, 0.45]
-    },
-    "sm_emergencytrolley_a01_drawer2_01": {
-      "class": "movable:prismatic",
-      "axis": "Y",
-      "range_meters": [0, 0.45]
-    },
-    "sm_emergencytrolley_a01_drawer3_01": {
-      "class": "movable:prismatic",
-      "axis": "Y",
-      "range_meters": [0, 0.45]
-    },
-    "sm_emergencytrolley_a01_table_01": {
-      "class": "movable:prismatic",
-      "axis": "Z",
-      "range_meters": [0, 0.35]
+    "sm_articulatedsupportarm_a01_plate1_01": {
+      "class": "movable:revolute",
+      "axis": "Z"
     }
   }
 }

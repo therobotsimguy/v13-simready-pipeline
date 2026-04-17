@@ -1,0 +1,307 @@
+{
+  "id": "run_035",
+  "asset": "ArticulatedsupportArm_A01_01",
+  "object_type": "fixture",
+  "timestamp": "2026-04-17T14:04:16",
+  "elapsed_s": 196.11,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 75.26
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 75.26
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 75.26
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 75.26
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 75.26
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 75.26
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 75.26
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 75.26
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.014,
+        "decisions": {
+          "prims": 8
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 31.618,
+        "decisions": {
+          "n_movable_seen": 4
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 43.622,
+        "decisions": {
+          "object_name": "medical equipment boom arm",
+          "mass_kg": 250
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 100.495,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 2.435,
+        "decisions": {
+          "mujoco": "7/8 pass, 1 warn, 0 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 17.927,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.014
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 31.618
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 43.622
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 100.495
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 2.435
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 17.927
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.001
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 12.2,
+        "masses": {
+          "sm_articulatedsupportarm_a01_01": 5.02839994430542,
+          "sm_articulatedsupportarm_a01_mechanism_01": 61.4375
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "7/8 pass, 1 warn, 0 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "medical equipment boom arm",
+    "object_type": "fixture",
+    "material": "powder_coated_steel",
+    "material_density_kg_m3": 7850,
+    "estimated_mass_kg": 250,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_articulatedsupportarm_a01_mechanism_01",
+        "behavior": "lever",
+        "motion": "Yaw rotation of the main arm assembly relative to the fixed base.",
+        "range_description": "-170 to +170 degrees",
+        "range_meters": 5.93,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_articulatedsupportarm_a01_arm_01",
+        "behavior": "lever",
+        "motion": "Pitch rotation of the secondary arm segment relative to the main arm.",
+        "range_description": "-45 to +45 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_articulatedsupportarm_a01_column_01",
+        "behavior": "lever",
+        "motion": "Yaw rotation of the vertical column at the end of the secondary arm.",
+        "range_description": "-170 to +170 degrees",
+        "range_meters": 5.93,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "mounting_head",
+        "behavior": "lever",
+        "motion": "Pitch/tilt of the equipment mounting head (plates 1 and 2) at the end of the column.",
+        "range_description": "-90 to +90 degrees",
+        "range_meters": 3.14,
+        "joint_type": "revolute",
+        "axis": "Y",
+        "limits_bidirectional": true
+      }
+    ],
+    "special_notes": "This is a heavy, ceiling or wall-mounted fixture; the base must be fixed in simulation. The joints are designed to be stiff, with high friction or braking mechanisms to hold position against gravity and support a payload. The end plates are the mounting point for other equipment.",
+    "is_graspable": false,
+    "grip_location": null
+  }
+}

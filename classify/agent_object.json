@@ -1,8 +1,36 @@
 {
-  "name": "emergency_medical_trolley",
-  "type": "furniture",
+  "name": "medical equipment boom arm",
+  "type": "fixture",
   "material": "powder_coated_steel",
-  "density_kg_m3": 7850,
-  "mass_kg": 65,
-  "articulated": true
+  "density": 7850,
+  "mass": 250,
+  "articulated": true,
+  "joints": {
+    "sm_articulatedsupportarm_a01_mechanism_01": {
+      "type": "lever",
+      "range_degrees": [-170, 170],
+      "bidirectional": true
+    },
+    "sm_articulatedsupportarm_a01_arm_01": {
+      "type": "lever",
+      "range_degrees": [-45, 45],
+      "bidirectional": true
+    },
+    "sm_articulatedsupportarm_a01_column_01": {
+      "type": "lever",
+      "range_degrees": [-170, 170],
+      "bidirectional": true
+    },
+    "sm_articulatedsupportarm_a01_plate2_01": {
+      "type": "lever",
+      "range_degrees": [-90, 90],
+      "bidirectional": true
+    },
+    "sm_articulatedsupportarm_a01_plate1_01": {
+      "type": "lever",
+      "range_degrees": [-90, 90],
+      "bidirectional": true
+    }
+  },
+  "notes": "Heavy ceiling or wall-mounted fixture. Base must be fixed in simulation. Joints are stiff with high friction or braking mechanisms to hold position against gravity."
 }
