@@ -1,30 +1,17 @@
 {
-  "body": "sm_articulatedsupportarm_a01_01",
+  "body": "sm_selfretainingretractor_a01_sx_01",
   "parts": {
-    "sm_articulatedsupportarm_a01_base_01": {
-      "class": "structural"
-    },
-    "sm_articulatedsupportarm_a01_mechanism_01": {
-      "class": "movable:revolute",
-      "axis": "Z",
+    "sm_selfretainingretractor_a01_dx_01": {
+      "class": "movable:prismatic",
+      "axis": "Y",
       "parent": "body"
     },
-    "sm_articulatedsupportarm_a01_arm_01": {
+    "sm_selfretainingretractor_a01_trigger_01": {
       "class": "movable:revolute",
       "axis": "Z",
-      "parent": "sm_articulatedsupportarm_a01_mechanism_01"
+      "parent": "sm_selfretainingretractor_a01_dx_01"
     },
-    "sm_articulatedsupportarm_a01_column_01": {
-      "class": "movable:revolute",
-      "axis": "Z",
-      "parent": "sm_articulatedsupportarm_a01_arm_01"
-    },
-    "sm_articulatedsupportarm_a01_plate2_01": {
-      "class": "movable:revolute",
-      "axis": "Z",
-      "parent": "sm_articulatedsupportarm_a01_column_01"
-    },
-    "sm_articulatedsupportarm_a01_plate1_01": {
+    "sm_selfretainingretractor_a01_screw_01": {
       "class": "structural"
     }
   }

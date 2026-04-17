@@ -1,0 +1,288 @@
+{
+  "id": "run_037",
+  "asset": "SelfretainingRetractor_A01_01",
+  "object_type": "instrument",
+  "timestamp": "2026-04-17T16:01:41",
+  "elapsed_s": 195.26,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 41.63
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 41.63
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 41.63
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 41.63
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 41.63
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 41.63
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 41.63
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 41.63
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.018,
+        "decisions": {
+          "prims": 10
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 20.616,
+        "decisions": {
+          "n_movable_seen": 3
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 20.991,
+        "decisions": {
+          "object_name": "self-retaining retractor",
+          "mass_kg": 0.4
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 138.38,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 0.698,
+        "decisions": {
+          "mujoco": "10/12 pass, 2 warn, 0 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 14.55,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.002,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.018
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 20.616
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 20.991
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 138.38
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 0.698
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 14.55
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.002
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 200.0,
+        "masses": {
+          "sm_selfretainingretractor_a01_01": 0.009999999776482582,
+          "sm_selfretainingretractor_a01_trigger_01": 2.0,
+          "sm_selfretainingretractor_a01_dx_01": 0.5
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "10/12 pass, 2 warn, 0 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "self-retaining retractor",
+    "object_type": "instrument",
+    "material": "stainless_steel",
+    "material_density_kg_m3": 7800,
+    "estimated_mass_kg": 0.4,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_selfretainingretractor_a01_dx_01",
+        "behavior": "slider",
+        "motion": "Slides along the rack of the opposing arm ('sx_01') to spread the retractor jaws.",
+        "range_description": "Approximately 0-8 cm of travel along the rack.",
+        "range_meters": 0.08,
+        "joint_type": "prismatic",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_selfretainingretractor_a01_trigger_01",
+        "behavior": "lever",
+        "motion": "Rotates relative to its parent arm ('dx_01') to disengage the ratchet lock, allowing the arms to be closed.",
+        "range_description": "Rotates approximately 0-20 degrees.",
+        "range_meters": 0.35,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": false
+      }
+    ],
+    "special_notes": "The primary sliding motion is governed by a ratchet mechanism. The 'dx_01' arm should lock in place as it slides open. The 'trigger_01' lever must be depressed to release this lock and allow the arm to slide closed. The trigger is likely spring-loaded to return to the locked position.",
+    "is_graspable": true,
+    "grip_location": "The shanks/handles of the two arms."
+  }
+}
