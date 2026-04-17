@@ -40,8 +40,12 @@ SCRIPT_DIR = Path(__file__).parent.resolve()
 MAKE_SIMREADY = SCRIPT_DIR / "make_simready.py"
 VALIDATE_DYNAMICS = SCRIPT_DIR / "validate_dynamics.py"
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
+V13_ROOT = SCRIPT_DIR.parent.parent.parent   # scripts/tools/simready_assets → simready_v13/
 ISAACLAB_ROOT = Path(os.path.expanduser("~/IsaacLab"))
+# V13 ships its skills under v13/skills/ so a fresh clone is self-contained.
+# IsaacLab-colocated paths are kept as fallbacks for existing checkouts.
 SKILLS_DIRS = [
+    V13_ROOT / "skills",
     ISAACLAB_ROOT / ".cursor" / "skills",
     ISAACLAB_ROOT / ".claude" / "skills",
 ]
