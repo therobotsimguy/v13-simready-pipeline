@@ -2,8 +2,8 @@
   "body": "sm_selfretainingretractor_a01_sx_01",
   "parts": {
     "sm_selfretainingretractor_a01_dx_01": {
-      "class": "movable:revolute",
-      "axis": "Z",
+      "class": "movable:prismatic",
+      "axis": "Y",
       "parent": "body"
     },
     "sm_selfretainingretractor_a01_trigger_01": {
@@ -12,7 +12,9 @@
       "parent": "sm_selfretainingretractor_a01_dx_01"
     },
     "sm_selfretainingretractor_a01_screw_01": {
-      "class": "structural"
+      "class": "movable:continuous",
+      "axis": "Z",
+      "parent": "body"
     }
   }
 }
