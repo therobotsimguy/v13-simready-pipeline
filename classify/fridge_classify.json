@@ -1,0 +1,29 @@
+{
+  "body": "sm_refrigerator_a01_01",
+  "parts": {
+    "sm_refrigerator_a01_door1_01": {
+      "class": "movable:revolute",
+      "axis": "Z"
+    },
+    "sm_refrigerator_a01_door2_01": {
+      "class": "movable:revolute",
+      "axis": "Z"
+    },
+    "sm_refrigerator_a01_wheel1_01": {
+      "class": "movable:continuous",
+      "axis": "Y"
+    },
+    "sm_refrigerator_a01_wheel2_01": {
+      "class": "movable:continuous",
+      "axis": "Y"
+    },
+    "sm_refrigerator_a01_wheel3_01": {
+      "class": "movable:continuous",
+      "axis": "Y"
+    },
+    "sm_refrigerator_a01_wheel4_01": {
+      "class": "movable:continuous",
+      "axis": "Y"
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "object_name": "double-door medical refrigerator",
+  "object_type": "furniture",
+  "material": "stainless_steel",
+  "material_density_kg_m3": 7800,
+  "estimated_mass_kg": 180.0,
+  "is_articulated": true,
+  "movable_parts": [
+    {
+      "name": "sm_refrigerator_a01_door1_01",
+      "behavior": "door",
+      "motion": "rotates outward to the left to open",
+      "range_description": "0 to 120 degrees",
+      "range_meters": 2.09,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": false
+    },
+    {
+      "name": "sm_refrigerator_a01_door2_01",
+      "behavior": "door",
+      "motion": "rotates outward to the right to open",
+      "range_description": "0 to -120 degrees",
+      "range_meters": 2.09,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": false
+    },
+    {
+      "name": "sm_refrigerator_a01_wheel1_01",
+      "behavior": "wheel",
+      "motion": "swivels around vertical axis",
+      "range_description": "continuous 360 degrees",
+      "range_meters": 6.28,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_refrigerator_a01_wheel2_01",
+      "behavior": "wheel",
+      "motion": "swivels around vertical axis",
+      "range_description": "continuous 360 degrees",
+      "range_meters": 6.28,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_refrigerator_a01_wheel3_01",
+      "behavior": "wheel",
+      "motion": "swivels around vertical axis",
+      "range_description": "continuous 360 degrees",
+      "range_meters": 6.28,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_refrigerator_a01_wheel4_01",
+      "behavior": "wheel",
+      "motion": "swivels around vertical axis",
+      "range_description": "continuous 360 degrees",
+      "range_meters": 6.28,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    }
+  ],
+  "special_notes": "Caster wheels require both a swivel joint (Z-axis) on the main wheel Xform and a rolling joint on the inner tire mesh for full physical realism. The main body is heavy and should have high friction if wheels are locked.",
+  "is_graspable": false,
+  "grip_location": "door handles for opening, main body for pushing"
+}

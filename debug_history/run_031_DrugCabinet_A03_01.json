@@ -1,0 +1,321 @@
+{
+  "id": "run_031",
+  "asset": "DrugCabinet_A03_01",
+  "object_type": "furniture",
+  "timestamp": "2026-04-17T00:09:02",
+  "elapsed_s": 222.71,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 49.6
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 49.6
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 49.6
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 49.6
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 49.6
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 49.6
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 49.6
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 49.6
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.024,
+        "decisions": {
+          "prims": 46
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 25.714,
+        "decisions": {
+          "n_movable_seen": 5
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 23.857,
+        "decisions": {
+          "object_name": "tall medical storage cabinet with five doors",
+          "mass_kg": 100
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 139.629,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 6.188,
+        "decisions": {
+          "mujoco": "23/24 pass, 1 warn, 0 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 27.293,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.002,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.024
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 25.714
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 23.857
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 139.629
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 6.188
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 27.293
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.002
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 15.0,
+        "masses": {
+          "sm_drugcabinet_a03_01": 75.0,
+          "sm_drugcabinet_a03_door1_01": 5.0,
+          "sm_drugcabinet_a03_door2_01": 5.0,
+          "sm_drugcabinet_a03_door3_01": 5.0,
+          "sm_drugcabinet_a03_door4_01": 5.0,
+          "sm_drugcabinet_a03_door5_01": 5.0
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "23/24 pass, 1 warn, 0 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "tall medical storage cabinet with five doors",
+    "object_type": "furniture",
+    "material": "powder-coated_steel",
+    "material_density_kg_m3": 7850,
+    "estimated_mass_kg": 100,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_drugcabinet_a03_door1_01",
+        "behavior": "door",
+        "motion": "Rotates on hinges to open and close.",
+        "range_description": "0-90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drugcabinet_a03_door2_01",
+        "behavior": "door",
+        "motion": "Rotates on hinges to open and close.",
+        "range_description": "0-90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drugcabinet_a03_door3_01",
+        "behavior": "door",
+        "motion": "Rotates on hinges to open and close.",
+        "range_description": "0-90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drugcabinet_a03_door4_01",
+        "behavior": "door",
+        "motion": "Rotates on hinges to open and close.",
+        "range_description": "0-90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drugcabinet_a03_door5_01",
+        "behavior": "door",
+        "motion": "Rotates on hinges to open and close.",
+        "range_description": "0-90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": false
+      }
+    ],
+    "special_notes": "The cabinet is a static fixture. Each door has a magnetic latch component which may imply a closing force. The shelves are held by pins and could be considered removable in a detailed simulation, but are otherwise static.",
+    "is_graspable": false,
+    "grip_location": "N/A"
+  }
+}

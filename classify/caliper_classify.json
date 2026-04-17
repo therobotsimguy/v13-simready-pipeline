@@ -1,0 +1,9 @@
+{
+  "body": "sm_caliper_a01_01",
+  "parts": {
+    "sm_caliper_a01_depthblade_01": {
+      "class": "movable:prismatic",
+      "axis": "Y"
+    }
+  }
+}

@@ -1,21 +1,29 @@
 {
-  "body": "sm_instrumenttrolley_b01_body_01",
+  "body": "sm_drugcabinet_a03_01",
   "parts": {
-    "sm_wheel_b01_01": {
-      "class": "movable:continuous",
-      "axis": "Y"
-    },
-    "sm_wheel_b02_01": {
-      "class": "movable:continuous",
-      "axis": "Y"
-    },
-    "sm_wheel_b03_01": {
-      "class": "movable:continuous",
-      "axis": "Y"
-    },
-    "sm_wheel_b04_01": {
-      "class": "movable:continuous",
-      "axis": "Y"
-    }
+    "sm_drugcabinet_a03_pin1_01": {"class": "structural"},
+    "sm_drugcabinet_a03_shelf1_01": {"class": "structural"},
+    "sm_drugcabinet_a03_top_01": {"class": "structural"},
+    "sm_drugcabinet_a03_lampcover_01": {"class": "structural"},
+    "sm_drugcabinet_a03_lampmount_01": {"class": "structural"},
+    "sm_drugcabinet_a03_frame_01": {"class": "structural"},
+    "sm_drugcabinet_a03_lamp_01": {"class": "structural"},
+    "sm_drugcabinet_a03_pin2_01": {"class": "structural"},
+    "sm_drugcabinet_a03_pin3_01": {"class": "structural"},
+    "sm_drugcabinet_a03_pin4_01": {"class": "structural"},
+    "sm_drugcabinet_a03_pin5_01": {"class": "structural"},
+    "sm_drugcabinet_a03_shelf2_01": {"class": "structural"},
+    "sm_drugcabinet_a03_shelf3_01": {"class": "structural"},
+    "sm_drugcabinet_a03_shelf4_01": {"class": "structural"},
+    "sm_drugcabinet_a03_shelf5_01": {"class": "structural"},
+    "sm_drugcabinet_a03_legs_01": {"class": "structural"},
+    "sm_drugcabinet_a03_legmount_01": {"class": "structural"},
+    "sm_drugcabinet_a03_door1_01": {"class": "movable:revolute", "axis": "Z"},
+    "sm_drugcabinet_a03_door2_01": {"class": "movable:revolute", "axis": "Z"},
+    "sm_drugcabinet_a03_door3_01": {"class": "movable:revolute", "axis": "Z"},
+    "sm_drugcabinet_a03_door4_01": {"class": "movable:revolute", "axis": "Z"},
+    "sm_drugcabinet_a03_door5_01": {"class": "movable:revolute", "axis": "Z"},
+    "sm_drugcabinet_a03_locks_01": {"class": "structural"},
+    "sm_drugcabinet_a03_hingespart_01": {"class": "structural"}
   }
 }

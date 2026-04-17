@@ -1,53 +1,16 @@
 {
-  "object_name": "instrument trolley with caster wheels",
-  "object_type": "furniture",
-  "material": "stainless_steel",
-  "material_density_kg_m3": 7800,
-  "estimated_mass_kg": 20.0,
-  "is_articulated": true,
+  "name": "tall medical storage cabinet with five doors",
+  "type": "furniture",
+  "material": "powder-coated_steel",
+  "material_density_kg_m3": 7850,
+  "estimated_mass_kg": 100,
+  "articulated": true,
   "movable_parts": [
-    {
-      "name": "sm_wheel_b01_01",
-      "behavior": "wheel",
-      "motion": "spins around its axle to allow the trolley to roll",
-      "range_description": "continuous rotation",
-      "range_meters": 0.0,
-      "joint_type": "continuous",
-      "axis": "Y",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_b02_01",
-      "behavior": "wheel",
-      "motion": "spins around its axle to allow the trolley to roll",
-      "range_description": "continuous rotation",
-      "range_meters": 0.0,
-      "joint_type": "continuous",
-      "axis": "Y",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_b03_01",
-      "behavior": "wheel",
-      "motion": "spins around its axle to allow the trolley to roll",
-      "range_description": "continuous rotation",
-      "range_meters": 0.0,
-      "joint_type": "continuous",
-      "axis": "Y",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_b04_01",
-      "behavior": "wheel",
-      "motion": "spins around its axle to allow the trolley to roll",
-      "range_description": "continuous rotation",
-      "range_meters": 0.0,
-      "joint_type": "continuous",
-      "axis": "Y",
-      "limits_bidirectional": true
-    }
+    {"name": "sm_drugcabinet_a03_door1_01", "behavior": "door", "range_degrees": 90},
+    {"name": "sm_drugcabinet_a03_door2_01", "behavior": "door", "range_degrees": 90},
+    {"name": "sm_drugcabinet_a03_door3_01", "behavior": "door", "range_degrees": 90},
+    {"name": "sm_drugcabinet_a03_door4_01", "behavior": "door", "range_degrees": 90},
+    {"name": "sm_drugcabinet_a03_door5_01", "behavior": "door", "range_degrees": 90}
   ],
-  "special_notes": "Caster wheels typically require both a swivel (Z-axis) and a roll (X/Y-axis) joint. The current hierarchy groups the bracket ('fixer') and the wheel ('tire'/'body') under a single Xform. To simulate full caster behavior, the wheel meshes must be separated from the bracket into nested Xforms.",
-  "is_graspable": false,
-  "grip_location": "handles on the top shelf for pushing/pulling"
+  "notes": "The cabinet is a static fixture. Each door has a magnetic latch component which may imply a closing force."
 }

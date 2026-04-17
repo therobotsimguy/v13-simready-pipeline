@@ -1,0 +1,298 @@
+{
+  "id": "run_028",
+  "asset": "SelfretainingRetractor_A01_01",
+  "object_type": "fixture",
+  "timestamp": "2026-04-15T22:07:39",
+  "elapsed_s": 206.22,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 78.79
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 78.79
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 78.79
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 78.79
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 78.79
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 78.79
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 78.79
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 78.79
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.011,
+        "decisions": {
+          "prims": 10
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 25.312,
+        "decisions": {
+          "n_movable_seen": 3
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 53.467,
+        "decisions": {
+          "object_name": "espresso machine",
+          "mass_kg": 6.0
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 94.038,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 0.763,
+        "decisions": {
+          "mujoco": "11/12 pass, 1 warn, 0 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 32.625,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.011
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 25.312
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 53.467
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 94.038
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 0.763
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 32.625
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.001
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 16.5,
+        "masses": {
+          "sm_selfretainingretractor_a01_01": 3.5999999046325684,
+          "sm_selfretainingretractor_a01_dx_01": 2.1818182468414307,
+          "sm_selfretainingretractor_a01_screw_01": 0.2181818187236786
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "11/12 pass, 1 warn, 0 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "espresso machine",
+    "object_type": "fixture",
+    "material": "plastic",
+    "material_density_kg_m3": 1200,
+    "estimated_mass_kg": 6.0,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "control_dial",
+        "behavior": "wheel",
+        "motion": "rotates to select brewing or steaming mode",
+        "range_description": "continuous rotation",
+        "range_meters": 6.28,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "steam_wand",
+        "behavior": "lever",
+        "motion": "pivots outwards on a ball joint for steaming milk",
+        "range_description": "0-90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "portafilter",
+        "behavior": "lever",
+        "motion": "inserts upwards and rotates horizontally to lock into the group head",
+        "range_description": "0-45 degrees",
+        "range_meters": 0.78,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      }
+    ],
+    "special_notes": "The provided USD hierarchy (SelfretainingRetractor) contradicts the visual evidence; identification is based entirely on the visual appearance of an espresso machine. The portafilter is typically a removable part but is often simulated with a revolute joint for the locking mechanism.",
+    "is_graspable": false,
+    "grip_location": "sides of the main body if lifting is required"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "object_name": "vernier caliper",
+  "object_type": "instrument",
+  "material": "stainless_steel",
+  "material_density_kg_m3": 7800,
+  "estimated_mass_kg": 0.15,
+  "is_articulated": true,
+  "movable_parts": [
+    {
+      "name": "sm_caliper_a01_depthblade_01",
+      "behavior": "slider",
+      "motion": "slides linearly along the main beam to measure distance",
+      "range_description": "0 to 15 cm",
+      "range_meters": 0.15,
+      "joint_type": "prismatic",
+      "axis": "Y",
+      "limits_bidirectional": false
+    }
+  ],
+  "special_notes": "The sliding jaw (depthblade) must be constrained to a prismatic joint along the main beam (base). The depth rod is typically attached to this sliding assembly.",
+  "is_graspable": true,
+  "grip_location": "main beam (base)"
+}

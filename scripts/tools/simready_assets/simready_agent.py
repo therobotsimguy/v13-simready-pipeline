@@ -697,19 +697,9 @@ Test with Franka teleop:
             for f in classify_dir.glob("*.json"):
                 _sh.copy2(str(f), str(repo_classify / f.name))
 
-        # Copy output asset (only if run produced output)
-        if output_usd and Path(str(output_usd)).exists():
-            repo_example = V13_REPO / "examples" / asset_name
-            repo_example.mkdir(parents=True, exist_ok=True)
-            _sh.copy2(str(output_usd), str(repo_example / Path(str(output_usd)).name))
-            # Copy textures
-            tex_src = Path(str(output_usd)).parent / "Textures"
-            tex_dst = repo_example / "Textures"
-            if tex_src.is_dir() and not tex_dst.is_dir():
-                _sh.copytree(str(tex_src), str(tex_dst))
-
-        # Git add + commit + push
-        _sp.run(["git", "add", "debug_history/", "classify/", "examples/"],
+        # Git add + commit + push — only learnings (debug_history + classify).
+        # Asset USD/Textures stay at ~/SimReady_Output/simready/ — never pushed to git.
+        _sp.run(["git", "add", "debug_history/", "classify/"],
                 cwd=str(V13_REPO), capture_output=True)
         commit_msg = f"data: {dbg.run_id} {asset_name} — {dbg.verdict or 'PENDING'}"
         result = _sp.run(
