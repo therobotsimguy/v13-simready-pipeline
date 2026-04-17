@@ -115,6 +115,54 @@ always test physically after building.
 
 ---
 
+## Current asset set — medical operating-room library
+
+V13 is being validated against a 20-asset library of operating-room /
+surgery USDs. Raw inputs are **not** in this repo (they're local, large,
+and under a separate license); they live at:
+
+    ~/SimReady_Output/raw_challenge_assets/*.usd
+
+Built SimReady outputs land at `~/SimReady_Output/simready/<asset_name>/`
+as usual.
+
+**Reference baseline** (shipped in this repo for regression / smoke-testing):
+
+| Asset | Location | Role |
+|---|---|---|
+| `InstrumentTrolley_B01_01` | `examples/trolleyB/` | Known-good caster-trolley reference — clean identity-chassis input, used to verify pipeline doesn't regress when fixing rotated-chassis assets. |
+
+**Progress on the 20-asset library:**
+
+| # | Asset | Type | Status |
+|---|---|---|---|
+|  1 | ArticulatedsupportArm_A01_01 | arm / mount | pending |
+|  2 | BipolardissectingScissors_A01_01 | surgical tool | pending |
+|  3 | Clamps_A01_01 | surgical tool | pending |
+|  4 | DrugCabinet_A03_01 | storage | **built** |
+|  5 | EmergencyTrolley_A01_01 | cart | **built** (drove the rotated-chassis fixes on 2026-04-17) |
+|  6 | Forceps_A01_01 | surgical tool | pending |
+|  7 | HoldingDevice_A01_01 | mount | pending |
+|  8 | MedicalutilityCart_A03_01 | cart | pending |
+|  9 | Mobilecartsandtables_C01_01 | cart / table | pending |
+| 10 | ResuscitationBed_A01_01 | bed | pending |
+| 11 | Retractor_A01_01 | surgical tool | pending |
+| 12 | RoboticSystem_A01_01 | system | pending |
+| 13 | RoboticSystem_B01_Console_01 | system | pending |
+| 14 | Scissors_A01_01 | surgical tool | **built** |
+| 15 | SelfretainingRetractor_A01_01 | surgical tool | **built** |
+| 16 | SurgicalChair_A01_01 | chair | pending |
+| 17 | SurgicalChair_B01_01 | chair | pending |
+| 18 | SurgicalMicroScope_A01_01 | system | pending |
+| 19 | SurgicalpowerTool_B01_01 | surgical tool | pending |
+| 20 | SurgicalTable_A01_01 | table | pending |
+
+Score: **4 / 20 built**. Remaining 16 can be run with the single entry-point
+command; no per-asset tuning is required unless V13 surfaces a new
+silent-failure class, in which case follow the 3-step fix rule below.
+
+---
+
 ## Contributing fixes
 
 When you find and fix a pipeline bug, apply the **3-step fix rule**:
