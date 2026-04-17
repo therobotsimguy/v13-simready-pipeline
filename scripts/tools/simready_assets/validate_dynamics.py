@@ -468,8 +468,8 @@ def validate(usd_path: str, verbose: bool = True, output_json: bool = False) -> 
         except Exception as e:
             if verbose:
                 print(f"  ERROR: USD→URDF conversion failed: {e}")
-            return {"checks": {}, "pass_count": 0, "fail_count": 1, "total": 1,
-                    "error": str(e)}
+            return {"checks": {}, "pass_count": 0, "warn_count": 0, "fail_count": 1,
+                    "total": 1, "error": str(e)}
 
         urdf_joints = parse_urdf_joints(urdf_path)
         if verbose:
