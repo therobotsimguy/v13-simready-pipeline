@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-make_simready.py  (V8)
+make_simready.py  (V13 — forked from V11, originally authored in V8 era)
 
 Single script that takes a raw USD and makes it SimReady:
 
