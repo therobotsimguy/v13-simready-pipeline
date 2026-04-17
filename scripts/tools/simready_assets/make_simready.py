@@ -110,10 +110,34 @@ def audit(stage):
             lp1_val = lp1.Get() if lp1 and lp1.HasValue() else None
             lp0_zero = lp0_val is not None and all(abs(float(v)) < 1e-6 for v in lp0_val)
             lp1_zero = lp1_val is not None and all(abs(float(v)) < 1e-6 for v in lp1_val)
+
+            # Check joint anchor consistency: localPos0 (in body0's frame)
+            # and localPos1 (in body1's frame) should map to the SAME world
+            # point. If they don't, the joint springs at physics init and
+            # parts detach (symptom: wheels flying off a trolley).
+            anchor_miss_m = None
+            try:
+                body0_rel = prim.GetRelationship("physics:body0")
+                body1_rel = prim.GetRelationship("physics:body1")
+                t0 = body0_rel.GetTargets() if body0_rel else []
+                t1 = body1_rel.GetTargets() if body1_rel else []
+                if t0 and t1 and lp0_val is not None and lp1_val is not None:
+                    body0_prim = stage.GetPrimAtPath(t0[0])
+                    body1_prim = stage.GetPrimAtPath(t1[0])
+                    if body0_prim and body1_prim:
+                        xf0 = UsdGeom.Xformable(body0_prim).ComputeLocalToWorldTransform(0)
+                        xf1 = UsdGeom.Xformable(body1_prim).ComputeLocalToWorldTransform(0)
+                        w0 = xf0.Transform(Gf.Vec3d(*[float(x) for x in lp0_val]))
+                        w1 = xf1.Transform(Gf.Vec3d(*[float(x) for x in lp1_val]))
+                        anchor_miss_m = float((w0 - w1).GetLength())
+            except Exception:
+                pass
+
             joints.append({
                 "name": prim.GetName(),
                 "type": prim.GetTypeName(),
                 "both_anchors_zero": lp0_zero and lp1_zero,
+                "anchor_miss_m": anchor_miss_m,
             })
 
         for api in apis:
@@ -226,14 +250,24 @@ def audit(stage):
     if has_movables:
         enough_joints = len(joints) >= len(rigid_bodies) - 1
         zero_anchor_joints = [j for j in joints if j.get("both_anchors_zero", False)]
-        anchors_ok = len(zero_anchor_joints) == 0
+        # Joints where localPos0 and localPos1 don't map to the same world
+        # point — parts will spring/detach at physics init.
+        misaligned_joints = [j for j in joints
+                             if j.get("anchor_miss_m") is not None
+                             and j["anchor_miss_m"] > 0.01]
+        anchors_ok = len(zero_anchor_joints) == 0 and len(misaligned_joints) == 0
         c5_pass = enough_joints and anchors_ok
         c5_detail = f"{len(joints)} joints for {len(rigid_bodies) - 1} movable parts"
         if not enough_joints:
             c5_detail += " — need more joints"
-        if not anchors_ok:
+        if zero_anchor_joints:
             c5_pass = False
             c5_detail += f" — {len(zero_anchor_joints)} joints have ZERO anchors (localPos0=localPos1=(0,0,0))"
+        if misaligned_joints:
+            c5_pass = False
+            worst = max(j["anchor_miss_m"] for j in misaligned_joints)
+            c5_detail += (f" — {len(misaligned_joints)} joint(s) have misaligned anchors "
+                          f"(worst: {worst*100:.1f}cm mismatch — parts will fly at physics init)")
     else:
         c5_pass = True
         c5_detail = "no movable parts — joints N/A"
@@ -1153,7 +1187,8 @@ def reparent_prims_preserve_world_xform(stage, prim_paths, new_parent_path):
 
 # --- Wheel structural splitting ---
 
-WHEEL_STRUCTURAL_KEYWORDS = ("fixer", "bolt", "body", "mount", "stopper")
+WHEEL_STRUCTURAL_KEYWORDS = ("fixer", "bolt", "body", "mount", "stopper",
+                             "frame", "caps", "bracket", "fork", "brake")
 
 def split_wheel_structural_parts(stage, movables, body_path):
     """Move structural child meshes (fixer/body/bolts) from wheel Xforms to body.
@@ -1386,28 +1421,34 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
             if old_p in moved:
                 movables[name]["path"] = Sdf.Path(moved[old_p])
 
-    # --- Wheel structural split (fixer/body/bolts -> body) ---
+    # --- Wheel structural split (fixer/body/bolts/frame/caps/bracket -> body) ---
     wheel_moved = split_wheel_structural_parts(stage, movables, body_path)
     if wheel_moved:
         print(f"\n  WHEEL SPLIT: {len(wheel_moved)} structural meshes -> body")
         for old, new in wheel_moved.items():
             print(f"    {old} -> {new}")
-        for name, info in movables.items():
-            if info["joint"] == "continuous":
-                bbox = mesh_world_bbox(stage, info["path"])
-                if bbox:
-                    tire_center = Gf.Vec3d(
-                        (bbox[0][0] + bbox[1][0]) / 2,
-                        (bbox[0][1] + bbox[1][1]) / 2,
-                        (bbox[0][2] + bbox[1][2]) / 2)
-                    saved_anchors[name] = tire_center
-                    size_x = abs(bbox[1][0] - bbox[0][0])
-                    size_y = abs(bbox[1][1] - bbox[0][1])
-                    detected_axis = "Y" if size_y < size_x else "X"
-                    if detected_axis != info["axis"]:
-                        print(f"    axis override {name}: {info['axis']} -> {detected_axis} (tire X={size_x:.4f} Y={size_y:.4f})")
-                        info["axis"] = detected_axis
-                    print(f"    anchor {name} (tire center): ({tire_center[0]:.4f}, {tire_center[1]:.4f}, {tire_center[2]:.4f})")
+
+    # Always recompute tire-center anchor for every continuous joint — whether or
+    # not any structural parts were split. Prior behavior put this inside
+    # `if wheel_moved:`, which silently skipped the fix on assets whose wheel
+    # naming didn't match WHEEL_STRUCTURAL_KEYWORDS, causing wheels to detach
+    # at physics init (symptom seen on EmergencyTrolley_A01_01, 2026-04-17).
+    for name, info in movables.items():
+        if info["joint"] == "continuous":
+            bbox = mesh_world_bbox(stage, info["path"])
+            if bbox:
+                tire_center = Gf.Vec3d(
+                    (bbox[0][0] + bbox[1][0]) / 2,
+                    (bbox[0][1] + bbox[1][1]) / 2,
+                    (bbox[0][2] + bbox[1][2]) / 2)
+                saved_anchors[name] = tire_center
+                size_x = abs(bbox[1][0] - bbox[0][0])
+                size_y = abs(bbox[1][1] - bbox[0][1])
+                detected_axis = "Y" if size_y < size_x else "X"
+                if detected_axis != info["axis"]:
+                    print(f"    axis override {name}: {info['axis']} -> {detected_axis} (tire X={size_x:.4f} Y={size_y:.4f})")
+                    info["axis"] = detected_axis
+                print(f"    anchor {name} (tire center): ({tire_center[0]:.4f}, {tire_center[1]:.4f}, {tire_center[2]:.4f})")
 
     # --- C1: Rigid Bodies + Mass ---
     print(f"\n  RIGID BODIES:")
