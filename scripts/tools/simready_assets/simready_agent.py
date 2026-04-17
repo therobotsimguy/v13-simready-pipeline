@@ -676,7 +676,8 @@ Test with Franka teleop:
     # ── Auto-push to GitHub ──
     # Push debug data + classify JSONs + output asset (on PASS/PENDING) to V13 repo.
     # Never pushes pipeline code changes — only data.
-    V13_REPO = Path(os.path.expanduser("~/v13-simready-pipeline"))
+    # Derive V13 repo root from this script's location (resilient to clone path)
+    V13_REPO = Path(__file__).resolve().parents[3]
     try:
         import subprocess as _sp
         print(f"\n[Auto-push] Syncing data to GitHub...")
@@ -717,12 +718,29 @@ Test with Franka teleop:
              "commit", "-m", commit_msg],
             cwd=str(V13_REPO), capture_output=True, text=True)
         if result.returncode == 0:
-            push = _sp.run(["git", "push", "origin", "main"],
+            # Build authenticated push URL from ~/.claude/api_keys.json (fallback to origin)
+            push_target = "origin"
+            _pat = None
+            try:
+                with open(os.path.expanduser("~/.claude/api_keys.json")) as _kf:
+                    _keys = json.load(_kf)
+                _gh = _keys.get("github", {})
+                _pat = _gh.get("pat")
+                _user = _gh.get("user", "therobotsimguy")
+                if _pat:
+                    push_target = f"https://{_user}:{_pat}@github.com/{_user}/v13-simready-pipeline.git"
+            except Exception:
+                pass
+            push = _sp.run(["git", "push", push_target, "main"],
                           cwd=str(V13_REPO), capture_output=True, text=True)
+            # Redact PAT from any error output
+            _stderr = push.stderr[:200]
+            if _pat:
+                _stderr = _stderr.replace(_pat, "<REDACTED>")
             if push.returncode == 0:
                 print(f"  [Auto-push] Pushed: {commit_msg}")
             else:
-                print(f"  [Auto-push] Commit OK but push failed: {push.stderr[:100]}")
+                print(f"  [Auto-push] Commit OK but push failed: {_stderr}")
         else:
             if "nothing to commit" in result.stdout:
                 print(f"  [Auto-push] No new data to push")
