@@ -105,6 +105,21 @@ always test physically after building.
 
 ---
 
+## Local checkout
+
+The owner's local clone lives at:
+
+    ~/IsaacLab/scripts/tools/simready_v13/
+
+This is a **nested git repo** — it sits inside `~/IsaacLab/` (a separately
+git-tracked Isaac Lab checkout) but has its own `.git/` and is not a
+submodule. All V13 commits are made from inside this folder and push to
+`origin`. Anyone else can clone V13 to any location (e.g.
+`~/v13-simready-pipeline/`) and it will work standalone, because the
+pipeline now ships its own `skills/`.
+
+---
+
 ## Requirements
 
 - Python 3.10+
