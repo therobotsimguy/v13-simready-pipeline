@@ -133,11 +133,37 @@ def audit(stage):
             except Exception:
                 pass
 
+            # Continuous = revolute with effectively unbounded limits (wheels/casters).
+            # V13 creates these with ±9999 limits in make_continuous_joint.
+            is_continuous = False
+            if prim.GetTypeName() == "PhysicsRevoluteJoint":
+                lo = prim.GetAttribute("physics:lowerLimit")
+                hi = prim.GetAttribute("physics:upperLimit")
+                lo_v = lo.Get() if lo and lo.HasValue() else None
+                hi_v = hi.Get() if hi and hi.HasValue() else None
+                if lo_v is not None and hi_v is not None and abs(float(hi_v) - float(lo_v)) > 1000:
+                    is_continuous = True
+            # Prismatic lower/upper + axis for drawer-direction audit.
+            pris_lo = pris_hi = None
+            axis_str = None
+            if prim.GetTypeName() == "PhysicsPrismaticJoint":
+                lo = prim.GetAttribute("physics:lowerLimit")
+                hi = prim.GetAttribute("physics:upperLimit")
+                ax = prim.GetAttribute("physics:axis")
+                pris_lo = float(lo.Get()) if lo and lo.HasValue() else None
+                pris_hi = float(hi.Get()) if hi and hi.HasValue() else None
+                axis_str = ax.Get() if ax and ax.HasValue() else None
             joints.append({
                 "name": prim.GetName(),
                 "type": prim.GetTypeName(),
                 "both_anchors_zero": lp0_zero and lp1_zero,
                 "anchor_miss_m": anchor_miss_m,
+                "body0_path": str(t0[0]) if t0 else None,
+                "body1_path": str(t1[0]) if t1 else None,
+                "is_continuous": is_continuous,
+                "pris_lo": pris_lo,
+                "pris_hi": pris_hi,
+                "axis": axis_str,
             })
 
         for api in apis:
@@ -245,7 +271,7 @@ def audit(stage):
         c4_na = False
     results["C4 Flat Hierarchy"] = {"pass": c4_pass, "detail": c4_detail, "na": c4_na if len(rigid_bodies) <= 1 else False}
 
-    # C5: Joints (existence + anchor validity)
+    # C5: Joints (existence + anchor validity + wheel split + wheel-in-footprint)
     has_movables = len(rigid_bodies) > 1
     if has_movables:
         enough_joints = len(joints) >= len(rigid_bodies) - 1
@@ -255,7 +281,103 @@ def audit(stage):
         misaligned_joints = [j for j in joints
                              if j.get("anchor_miss_m") is not None
                              and j["anchor_miss_m"] > 0.01]
-        anchors_ok = len(zero_anchor_joints) == 0 and len(misaligned_joints) == 0
+
+        # Wheel-split leak: a continuous-joint rigid body must not retain
+        # structural-named descendants (frame/caps/bracket/brake/etc.). If
+        # split_wheel_structural_parts failed silently, the bracket rotates with
+        # the tire. Seen on EmergencyTrolley_A01_01 when structural parts were
+        # wrapped in Xforms instead of direct Meshes.
+        wheel_split_leaks = []
+        for j in joints:
+            if not j.get("is_continuous"):
+                continue
+            b1 = j.get("body1_path")
+            if not b1:
+                continue
+            b1_prim = stage.GetPrimAtPath(b1)
+            if not b1_prim:
+                continue
+            for desc in Usd.PrimRange(b1_prim):
+                if desc == b1_prim:
+                    continue
+                n = desc.GetName().lower()
+                if any(kw in n for kw in WHEEL_STRUCTURAL_KEYWORDS) and "tire" not in n:
+                    wheel_split_leaks.append((j["name"], desc.GetName()))
+                    break
+
+        # Wheel outside chassis: each continuous-joint wheel's mesh centroid
+        # should lie within body0's xy footprint (5% margin). If not, reparent
+        # or unit conversion corrupted positions. Seen on EmergencyTrolley when
+        # USD row-vector matrix order was wrong.
+        wheels_out_of_footprint = []
+        for j in joints:
+            if not j.get("is_continuous"):
+                continue
+            b0, b1 = j.get("body0_path"), j.get("body1_path")
+            if not (b0 and b1):
+                continue
+            b0p = stage.GetPrimAtPath(b0)
+            b1p = stage.GetPrimAtPath(b1)
+            if not (b0p and b1p):
+                continue
+            try:
+                bb0 = mesh_world_bbox(stage, b0p.GetPath())
+                bb1 = mesh_world_bbox(stage, b1p.GetPath())
+            except Exception:
+                continue
+            if not (bb0 and bb1):
+                continue
+            wc = ((bb1[0][0]+bb1[1][0])/2, (bb1[0][1]+bb1[1][1])/2)
+            mx = 0.05 * max(abs(bb0[1][0] - bb0[0][0]), abs(bb0[1][1] - bb0[0][1]))
+            if not (bb0[0][0] - mx <= wc[0] <= bb0[1][0] + mx
+                    and bb0[0][1] - mx <= wc[1] <= bb0[1][1] + mx):
+                wheels_out_of_footprint.append((j["name"], wc))
+
+        # Drawer direction: prismatic travel should move the drawer toward the
+        # body's exterior face. Comparing in body-local frame so sign matches
+        # joint axis direction. Seen on EmergencyTrolley (chassis rot 181.9°):
+        # drawers pointed backward out of the chassis.
+        backward_drawers = []
+        for j in joints:
+            if j.get("type") != "PhysicsPrismaticJoint":
+                continue
+            lo, hi, ax = j.get("pris_lo"), j.get("pris_hi"), j.get("axis")
+            if lo is None or hi is None or ax not in ("X", "Y", "Z"):
+                continue
+            # Skip sliders (bidirectional ~ symmetric limits).
+            if lo < -1e-4 and hi > 1e-4:
+                continue
+            b0, b1 = j.get("body0_path"), j.get("body1_path")
+            if not (b0 and b1):
+                continue
+            b0p = stage.GetPrimAtPath(b0)
+            b1p = stage.GetPrimAtPath(b1)
+            if not (b0p and b1p):
+                continue
+            try:
+                bb0 = mesh_world_bbox(stage, b0p.GetPath())
+                bb1 = mesh_world_bbox(stage, b1p.GetPath())
+            except Exception:
+                continue
+            if not (bb0 and bb1):
+                continue
+            body_w2l = UsdGeom.Xformable(b0p).ComputeLocalToWorldTransform(
+                Usd.TimeCode.Default()).GetInverse()
+            dc = body_w2l.TransformAffine(Gf.Vec3d(
+                (bb1[0][0]+bb1[1][0])/2, (bb1[0][1]+bb1[1][1])/2, (bb1[0][2]+bb1[1][2])/2))
+            bc = body_w2l.TransformAffine(Gf.Vec3d(
+                (bb0[0][0]+bb0[1][0])/2, (bb0[0][1]+bb0[1][1])/2, (bb0[0][2]+bb0[1][2])/2))
+            idx = {"X":0,"Y":1,"Z":2}[ax]
+            drawer_offset = dc[idx] - bc[idx]   # + = drawer on +axis side of body
+            travel_sign = 1 if hi > abs(lo) else -1
+            if drawer_offset * travel_sign < 0:
+                backward_drawers.append(j["name"])
+
+        anchors_ok = (len(zero_anchor_joints) == 0
+                      and len(misaligned_joints) == 0
+                      and len(wheel_split_leaks) == 0
+                      and len(wheels_out_of_footprint) == 0
+                      and len(backward_drawers) == 0)
         c5_pass = enough_joints and anchors_ok
         c5_detail = f"{len(joints)} joints for {len(rigid_bodies) - 1} movable parts"
         if not enough_joints:
@@ -268,6 +390,23 @@ def audit(stage):
             worst = max(j["anchor_miss_m"] for j in misaligned_joints)
             c5_detail += (f" — {len(misaligned_joints)} joint(s) have misaligned anchors "
                           f"(worst: {worst*100:.1f}cm mismatch — parts will fly at physics init)")
+        if wheel_split_leaks:
+            c5_pass = False
+            n, kw = wheel_split_leaks[0]
+            c5_detail += (f" — {len(wheel_split_leaks)} continuous-joint wheel(s) still contain "
+                          f"structural descendants (e.g. {n} has '{kw}') — bracket will rotate with tire; "
+                          f"check split_wheel_structural_parts accepts Xform-wrapped children")
+        if wheels_out_of_footprint:
+            c5_pass = False
+            n, wc = wheels_out_of_footprint[0]
+            c5_detail += (f" — {len(wheels_out_of_footprint)} wheel(s) land outside chassis footprint "
+                          f"(e.g. {n} at x={wc[0]:+.2f}, y={wc[1]:+.2f}) — check reparent matrix order "
+                          f"for USD row-vector convention")
+        if backward_drawers:
+            c5_pass = False
+            c5_detail += (f" — {len(backward_drawers)} drawer(s) open the wrong direction "
+                          f"(e.g. {backward_drawers[0]}) — check prismatic direction-selection "
+                          f"compares in body-local frame, not world")
     else:
         c5_pass = True
         c5_detail = "no movable parts — joints N/A"
@@ -1175,7 +1314,7 @@ def reparent_prims_preserve_world_xform(stage, prim_paths, new_parent_path):
         parent = prim.GetParent()
         pxf = UsdGeom.Xformable(parent)
         pw = pxf.ComputeLocalToWorldTransform(Usd.TimeCode.Default())
-        local_mat = pw.GetInverse() * wmat
+        local_mat = wmat * pw.GetInverse()
 
         xf = UsdGeom.Xformable(prim)
         xf.ClearXformOpOrder()
@@ -1206,7 +1345,10 @@ def split_wheel_structural_parts(stage, movables, body_path):
             continue
         structural_paths = []
         for child in wheel_prim.GetAllChildren():
-            if child.GetTypeName() != "Mesh":
+            # Move any direct child (Mesh or Xform wrapping one) whose name
+            # matches a structural keyword. EmergencyTrolley wraps each part
+            # in an Xform so direct-Mesh-only matching misses frame/caps/brake.
+            if child.GetTypeName() not in ("Mesh", "Xform"):
                 continue
             if any(kw in child.GetName().lower() for kw in WHEEL_STRUCTURAL_KEYWORDS):
                 structural_paths.append(child.GetPath())
@@ -1661,10 +1803,24 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                     upper_m = body_len * 0.45
                     print(f"    (slider — geometry fallback: [{lower_m:.3f}, {upper_m:.3f}]m)")
             elif bbox and body_bbox:
-                # Drawer: one direction, face toward body exterior
-                body_center_ax = (body_bbox[0][axis_idx] + body_bbox[1][axis_idx]) / 2
-                drawer_center_ax = (bbox[0][axis_idx] + bbox[1][axis_idx]) / 2
-                if drawer_center_ax < body_center_ax:
+                # Drawer: one direction, face toward body exterior.
+                # Compare in BODY-LOCAL frame so the sign matches the joint
+                # axis direction regardless of the body's world rotation.
+                # Seen on EmergencyTrolley (chassis Z-rotation 181.9°): doing
+                # the comparison in world space inverted the direction and
+                # drawers slid out the back of the chassis.
+                body_prim = stage.GetPrimAtPath(body_path)
+                body_w2l = UsdGeom.Xformable(body_prim).ComputeLocalToWorldTransform(
+                    Usd.TimeCode.Default()).GetInverse()
+                dc_world = Gf.Vec3d((bbox[0][0] + bbox[1][0]) / 2,
+                                    (bbox[0][1] + bbox[1][1]) / 2,
+                                    (bbox[0][2] + bbox[1][2]) / 2)
+                bc_world = Gf.Vec3d((body_bbox[0][0] + body_bbox[1][0]) / 2,
+                                    (body_bbox[0][1] + body_bbox[1][1]) / 2,
+                                    (body_bbox[0][2] + body_bbox[1][2]) / 2)
+                dc_local = body_w2l.TransformAffine(dc_world)
+                bc_local = body_w2l.TransformAffine(bc_world)
+                if dc_local[axis_idx] < bc_local[axis_idx]:
                     lower_m, upper_m = -travel, 0.0
                 else:
                     lower_m, upper_m = 0.0, travel
