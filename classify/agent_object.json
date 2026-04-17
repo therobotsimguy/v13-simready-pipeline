@@ -1,36 +1,53 @@
 {
-  "name": "medical equipment boom arm",
-  "type": "fixture",
+  "object_name": "articulated support arm",
+  "object_type": "fixture",
   "material": "powder_coated_steel",
-  "density": 7850,
-  "mass": 250,
-  "articulated": true,
-  "joints": {
-    "sm_articulatedsupportarm_a01_mechanism_01": {
-      "type": "lever",
-      "range_degrees": [-170, 170],
-      "bidirectional": true
+  "material_density_kg_m3": 7850,
+  "estimated_mass_kg": 25,
+  "is_articulated": true,
+  "movable_parts": [
+    {
+      "name": "sm_articulatedsupportarm_a01_mechanism_01",
+      "behavior": "lever",
+      "motion": "Swivels horizontally relative to the fixed base, providing the first degree of freedom.",
+      "range_description": "Approximately 340 degrees of rotation.",
+      "range_meters": null,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": true
     },
-    "sm_articulatedsupportarm_a01_arm_01": {
-      "type": "lever",
-      "range_degrees": [-45, 45],
-      "bidirectional": true
+    {
+      "name": "sm_articulatedsupportarm_a01_arm_01",
+      "behavior": "lever",
+      "motion": "Swivels horizontally at the first 'elbow' joint, extending or retracting the arm's reach.",
+      "range_description": "Approximately 300 degrees of rotation.",
+      "range_meters": null,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": true
     },
-    "sm_articulatedsupportarm_a01_column_01": {
-      "type": "lever",
-      "range_degrees": [-170, 170],
-      "bidirectional": true
+    {
+      "name": "sm_articulatedsupportarm_a01_column_01",
+      "behavior": "lever",
+      "motion": "Swivels horizontally where the vertical column attaches to the main arm.",
+      "range_description": "Approximately 340 degrees of rotation.",
+      "range_meters": null,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": true
     },
-    "sm_articulatedsupportarm_a01_plate2_01": {
-      "type": "lever",
-      "range_degrees": [-90, 90],
-      "bidirectional": true
-    },
-    "sm_articulatedsupportarm_a01_plate1_01": {
-      "type": "lever",
-      "range_degrees": [-90, 90],
-      "bidirectional": true
+    {
+      "name": "sm_articulatedsupportarm_a01_plate2_01",
+      "behavior": "lever",
+      "motion": "Tilts the end-effector mounting plates (plate1 and plate2) vertically to orient the attached equipment.",
+      "range_description": "Approximately 180 degrees of tilt.",
+      "range_meters": null,
+      "joint_type": "revolute",
+      "axis": "Y",
+      "limits_bidirectional": true
     }
-  },
-  "notes": "Heavy ceiling or wall-mounted fixture. Base must be fixed in simulation. Joints are stiff with high friction or braking mechanisms to hold position against gravity."
+  ],
+  "special_notes": "This is a heavy-duty support arm, likely for medical or industrial equipment. The base is intended to be fixed to a wall or ceiling. Joints should be simulated with high stiffness and damping to support a payload without sagging. The 'sm_articulatedsupportarm_a01_plate1_01' Xform should be rigidly attached to the 'sm_articulatedsupportarm_a01_plate2_01' Xform as they form a single tilting head.",
+  "is_graspable": false,
+  "grip_location": "N/A"
 }

@@ -6,23 +6,26 @@
     },
     "sm_articulatedsupportarm_a01_mechanism_01": {
       "class": "movable:revolute",
-      "axis": "Z"
+      "axis": "Z",
+      "parent": "body"
     },
     "sm_articulatedsupportarm_a01_arm_01": {
       "class": "movable:revolute",
-      "axis": "Z"
+      "axis": "Z",
+      "parent": "sm_articulatedsupportarm_a01_mechanism_01"
     },
     "sm_articulatedsupportarm_a01_column_01": {
       "class": "movable:revolute",
-      "axis": "Z"
+      "axis": "Z",
+      "parent": "sm_articulatedsupportarm_a01_arm_01"
     },
     "sm_articulatedsupportarm_a01_plate2_01": {
       "class": "movable:revolute",
-      "axis": "Z"
+      "axis": "Z",
+      "parent": "sm_articulatedsupportarm_a01_column_01"
     },
     "sm_articulatedsupportarm_a01_plate1_01": {
-      "class": "movable:revolute",
-      "axis": "Z"
+      "class": "structural"
     }
   }
 }
