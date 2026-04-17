@@ -596,9 +596,14 @@ Test with Franka teleop:
         print("-" * 70)
         from validate_dynamics import validate as run_behavioral_validation
         bv_results = run_behavioral_validation(str(output_usd), verbose=True)
-        dbg.mujoco_score = f"{bv_results['pass_count']}/{bv_results['total']} pass, {bv_results['warn_count']} warn, {bv_results['fail_count']} fail"
-        if bv_results["fail_count"] > 0:
-            print(f"\n  WARNING: {bv_results['fail_count']} behavioral check(s) FAILED")
+        # Defensive .get() — validate_dynamics has multiple return paths; tolerate missing keys.
+        _p = bv_results.get('pass_count', 0)
+        _w = bv_results.get('warn_count', 0)
+        _f = bv_results.get('fail_count', 0)
+        _t = bv_results.get('total', 0)
+        dbg.mujoco_score = f"{_p}/{_t} pass, {_w} warn, {_f} fail"
+        if _f > 0:
+            print(f"\n  WARNING: {_f} behavioral check(s) FAILED")
     elif output_usd:
         print(f"\n[Phase 7] Skipped — validate_dynamics.py not found")
     else:
