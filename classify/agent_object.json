@@ -1,8 +1,8 @@
 {
-  "name": "medical emergency trolley",
+  "name": "emergency_medical_trolley",
   "type": "furniture",
   "material": "powder_coated_steel",
   "density_kg_m3": 7850,
-  "mass_kg": 45,
+  "mass_kg": 65,
   "articulated": true
 }
