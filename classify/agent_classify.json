@@ -1,29 +1,51 @@
 {
-  "body": "sm_drugcabinet_a03_01",
+  "body": "sm_emergencytrolley_a01_base_01",
   "parts": {
-    "sm_drugcabinet_a03_pin1_01": {"class": "structural"},
-    "sm_drugcabinet_a03_shelf1_01": {"class": "structural"},
-    "sm_drugcabinet_a03_top_01": {"class": "structural"},
-    "sm_drugcabinet_a03_lampcover_01": {"class": "structural"},
-    "sm_drugcabinet_a03_lampmount_01": {"class": "structural"},
-    "sm_drugcabinet_a03_frame_01": {"class": "structural"},
-    "sm_drugcabinet_a03_lamp_01": {"class": "structural"},
-    "sm_drugcabinet_a03_pin2_01": {"class": "structural"},
-    "sm_drugcabinet_a03_pin3_01": {"class": "structural"},
-    "sm_drugcabinet_a03_pin4_01": {"class": "structural"},
-    "sm_drugcabinet_a03_pin5_01": {"class": "structural"},
-    "sm_drugcabinet_a03_shelf2_01": {"class": "structural"},
-    "sm_drugcabinet_a03_shelf3_01": {"class": "structural"},
-    "sm_drugcabinet_a03_shelf4_01": {"class": "structural"},
-    "sm_drugcabinet_a03_shelf5_01": {"class": "structural"},
-    "sm_drugcabinet_a03_legs_01": {"class": "structural"},
-    "sm_drugcabinet_a03_legmount_01": {"class": "structural"},
-    "sm_drugcabinet_a03_door1_01": {"class": "movable:revolute", "axis": "Z"},
-    "sm_drugcabinet_a03_door2_01": {"class": "movable:revolute", "axis": "Z"},
-    "sm_drugcabinet_a03_door3_01": {"class": "movable:revolute", "axis": "Z"},
-    "sm_drugcabinet_a03_door4_01": {"class": "movable:revolute", "axis": "Z"},
-    "sm_drugcabinet_a03_door5_01": {"class": "movable:revolute", "axis": "Z"},
-    "sm_drugcabinet_a03_locks_01": {"class": "structural"},
-    "sm_drugcabinet_a03_hingespart_01": {"class": "structural"}
+    "sm_emergencytrolley_a01_wheel1_01": {
+      "class": "movable:continuous",
+      "axis": "Y"
+    },
+    "sm_emergencytrolley_a01_wheel2_01": {
+      "class": "movable:continuous",
+      "axis": "Y"
+    },
+    "sm_emergencytrolley_a01_wheel3_01": {
+      "class": "movable:continuous",
+      "axis": "Y"
+    },
+    "sm_emergencytrolley_a01_wheel4_01": {
+      "class": "movable:continuous",
+      "axis": "Y"
+    },
+    "sm_emergencytrolley_a01_drawer1_01": {
+      "class": "movable:prismatic",
+      "axis": "Y",
+      "range_meters": 0.35
+    },
+    "sm_emergencytrolley_a01_drawer2_01": {
+      "class": "movable:prismatic",
+      "axis": "Y",
+      "range_meters": 0.35
+    },
+    "sm_emergencytrolley_a01_drawer3_01": {
+      "class": "movable:prismatic",
+      "axis": "Y",
+      "range_meters": 0.35
+    },
+    "sm_emergencytrolley_a01_supportdripextensibletube_01": {
+      "class": "movable:prismatic",
+      "axis": "Z",
+      "range_meters": 0.50
+    },
+    "sm_emergencytrolley_a01_table_01": {
+      "class": "movable:prismatic",
+      "axis": "Z",
+      "range_meters": 0.30
+    },
+    "sm_emergencytrolley_a01_powerstrip_door_01": {
+      "class": "movable:revolute",
+      "axis": "Z",
+      "range_degrees": [0, 90]
+    }
   }
 }

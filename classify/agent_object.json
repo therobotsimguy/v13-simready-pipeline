@@ -1,16 +1,8 @@
 {
-  "name": "tall medical storage cabinet with five doors",
+  "name": "medical emergency trolley",
   "type": "furniture",
-  "material": "powder-coated_steel",
-  "material_density_kg_m3": 7850,
-  "estimated_mass_kg": 100,
-  "articulated": true,
-  "movable_parts": [
-    {"name": "sm_drugcabinet_a03_door1_01", "behavior": "door", "range_degrees": 90},
-    {"name": "sm_drugcabinet_a03_door2_01", "behavior": "door", "range_degrees": 90},
-    {"name": "sm_drugcabinet_a03_door3_01", "behavior": "door", "range_degrees": 90},
-    {"name": "sm_drugcabinet_a03_door4_01", "behavior": "door", "range_degrees": 90},
-    {"name": "sm_drugcabinet_a03_door5_01", "behavior": "door", "range_degrees": 90}
-  ],
-  "notes": "The cabinet is a static fixture. Each door has a magnetic latch component which may imply a closing force."
+  "material": "powder_coated_steel",
+  "density_kg_m3": 7850,
+  "mass_kg": 45,
+  "articulated": true
 }
