@@ -92,7 +92,7 @@ The `"parent"` field names either `"body"` (default; flat fan-out — wheels on 
 | TWISTING/TORQUE (knob, cap) | `revolute` | `Z` | Use short angular limits |
 | ROLLING (wheel, caster) | `continuous` | `X` or `Y` (axle axis) | Unlimited rotation [-9999, 9999]. **Detect from tire bbox:** thin dimension = axle. LLM often gets this wrong — always verify. |
 | CONTACT-BASED (button) | `prismatic` | `Z` | Very short travel (5mm) |
-| Structural (shelf, divider) | `fixed` or `structural` | — | `fixed` = separate rigid body with FixedJoint; `structural` = stays part of body |
+| Structural (shelf, divider) | `fixed` or `structural` | — | `fixed` = separate rigid body with FixedJoint; `structural` = stays part of body. **Use `fixed` when the welded part must physically block a chained sibling** (e.g. an upper plate welded to a column that must stop a sliding plate below) — PhysX articulations disable collision between adjacent links, so a sibling link joined by FixedJoint becomes non-adjacent and collision re-applies. See `usd-physx-schemas → Adjacent-link self-collision`. |
 
 ### How the LLM should classify
 

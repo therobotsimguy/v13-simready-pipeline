@@ -281,6 +281,30 @@ The classifier must output a `"parent"` field per movable naming either `"body"`
 3. **Skips the nested-movable guard** when the declared parent matches the enclosing movable (valid chain). Undeclared nesting still deletes the inner movable as structural.
 4. **Continuous joints (wheels) always attach to body** regardless of parent declaration — wheels don't chain.
 
+### Adjacent-link self-collision is disabled by the solver
+
+PhysX `PxArticulationReducedCoordinate` **never lets two links joined by a single joint collide with each other** — even if both carry `CollisionAPI` meshes. This is a solver protection against constraint-violating contacts and is not configurable per joint.
+
+Consequence for chains: a welded sub-part attached only as `structural` geometry to a chain link silently fails to block a chained sibling that slides/rotates past it.
+
+**Example (the real bug):** a medical boom arm has `plate1` welded high on the column and `plate2` sliding up/down the column on a prismatic joint. Classifying `plate1` as `structural` (its meshes become part of the `column` link) makes `plate2`↔`column` adjacent → PhysX disables their collision → `plate2` slides straight through `plate1`'s geometry.
+
+**Fix pattern — welded link as FixedJoint sibling:** classify the welded part as `"movable:fixed"` with `parent` = the chain link it's welded to. It becomes its own rigid body connected by a FixedJoint (0-DOF). Now:
+
+- `plate1` ↔ `column` = adjacent (via FixedJoint) → no collision (harmless, they're welded in place).
+- `plate2` ↔ `plate1` = **non-adjacent** (both joined to `column`, but through different joints) → PhysX enables collision ✓.
+
+```json
+{
+  "plate1": {"class": "movable:fixed",    "parent": "column"},
+  "plate2": {"class": "movable:prismatic","axis": "Z", "parent": "column"}
+}
+```
+
+`make_simready.py` handles the fixed-link case specially: the fixed movable calls `apply_collision_q1(is_body=True)` so its full mesh tree (including names like `_frame_`, `_mechanism_` that the interior-keyword filter normally drops) gets collision coverage. Audit C6 excludes FixedJoints from the expected-drive count — fixed is 0-DOF and needs no drive.
+
+**Rule of thumb:** if a chained movable must be physically blocked by a welded sibling part, do NOT leave the welded part as `structural`. Declare it `movable:fixed` with the appropriate parent.
+
 ### Rules of thumb
 
 | Topology | Signal | Parent field |
