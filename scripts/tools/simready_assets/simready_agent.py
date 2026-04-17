@@ -45,7 +45,7 @@ SKILLS_DIRS = [
     ISAACLAB_ROOT / ".cursor" / "skills",
     ISAACLAB_ROOT / ".claude" / "skills",
 ]
-OUTPUT_ROOT = Path(os.path.expanduser("~/SimReady_Output"))
+OUTPUT_ROOT = Path(os.path.expanduser("~/SimReady_Output/simready"))
 CLASSIFY_TMP = OUTPUT_ROOT / "classify" / "agent_classify.json"
 
 
