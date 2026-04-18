@@ -1,43 +1,9 @@
 {
-  "object_name": "self-retaining retractor",
-  "object_type": "instrument",
+  "name": "bipolar dissecting scissors",
+  "type": "instrument",
   "material": "stainless_steel",
-  "material_density_kg_m3": 7800,
-  "estimated_mass_kg": 0.7,
-  "is_articulated": true,
-  "movable_parts": [
-    {
-      "name": "sm_selfretainingretractor_a01_dx_01",
-      "behavior": "slider",
-      "motion": "Slides along the main body's rack to spread the retractor arms apart.",
-      "range_description": "Approximately 0-15 cm",
-      "range_meters": 0.15,
-      "joint_type": "prismatic",
-      "axis": "Y",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_selfretainingretractor_a01_trigger_01",
-      "behavior": "lever",
-      "motion": "Pivots to disengage the ratchet mechanism, allowing the sliding arm to be closed.",
-      "range_description": "Pivots approximately 0-20 degrees",
-      "range_meters": 0.01,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_selfretainingretractor_a01_screw_01",
-      "behavior": "knob",
-      "motion": "Rotates to provide fine adjustment or to lock the sliding arm's position.",
-      "range_description": "Continuous rotation",
-      "range_meters": 0,
-      "joint_type": "continuous",
-      "axis": "Z",
-      "limits_bidirectional": true
-    }
-  ],
-  "special_notes": "The primary mechanism is a ratchet system. The 'dx_01' arm slides along a toothed rack on the 'sx_01' body. The 'trigger_01' acts as a pawl or release lever for this ratchet. The 'screw_01' likely provides a secondary locking or fine-tuning function.",
-  "is_graspable": true,
-  "grip_location": "The handles of the main body ('sx_01') and the sliding arm ('dx_01')."
+  "density_kg_m3": 7800,
+  "mass_kg": 0.15,
+  "articulated": true,
+  "notes": "The two scissor halves pivot around the central screw prim. Z-axis is the pivot axis."
 }

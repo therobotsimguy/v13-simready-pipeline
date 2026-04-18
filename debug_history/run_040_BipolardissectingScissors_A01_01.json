@@ -1,0 +1,288 @@
+{
+  "id": "run_040",
+  "asset": "BipolardissectingScissors_A01_01",
+  "object_type": "instrument",
+  "timestamp": "2026-04-18T11:13:45",
+  "elapsed_s": 107.51,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 35.25
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 35.25
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 35.25
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 35.25
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 35.25
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 35.25
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 35.25
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 35.25
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.019,
+        "decisions": {
+          "prims": 7
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 20.201,
+        "decisions": {
+          "n_movable_seen": 2
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 15.024,
+        "decisions": {
+          "object_name": "bipolar dissecting scissors",
+          "mass_kg": 0.15
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.004,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 59.347,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 0.93,
+        "decisions": {
+          "mujoco": "12/12 pass, 0 warn, 0 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 11.978,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.019
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 20.201
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 15.024
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.004
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 59.347
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 0.93
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 11.978
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.001
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 200.0,
+        "masses": {
+          "sm_bipolardissectingscissors_a01_01": 0.009999999776482582,
+          "sm_bipolardissectingscissors_a01_dx_01": 2.0,
+          "sm_bipolardissectingscissors_a01_sx_01": 2.0
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "12/12 pass, 0 warn, 0 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "bipolar dissecting scissors",
+    "object_type": "instrument",
+    "material": "stainless_steel",
+    "material_density_kg_m3": 7800,
+    "estimated_mass_kg": 0.15,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_bipolardissectingscissors_a01_dx_01",
+        "behavior": "lever",
+        "motion": "Pivots around the central screw to open and close the scissor blades, working in opposition to the other blade.",
+        "range_description": "0-30 degrees",
+        "range_meters": 0.523,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_bipolardissectingscissors_a01_sx_01",
+        "behavior": "lever",
+        "motion": "Pivots around the central screw to open and close the scissor blades, working in opposition to the other blade.",
+        "range_description": "0-30 degrees",
+        "range_meters": 0.523,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      }
+    ],
+    "special_notes": "The two scissor halves, 'dx' and 'sx', pivot around the central 'screw' prim. A single revolute joint should be defined at the screw's location, connecting the two halves. The Z-axis is the likely pivot axis given the Z-up convention.",
+    "is_graspable": true,
+    "grip_location": "The finger loops/handles."
+  }
+}
