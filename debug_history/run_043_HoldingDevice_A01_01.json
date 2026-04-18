@@ -1,9 +1,9 @@
 {
-  "id": "run_042",
-  "asset": "Forceps_A01_01",
+  "id": "run_043",
+  "asset": "HoldingDevice_A01_01",
   "object_type": "instrument",
-  "timestamp": "2026-04-18T11:59:49",
-  "elapsed_s": 93.6,
+  "timestamp": "2026-04-18T12:05:31",
+  "elapsed_s": 195.58,
   "skills": {
     "entries": [
       {
@@ -11,56 +11,56 @@
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 22.24
+        "elapsed_s": 55.72
       },
       {
         "skill": "simready-criteria",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 22.24
+        "elapsed_s": 55.72
       },
       {
         "skill": "failure-modes",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 22.24
+        "elapsed_s": 55.72
       },
       {
         "skill": "simready-joint-params",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 22.24
+        "elapsed_s": 55.72
       },
       {
         "skill": "robot-model",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 22.24
+        "elapsed_s": 55.72
       },
       {
         "skill": "simready-collision",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 22.24
+        "elapsed_s": 55.72
       },
       {
         "skill": "simready-mechanism-lookup",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 22.24
+        "elapsed_s": 55.72
       },
       {
         "skill": "usd-physx-schemas",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 22.24
+        "elapsed_s": 55.72
       }
     ],
     "summary": {
@@ -121,52 +121,52 @@
       {
         "stage": "read_hierarchy",
         "part": null,
-        "elapsed_s": 0.017,
+        "elapsed_s": 0.02,
         "decisions": {
-          "prims": 3
+          "prims": 19
         }
       },
       {
         "stage": "visual_analysis",
         "part": null,
-        "elapsed_s": 13.408,
+        "elapsed_s": 32.732,
         "decisions": {
-          "n_movable_seen": 0
+          "n_movable_seen": 3
         }
       },
       {
         "stage": "object_understanding",
         "part": null,
-        "elapsed_s": 8.811,
+        "elapsed_s": 22.969,
         "decisions": {
-          "object_name": "surgical forceps",
-          "mass_kg": 0.06
+          "object_name": "surgical holding device",
+          "mass_kg": 0.7
         }
       },
       {
         "stage": "skill_loading",
         "part": null,
-        "elapsed_s": 0.002,
+        "elapsed_s": 0.001,
         "decisions": {}
       },
       {
         "stage": "agent_classify_and_build",
         "part": null,
-        "elapsed_s": 59.562,
+        "elapsed_s": 108.585,
         "decisions": {}
       },
       {
         "stage": "mujoco_validation",
         "part": null,
-        "elapsed_s": 0.638,
+        "elapsed_s": 0.682,
         "decisions": {
-          "mujoco": "4/4 pass, 0 warn, 0 fail"
+          "mujoco": "14/16 pass, 2 warn, 0 fail"
         }
       },
       {
         "stage": "visual_verification",
         "part": null,
-        "elapsed_s": 11.157,
+        "elapsed_s": 30.588,
         "decisions": {}
       },
       {
@@ -179,31 +179,31 @@
     "summary": {
       "read_hierarchy": {
         "calls": 1,
-        "total_s": 0.017
+        "total_s": 0.02
       },
       "visual_analysis": {
         "calls": 1,
-        "total_s": 13.408
+        "total_s": 32.732
       },
       "object_understanding": {
         "calls": 1,
-        "total_s": 8.811
+        "total_s": 22.969
       },
       "skill_loading": {
         "calls": 1,
-        "total_s": 0.002
+        "total_s": 0.001
       },
       "agent_classify_and_build": {
         "calls": 1,
-        "total_s": 59.562
+        "total_s": 108.585
       },
       "mujoco_validation": {
         "calls": 1,
-        "total_s": 0.638
+        "total_s": 0.682
       },
       "visual_verification": {
         "calls": 1,
-        "total_s": 11.157
+        "total_s": 30.588
       },
       "physics_diagnostics": {
         "calls": 1,
@@ -214,19 +214,20 @@
   "diagnostics": {
     "checks": {
       "D1_disconnected": {
-        "count": 1,
-        "paths": [
-          "/sm_forceps_a01_01/sm_forceps_a01_01"
-        ]
+        "count": 0,
+        "paths": []
       },
       "D2_orphaned_colliders": {
         "count": 0,
         "paths": []
       },
       "D3_mass_ratio": {
-        "ratio": 1.0,
+        "ratio": 37.8,
         "masses": {
-          "sm_forceps_a01_01": 5.0
+          "sm_holdingdevice_a01_01": 0.05290000140666962,
+          "sm_holdingdevice_a01_valvebutton_01": 0.5,
+          "sm_holdingdevice_a01_hingecentral_01": 2.0,
+          "sm_holdingdevice_a01_hingesx_01": 2.0
         }
       },
       "D4_anchor_mismatch": {
@@ -247,22 +248,52 @@
     "issues_found": 0
   },
   "audit_score": "7/7",
-  "mujoco_score": "4/4 pass, 0 warn, 0 fail",
-  "verdict": "PASS",
+  "mujoco_score": "14/16 pass, 2 warn, 0 fail",
+  "verdict": "PENDING",
   "user_notes": "User skipped verdict",
   "issues_found": [],
   "classification": {},
   "gemini_output": {
-    "object_name": "surgical forceps",
+    "object_name": "surgical holding device",
     "object_type": "instrument",
     "material": "stainless_steel",
     "material_density_kg_m3": 7800,
-    "estimated_mass_kg": 0.06,
-    "is_articulated": false,
-    "movable_parts": [],
-    "special_notes": "The entire object is a single, static mesh. The jaws and handles are fused and cannot articulate.",
+    "estimated_mass_kg": 0.7,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_holdingdevice_a01_dx_01",
+        "behavior": "lever",
+        "motion": "The right arm pivots outwards from the central body.",
+        "range_description": "0-60 degrees",
+        "range_meters": 1.047,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_holdingdevice_a01_hingesx_01",
+        "behavior": "lever",
+        "motion": "The left arm pivots outwards from the central body.",
+        "range_description": "0-60 degrees",
+        "range_meters": 1.047,
+        "joint_type": "revolute",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_holdingdevice_a01_valvebutton_01",
+        "behavior": "button",
+        "motion": "A small button on the right arm that can be pressed.",
+        "range_description": "0-5 mm",
+        "range_meters": 0.005,
+        "joint_type": "prismatic",
+        "axis": "Y",
+        "limits_bidirectional": false
+      }
+    ],
+    "special_notes": "The two arms (dx and sx) are hinged and should pivot outwards, possibly in a synchronized manner. The valve button likely controls a locking mechanism for the arms in a real-world scenario.",
     "is_graspable": true,
-    "grip_location": "The ring handles"
-  },
-  "verdict_notes": "Single-mesh USD \u2014 correctly classified as non-articulated graspable prop. Teleop pickup confirmed."
+    "grip_location": "On the central body, around the 'sm_holdingdevice_a01_central_01' part."
+  }
 }

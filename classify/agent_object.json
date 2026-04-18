@@ -1,9 +1,8 @@
 {
-  "name": "surgical forceps",
+  "name": "surgical holding device",
   "type": "instrument",
   "material": "stainless_steel",
-  "density_kg_m3": 7800,
-  "mass_kg": 0.06,
-  "articulated": false,
-  "notes": "The entire object is a single, static mesh. The jaws and handles are fused and cannot articulate."
+  "density": 7800,
+  "mass": 0.7,
+  "articulated": true
 }

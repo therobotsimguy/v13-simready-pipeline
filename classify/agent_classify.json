@@ -1,4 +1,26 @@
 {
-  "body": "sm_forceps_a01_01",
-  "parts": {}
+  "body": "sm_holdingdevice_a01_01",
+  "parts": {
+    "sm_holdingdevice_a01_stickercentral_01": {
+      "class": "decorative"
+    },
+    "sm_holdingdevice_a01_central_01": {
+      "class": "structural"
+    },
+    "sm_holdingdevice_a01_hingecentral_01": {
+      "class": "movable:revolute",
+      "axis": "Z",
+      "parent": "body"
+    },
+    "sm_holdingdevice_a01_hingesx_01": {
+      "class": "movable:revolute",
+      "axis": "Z",
+      "parent": "body"
+    },
+    "sm_holdingdevice_a01_valvebutton_01": {
+      "class": "movable:prismatic",
+      "axis": "Y",
+      "parent": "sm_holdingdevice_a01_hingecentral_01"
+    }
+  }
 }
