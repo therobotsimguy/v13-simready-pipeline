@@ -1,9 +1,33 @@
 {
-  "name": "bipolar dissecting scissors",
-  "type": "instrument",
+  "object_name": "hemostatic clamp",
+  "object_type": "instrument",
   "material": "stainless_steel",
-  "density_kg_m3": 7800,
-  "mass_kg": 0.15,
-  "articulated": true,
-  "notes": "The two scissor halves pivot around the central screw prim. Z-axis is the pivot axis."
+  "material_density_kg_m3": 7800,
+  "estimated_mass_kg": 0.1,
+  "is_articulated": true,
+  "movable_parts": [
+    {
+      "name": "sm_clamps_a01_dx_01",
+      "behavior": "lever",
+      "motion": "The right half of the clamp pivots around a central pin.",
+      "range_description": "0-40 degrees from the closed position",
+      "range_meters": 0.698,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_clamps_a01_sx_01",
+      "behavior": "lever",
+      "motion": "The left half of the clamp pivots around a central pin.",
+      "range_description": "0-40 degrees from the closed position",
+      "range_meters": 0.698,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": true
+    }
+  ],
+  "special_notes": "The two halves pivot around a common central point. The tips of the jaws should align precisely when closed. The handles may have a ratchet mechanism for locking, which is part of the static mesh and not separately articulated.",
+  "is_graspable": true,
+  "grip_location": "The finger loops on the handles."
 }

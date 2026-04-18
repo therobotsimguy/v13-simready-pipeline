@@ -1,9 +1,9 @@
 {
-  "id": "run_040",
-  "asset": "BipolardissectingScissors_A01_01",
+  "id": "run_041",
+  "asset": "Clamps_A01_01",
   "object_type": "instrument",
-  "timestamp": "2026-04-18T11:13:45",
-  "elapsed_s": 107.51,
+  "timestamp": "2026-04-18T11:23:56",
+  "elapsed_s": 386.98,
   "skills": {
     "entries": [
       {
@@ -11,56 +11,56 @@
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 35.25
+        "elapsed_s": 38.86
       },
       {
         "skill": "simready-criteria",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 35.25
+        "elapsed_s": 38.86
       },
       {
         "skill": "failure-modes",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 35.25
+        "elapsed_s": 38.86
       },
       {
         "skill": "simready-joint-params",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 35.25
+        "elapsed_s": 38.86
       },
       {
         "skill": "robot-model",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 35.25
+        "elapsed_s": 38.86
       },
       {
         "skill": "simready-collision",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 35.25
+        "elapsed_s": 38.86
       },
       {
         "skill": "simready-mechanism-lookup",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 35.25
+        "elapsed_s": 38.86
       },
       {
         "skill": "usd-physx-schemas",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 35.25
+        "elapsed_s": 38.86
       }
     ],
     "summary": {
@@ -121,15 +121,15 @@
       {
         "stage": "read_hierarchy",
         "part": null,
-        "elapsed_s": 0.019,
+        "elapsed_s": 0.046,
         "decisions": {
-          "prims": 7
+          "prims": 6
         }
       },
       {
         "stage": "visual_analysis",
         "part": null,
-        "elapsed_s": 20.201,
+        "elapsed_s": 18.951,
         "decisions": {
           "n_movable_seen": 2
         }
@@ -137,36 +137,36 @@
       {
         "stage": "object_understanding",
         "part": null,
-        "elapsed_s": 15.024,
+        "elapsed_s": 19.865,
         "decisions": {
-          "object_name": "bipolar dissecting scissors",
-          "mass_kg": 0.15
+          "object_name": "hemostatic clamp",
+          "mass_kg": 0.1
         }
       },
       {
         "stage": "skill_loading",
         "part": null,
-        "elapsed_s": 0.004,
+        "elapsed_s": 0.001,
         "decisions": {}
       },
       {
         "stage": "agent_classify_and_build",
         "part": null,
-        "elapsed_s": 59.347,
+        "elapsed_s": 334.768,
         "decisions": {}
       },
       {
         "stage": "mujoco_validation",
         "part": null,
-        "elapsed_s": 0.93,
+        "elapsed_s": 0.416,
         "decisions": {
-          "mujoco": "12/12 pass, 0 warn, 0 fail"
+          "mujoco": "0/1 pass, 0 warn, 1 fail"
         }
       },
       {
         "stage": "visual_verification",
         "part": null,
-        "elapsed_s": 11.978,
+        "elapsed_s": 12.933,
         "decisions": {}
       },
       {
@@ -179,31 +179,31 @@
     "summary": {
       "read_hierarchy": {
         "calls": 1,
-        "total_s": 0.019
+        "total_s": 0.046
       },
       "visual_analysis": {
         "calls": 1,
-        "total_s": 20.201
+        "total_s": 18.951
       },
       "object_understanding": {
         "calls": 1,
-        "total_s": 15.024
+        "total_s": 19.865
       },
       "skill_loading": {
         "calls": 1,
-        "total_s": 0.004
+        "total_s": 0.001
       },
       "agent_classify_and_build": {
         "calls": 1,
-        "total_s": 59.347
+        "total_s": 334.768
       },
       "mujoco_validation": {
         "calls": 1,
-        "total_s": 0.93
+        "total_s": 0.416
       },
       "visual_verification": {
         "calls": 1,
-        "total_s": 11.978
+        "total_s": 12.933
       },
       "physics_diagnostics": {
         "calls": 1,
@@ -222,11 +222,10 @@
         "paths": []
       },
       "D3_mass_ratio": {
-        "ratio": 200.0,
+        "ratio": 25.0,
         "masses": {
-          "sm_bipolardissectingscissors_a01_01": 0.009999999776482582,
-          "sm_bipolardissectingscissors_a01_dx_01": 2.0,
-          "sm_bipolardissectingscissors_a01_sx_01": 2.0
+          "sm_clamps_a01_sx_01": 1.0,
+          "sm_clamps_a01_dx_01": 0.03999999910593033
         }
       },
       "D4_anchor_mismatch": {
@@ -247,43 +246,42 @@
     "issues_found": 0
   },
   "audit_score": "7/7",
-  "mujoco_score": "12/12 pass, 0 warn, 0 fail",
-  "verdict": "PASS",
+  "mujoco_score": "0/1 pass, 0 warn, 1 fail",
+  "verdict": "PENDING",
   "user_notes": "User skipped verdict",
   "issues_found": [],
   "classification": {},
   "gemini_output": {
-    "object_name": "bipolar dissecting scissors",
+    "object_name": "hemostatic clamp",
     "object_type": "instrument",
     "material": "stainless_steel",
     "material_density_kg_m3": 7800,
-    "estimated_mass_kg": 0.15,
+    "estimated_mass_kg": 0.1,
     "is_articulated": true,
     "movable_parts": [
       {
-        "name": "sm_bipolardissectingscissors_a01_dx_01",
+        "name": "sm_clamps_a01_dx_01",
         "behavior": "lever",
-        "motion": "Pivots around the central screw to open and close the scissor blades, working in opposition to the other blade.",
-        "range_description": "0-30 degrees",
-        "range_meters": 0.523,
+        "motion": "The right half of the clamp, including one handle and one jaw, pivots around a central pin.",
+        "range_description": "0-40 degrees from the closed position",
+        "range_meters": 0.698,
         "joint_type": "revolute",
         "axis": "Z",
         "limits_bidirectional": true
       },
       {
-        "name": "sm_bipolardissectingscissors_a01_sx_01",
+        "name": "sm_clamps_a01_sx_01",
         "behavior": "lever",
-        "motion": "Pivots around the central screw to open and close the scissor blades, working in opposition to the other blade.",
-        "range_description": "0-30 degrees",
-        "range_meters": 0.523,
+        "motion": "The left half of the clamp, including one handle and one jaw, pivots around a central pin.",
+        "range_description": "0-40 degrees from the closed position",
+        "range_meters": 0.698,
         "joint_type": "revolute",
         "axis": "Z",
         "limits_bidirectional": true
       }
     ],
-    "special_notes": "The two scissor halves, 'dx' and 'sx', pivot around the central 'screw' prim. A single revolute joint should be defined at the screw's location, connecting the two halves. The Z-axis is the likely pivot axis given the Z-up convention.",
+    "special_notes": "The two halves, sm_clamps_a01_dx_01 and sm_clamps_a01_sx_01, pivot around a common central point. The tips of the jaws should align precisely when closed. The handles may have a ratchet mechanism for locking, which is part of the static mesh and not separately articulated.",
     "is_graspable": true,
-    "grip_location": "The finger loops/handles."
-  },
-  "verdict_notes": "Teleop test \u2014 opened in Isaac Sim, blades pivot at central screw, no physics glitches"
+    "grip_location": "The finger loops on the handles."
+  }
 }

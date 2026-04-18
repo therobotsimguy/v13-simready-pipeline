@@ -1,20 +1,9 @@
 {
-  "body": "sm_bipolardissectingscissors_a01_01",
+  "body": "sm_clamps_a01_sx_01",
   "parts": {
-    "sm_bipolardissectingscissors_a01_dx_01": {
+    "sm_clamps_a01_dx_01": {
       "class": "movable:revolute",
-      "axis": "Z",
-      "range": [-30, 30],
-      "parent": "body"
-    },
-    "sm_bipolardissectingscissors_a01_screw_01": {
-      "class": "structural"
-    },
-    "sm_bipolardissectingscissors_a01_sx_01": {
-      "class": "movable:revolute",
-      "axis": "Z",
-      "range": [-30, 30],
-      "parent": "body"
+      "axis": "Z"
     }
   }
 }
