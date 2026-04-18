@@ -10,17 +10,20 @@
     "sm_holdingdevice_a01_hingecentral_01": {
       "class": "movable:revolute",
       "axis": "Z",
-      "parent": "body"
+      "parent": "body",
+      "range_deg": [0, 75]
     },
     "sm_holdingdevice_a01_hingesx_01": {
       "class": "movable:revolute",
       "axis": "Z",
-      "parent": "body"
+      "parent": "body",
+      "range_deg": [0, 75]
     },
     "sm_holdingdevice_a01_valvebutton_01": {
       "class": "movable:prismatic",
-      "axis": "Y",
-      "parent": "sm_holdingdevice_a01_hingecentral_01"
+      "axis": "Z",
+      "parent": "sm_holdingdevice_a01_hingecentral_01",
+      "range_meters": [0, 0.005]
     }
   }
 }

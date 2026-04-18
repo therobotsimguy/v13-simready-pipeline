@@ -1,8 +1,8 @@
 {
-  "name": "surgical holding device",
+  "name": "self-retaining surgical retractor",
   "type": "instrument",
   "material": "stainless_steel",
-  "density": 7800,
-  "mass": 0.7,
+  "density_kg_m3": 7800,
+  "mass_kg": 1.5,
   "articulated": true
 }
