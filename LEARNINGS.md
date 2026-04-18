@@ -143,13 +143,20 @@ colliders. Things tried that did not resolve it:
   articulation tree breaks the solver silently) plus a FixedJoint to
   world as the anchor.
 
-Diagnosis is inconclusive — the `usd-physx-schemas` skill's
-adjacent-link rule ("two links joined by ONE joint don't collide") would
-imply sx↔dx should collide (2 joints apart via screw), but they don't
-in practice. Contrast the boom arm fix (plate1 `movable:fixed` sibling
-of plate2 under column) which does block correctly — suggests the
-boom-arm case involves a FixedJoint that avoids whatever filter is
-catching the revolute-revolute sibling pair.
+**Diagnosis (final, 2026-04-17):** the retractor's two arm meshes share
+~131 cm³ of volume at rest — full prong length, full thickness, 2.9 cm
+X overlap at the scissor pivot. **PhysX silently ignores collision
+between rigid bodies that interpenetrate at physics init** (no clean
+contact normal). Nothing at the schema / collider / articulation level
+can fix this — it's a mesh-design property of the raw asset. All the
+fixes attempted above had no effect because none of them changed the
+initial-penetration state.
+
+Contrast the boom arm (which works): plate1 and plate2 have 0 cm³
+overlap — they're on different Z slabs of the column with a 19 cm gap.
+PhysX sees them approach cleanly and resolves contact normally. It
+was never about the FixedJoint trick — that just gave plate1 its own
+link. The geometry did the work.
 
 **What worked adjacent to this:**
 
@@ -162,16 +169,34 @@ catching the revolute-revolute sibling pair.
   (IsaacLab-side patch) — prevents every custom asset getting forced to
   50μ offset, which is too tight for thin geometry.
 
-**Next steps when resuming:**
+**What actually ships** (commit
+[`40862a8`](https://github.com/therobotsimguy/v13-simready-pipeline/commit/40862a8)
++ earlier): clean pipeline rebuild with body = central screw
+(kinematic, 0.01 kg), sx + dx as `movable:revolute` siblings
+(2 kg each, mirrored limits), trigger structural under dx. Shift-drag
+works at `--asset_scale 5.0`. Prongs visually clip at close — accepted
+as geometry limitation, not a pipeline bug.
 
-1. Build a minimal 2-body repro USD (two rigid bodies + shared
-   common-parent revolute joints + articulation root, nothing else)
-   and isolate whether the filter is PhysX-level or Isaac Lab-side.
-2. Try explicit `UsdPhysicsCollisionGroup` whitelisting the
-   arm↔arm pair.
-3. Try SDF mesh collision on the arms (`approximation="sdf"` + PhysxSDFMeshCollisionAPI).
-4. Compare to a known-working Isaac Lab asset that has two revolute
-   links on one kinematic pivot (if any exist in the standard library).
+**Next steps if the prong-clip ever needs fixing** (none are
+pipeline-only):
+
+1. Mesh surgery in Blender — boolean the shared-pivot volume so each
+   arm occupies only its own half. Re-export, rebuild, collision works
+   out of the box.
+2. Custom collider authoring — give each arm a collider of only the
+   prong / jaw region, excluding the overlapping base plate.
+3. Rule for the classifier / object-understanding step to **detect this
+   class of geometry ahead of time** (two movables with large mutual
+   bbox overlap at rest → mark asset as "visually articulated,
+   physically phantom at pivot", don't even try to enforce prong-prong
+   contact).
+
+**Default pipeline classify** for self-retaining retractors / hinge
+instruments: `body = central pivot (kinematic)`, two arms as
+`movable:revolute` siblings, welded ratcheting sub-parts as `structural`
+under their hosting arm. Use `--asset_scale 5.0` at spawn for picker
+ergonomics. Do not attempt to resolve arm-arm self-collision via
+schema flags — check for mesh overlap first.
 
 ### EmergencyTrolley world-vs-body-local fixes (2026-04-17)
 
