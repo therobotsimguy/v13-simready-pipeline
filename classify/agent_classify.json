@@ -1,6 +1,19 @@
 {
   "body": "sm_holdingdevice_a01_01",
   "parts": {
+    "sm_holdingdevice_a01_dx_01": {
+      "class": "movable:revolute",
+      "axis": "Z"
+    },
+    "sm_holdingdevice_a01_sx_01": {
+      "class": "movable:revolute",
+      "axis": "Z"
+    },
+    "sm_holdingdevice_a01_valvebutton_01": {
+      "class": "movable:prismatic",
+      "axis": "Z",
+      "parent": "sm_holdingdevice_a01_dx_01"
+    },
     "sm_holdingdevice_a01_stickercentral_01": {
       "class": "decorative"
     },
@@ -8,22 +21,25 @@
       "class": "structural"
     },
     "sm_holdingdevice_a01_hingecentral_01": {
-      "class": "movable:revolute",
-      "axis": "Z",
-      "parent": "body",
-      "range_deg": [0, 75]
+      "class": "structural"
+    },
+    "sm_holdingdevice_a01_stickerdx_01": {
+      "class": "decorative"
+    },
+    "sm_holdingdevice_a01_hingedx_01": {
+      "class": "structural"
+    },
+    "sm_holdingdevice_a01_valve_01": {
+      "class": "structural"
     },
     "sm_holdingdevice_a01_hingesx_01": {
-      "class": "movable:revolute",
-      "axis": "Z",
-      "parent": "body",
-      "range_deg": [0, 75]
+      "class": "structural"
     },
-    "sm_holdingdevice_a01_valvebutton_01": {
-      "class": "movable:prismatic",
-      "axis": "Z",
-      "parent": "sm_holdingdevice_a01_hingecentral_01",
-      "range_meters": [0, 0.005]
+    "sm_holdingdevice_a01_sxcap_01": {
+      "class": "structural"
+    },
+    "sm_holdingdevice_a01_stickersx_01": {
+      "class": "decorative"
     }
   }
 }

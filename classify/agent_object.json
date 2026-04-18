@@ -1,8 +1,43 @@
 {
-  "name": "self-retaining surgical retractor",
-  "type": "instrument",
+  "object_name": "surgical_retractor",
+  "object_type": "instrument",
   "material": "stainless_steel",
-  "density_kg_m3": 7800,
-  "mass_kg": 1.5,
-  "articulated": true
+  "material_density_kg_m3": 7800,
+  "estimated_mass_kg": 3.5,
+  "is_articulated": true,
+  "movable_parts": [
+    {
+      "name": "sm_holdingdevice_a01_dx_01",
+      "behavior": "lever",
+      "motion": "Rotates outwards on a hinge to open the retractor.",
+      "range_description": "0-120 degrees",
+      "range_meters": 2.094,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": false
+    },
+    {
+      "name": "sm_holdingdevice_a01_sx_01",
+      "behavior": "lever",
+      "motion": "Rotates outwards on a hinge to open the retractor.",
+      "range_description": "0-120 degrees",
+      "range_meters": 2.094,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": false
+    },
+    {
+      "name": "sm_holdingdevice_a01_valvebutton_01",
+      "behavior": "button",
+      "motion": "Presses into the valve body, likely to release a lock on the arms.",
+      "range_description": "0-5 mm",
+      "range_meters": 0.005,
+      "joint_type": "prismatic",
+      "axis": "Z",
+      "limits_bidirectional": false
+    }
+  ],
+  "special_notes": "The two hinged arms (dx and sx) are part of a retractor mechanism and likely move symmetrically. The valve button probably functions as a lock/release for the arm positions. For revolute joints, 'range_meters' is used to store the range in radians.",
+  "is_graspable": true,
+  "grip_location": "Central body (sm_holdingdevice_a01_central_01)"
 }
