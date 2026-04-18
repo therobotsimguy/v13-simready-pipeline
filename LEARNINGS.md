@@ -229,6 +229,126 @@ chassis asset, **first suspect body-local-vs-world confusion in
 
 ---
 
+## 2026-04-18 — F44/F45/F46 drawer collision + direction (MedicalutilityCart_A03_01)
+
+After F43 landed the wheels on the ground, three more failures surfaced on the
+same cart, all related to drawer behavior:
+
+**F44 — concave-organizer-hull bloat.** Drawer3's internal `holders_01`
+mesh (an instrument-slot grid) is concave; `convexHull` inflated it to a
+47cm vertical box that overlapped drawer1 and drawer2 slots above it. When
+teleop opened drawer3, the inflated hull dragged drawer1/2 along. Fix: for
+movable-part meshes, skip `CollisionAPI` on descendants whose name matches
+`holders|holder|cage|rack|lattice|grid|divider|organizer`. Visual is
+preserved, no more cross-drawer contact.
+
+**F45 — articulation self-collision disabled by default.** PhysX
+articulations default `EnabledSelfCollisions = False`, disabling contact
+between ALL links. Even with F44 fixing the bloated hulls, drawers would
+still pass through each other because they're all in the same articulation.
+Fix: apply `PhysxArticulationAPI` on the articulation root and set
+`enabledSelfCollisions = True`. Adjacent-joint links still skip contact (so
+wheel↔chassis is fine), non-adjacent links now collide as intended.
+
+**F46 — prismatic direction-select wrong on symmetric drawers.** Drawer1
+is a full-width top drawer whose bbox is centered on the cart X axis — the
+bbox-center heuristic couldn't tell which face opens. Fix: prefer
+handle/lock/knob/rotor sub-mesh position when available (the handle sits
+on the opening face, so opening direction = drawer-center → handle-center).
+Applied in both the pipeline direction-select AND the C5 backward_drawers
+audit (they must agree).
+
+**F46b — user override for irregular drawers.** When the handle heuristic
+still guesses wrong (e.g. a lockrotor that engages from the non-opening
+face), `classify.json` now accepts signed axis strings `"+X"` / `"-X"` /
+`"+Y"` etc. Pipeline honors the sign, and C5 skips the direction check
+for any joint with an explicit override — user intent is authoritative.
+
+**Systemic lessons:**
+- Heuristics stack: bbox-center → handle-position → explicit override. Each
+  layer catches cases the one above gets wrong, and the final one lets the
+  user author intent directly.
+- When two places in the pipeline decide the same thing (apply_physics and
+  the audit both compute drawer direction), they MUST use the same logic.
+  Disagreement produces false audit failures on correct assets.
+- Self-collision is a whole-articulation flag, not a per-joint flag. Always
+  enable it; the adjacency rule handles the exceptions.
+
+---
+
+## 2026-04-18 — F43 bake residual xformOp:scale (MedicalutilityCart_A03_01)
+
+**Symptom:** Cart physically functioned in teleop — gravity worked, shift+drag
+moved it, articulation fired — but visually it floated ~8cm above the ground
+with a gaping void between the chassis bottom and the floor. Calculated
+bbox said wheels at Z=0 and chassis at Z=0.08m (correct caster height), yet
+the rendered image did not match.
+
+**Root cause:** Raw USD had `xformOp:scale=(100,100,100)` on the inner chassis
+Xform, plus nested compensating scales (0.02 on the monitor arm, 52 on the
+arm sub-parts, etc.) that netted out to correct visible geometry. The V13
+`normalize_to_meters` function scaled metersPerUnit and vertices/translate
+ops by the mpu factor but **did not touch xformOp:scale**. Isaac Lab's
+ArticulationCfg + PhysX interpret these inner scale ops inconsistently with
+the USD renderer — physics saw one set of positions, the viewer saw another.
+
+**Fix:** `bake_xform_scales(stage)` added as a post-normalize step. Single
+file, single function. Single-pass collect-then-apply (not destructive
+during traversal — that was my first bug: modifying ancestor scales during
+iteration invalidated descendant cum_scale calculations). The algorithm:
+snapshot every prim's `(cum_ancestor_scale, own_scale)` BEFORE any
+mutation, then in a second pass: mesh vertices scale by `cum × own`,
+translate ops scale by `cum`, every scale op resets to `(1,1,1)`.
+Post-bake, the entire transform chain is scale-invariant — every physics
+engine and renderer sees the same geometry.
+
+**Systemic lesson:** USD authoring pipelines from different DCCs (Maya,
+Blender, 3ds Max) leave residual xformOp:scale in different places. A
+simulation-ready asset must have NO residual scale ops — renderers tolerate
+them, physics engines often don't. Bake early, bake always, and test with a
+non-unit scale asset in the test suite. Also: **never modify a transform
+during tree traversal if descendants need its pre-modification value** —
+snapshot first.
+
+---
+
+## 2026-04-18 — F42 wheel-split keyword growth (Mobilecartsandtables_C01_01)
+
+**Symptom:** cart built cleanly (AUDIT 7/7, MUJOCO 27/28), but in teleop the
+caster **bracket + cover rotated with the tire** instead of staying put.
+The whole wheel housing spun.
+
+**Root cause:** `split_wheel_structural_parts` is keyword-driven. Source
+USD named the caster sub-parts `wheel1_base_01` / `wheel1_trim_01` /
+`wheel1_brake_01` / `wheel1_tire_01`. Only `brake` matched the existing
+keyword set (`fixer/bolt/body/mount/stopper/frame/caps/bracket/fork/brake`).
+`base` (the bracket) and `trim` (the cover) stayed inside the rotating
+wheel Xform. And because the C5 `wheel_split_leaks` audit uses the **same**
+keyword list, the audit was blind — it couldn't flag a leak it didn't know
+how to look for.
+
+**Why it slipped past prior trolleys:** EmergencyTrolley/InstrumentTrolley
+named their sub-parts `frame/caps/brake` — all already in the list. So
+no asset before this one had exercised a new naming convention.
+
+**Fix (3-step):**
+- `make_simready.py`: added `"base", "trim"` to `WHEEL_STRUCTURAL_KEYWORDS`
+  with inline comment explaining scope-safety (direct children of
+  continuous-joint wheels only — never matches a "base_link" elsewhere).
+- `simready-collision` SKILL: updated the structural keyword list with
+  the 2026-04-18 note.
+- `failure-modes` SKILL: added F42 row and updated W01 compound failure
+  to include the new keywords.
+- Audit C5 auto-strengthens because it reads the same list.
+
+**Systemic lesson:** keyword-driven heuristics grow by asset. Every new
+naming convention found in the wild extends the list. The fix is cheap;
+the vigilance is the cost. When a wheel's bracket spins with the tire,
+**first check the direct-child names against the keyword list** — do not
+assume the split ran correctly just because the asset audits 7/7.
+
+---
+
 ## Canonical state (2026-04-17)
 
 - V13 is the only SimReady pipeline. V11 archived at

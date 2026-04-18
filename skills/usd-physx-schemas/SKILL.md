@@ -340,6 +340,10 @@ If `len(classification.movable_parts) > len(joints_in_USD)`, the chain got colla
 
 **Both localPos at (0,0,0) = broken joint** — part pinned to origin. F14 in failure-modes.
 
+**EXCEPTION — symmetric-pivot instruments (F14b):** For scissors, clamps, pliers, and forceps, both bodies legitimately have their Xform origin at the shared pivot pin. In this case `localPos0 = localPos1 = (0,0,0)` is correct — both local zeros map to the SAME world point (the pivot). Audit must resolve anchors in world-space before failing: only flag when `anchor_miss_m > 0.01m` (world-space distance between the two resolved anchors). V13 implementation: `make_simready.py:282` filters `zero_anchor_joints` by `anchor_miss_m is None`, trusting the world-space `misaligned_joints` check for the rest.
+
+**Classifier must pick default-prim-name as body for symmetric-pivot instruments (F14c):** For scissors/clamps/pliers/forceps where the hierarchy has two symmetric arm Xforms and no distinct central body prim, the classifier MUST set `body = default_prim_name` (not either arm). URDF/MuJoCo converters treat the default prim as the kinematic root; when the classifier picks an arm as body, the remaining arm becomes a sibling with no explicit joint chaining it to root, and the converter fails with "more than one to-neighbor" on the revolute joint. Correct pattern: `body = sm_clamps_a01_01` (the root/default prim); both arms become `movable:revolute`. Seen on Clamps_A01_01 (2026-04-18).
+
 ### DriveAPI Formula
 
 ```

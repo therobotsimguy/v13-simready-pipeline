@@ -212,18 +212,25 @@ def audit(stage, classification=None):
         c2_detail += f" ({approx_counts})"
     if not colliders:
         c2_detail = "0 colliders"
-    # Per-rigid-body coverage: every rigid body must have ≥1 descendant collider
+    # Per-rigid-body coverage: every rigid body with descendant meshes must
+    # have ≥1 descendant collider. Bodies with NO descendant meshes (pure
+    # coordinate-frame anchors for symmetric-pivot instruments like Clamps
+    # where the central pivot has no geometry of its own) are allowed — they
+    # serve only as joint anchors, not collision surfaces.
     bodies_without_colliders = []
     for rb in rigid_bodies:
         rb_prim = stage.GetPrimAtPath(rb["path"])
         if not rb_prim:
             continue
         has_col = False
+        has_mesh = False
         for desc in Usd.PrimRange(rb_prim):
+            if desc.IsA(UsdGeom.Mesh):
+                has_mesh = True
             if desc.HasAPI(UsdPhysics.CollisionAPI):
                 has_col = True
                 break
-        if not has_col:
+        if has_mesh and not has_col:
             bodies_without_colliders.append(rb["path"])
     if bodies_without_colliders:
         c2_pass = False
@@ -281,7 +288,15 @@ def audit(stage, classification=None):
     has_movables = len(rigid_bodies) > 1
     if has_movables:
         enough_joints = len(joints) >= len(rigid_bodies) - 1
-        zero_anchor_joints = [j for j in joints if j.get("both_anchors_zero", False)]
+        # F14b: localPos0=localPos1=(0,0,0) is only a failure when we cannot
+        # verify world-space anchor convergence. If anchor_miss_m is computable
+        # and small, both body origins ARE at the pivot (legitimate for
+        # symmetric-pivot instruments: scissors, clamps, pliers, forceps).
+        # If anchor_miss_m is large, misaligned_joints catches it below.
+        zero_anchor_joints = [
+            j for j in joints
+            if j.get("both_anchors_zero", False) and j.get("anchor_miss_m") is None
+        ]
         # Joints where localPos0 and localPos1 don't map to the same world
         # point — parts will spring/detach at physics init.
         misaligned_joints = [j for j in joints
@@ -344,8 +359,19 @@ def audit(stage, classification=None):
         # joint axis direction. Seen on EmergencyTrolley (chassis rot 181.9°):
         # drawers pointed backward out of the chassis.
         backward_drawers = []
+        # F46b: honor classify.json axis overrides (+X / -X). When the user
+        # explicitly specifies a direction, skip the backward-drawer check
+        # for that joint — the user's intent is authoritative.
+        explicit_overrides = set()
+        if classification is not None:
+            for part_name, spec in classification.get("parts", {}).items():
+                ax_raw = spec.get("axis", "")
+                if isinstance(ax_raw, str) and len(ax_raw) == 2 and ax_raw[0] in "+-":
+                    explicit_overrides.add(f"{part_name}_joint")
         for j in joints:
             if j.get("type") != "PhysicsPrismaticJoint":
+                continue
+            if j.get("name") in explicit_overrides:
                 continue
             lo, hi, ax = j.get("pris_lo"), j.get("pris_hi"), j.get("axis")
             if lo is None or hi is None or ax not in ("X", "Y", "Z"):
@@ -369,12 +395,50 @@ def audit(stage, classification=None):
                 continue
             body_w2l = UsdGeom.Xformable(b0p).ComputeLocalToWorldTransform(
                 Usd.TimeCode.Default()).GetInverse()
+            # F46: prefer handle/lock/knob sub-mesh center over drawer-bbox
+            # center when available — the handle identifies the opening face
+            # on symmetric-bbox drawers (see apply_physics prismatic branch).
+            handle_kws = ("handle", "knob", "pull", "lock", "rotor",
+                          "grip", "latch")
+            handle_center = None
+            best_area = 0.0
+            for desc in Usd.PrimRange(b1p):
+                nm = desc.GetName().lower()
+                if not any(kw in nm for kw in handle_kws):
+                    continue
+                mesh_prims = [desc] if desc.IsA(UsdGeom.Mesh) else _get_all_descendant_meshes(desc)
+                hmin = Gf.Vec3d(1e30, 1e30, 1e30)
+                hmax = Gf.Vec3d(-1e30, -1e30, -1e30)
+                ok = False
+                for mp in mesh_prims:
+                    pts = mp.GetAttribute("points")
+                    if not pts or not pts.HasValue():
+                        continue
+                    l2w = UsdGeom.Xformable(mp).ComputeLocalToWorldTransform(
+                        Usd.TimeCode.Default())
+                    for pt in pts.Get():
+                        wp = l2w.TransformAffine(Gf.Vec3d(float(pt[0]), float(pt[1]), float(pt[2])))
+                        hmin = Gf.Vec3d(min(hmin[0], wp[0]), min(hmin[1], wp[1]), min(hmin[2], wp[2]))
+                        hmax = Gf.Vec3d(max(hmax[0], wp[0]), max(hmax[1], wp[1]), max(hmax[2], wp[2]))
+                        ok = True
+                if not ok:
+                    continue
+                area = (hmax[0]-hmin[0]) * (hmax[1]-hmin[1])
+                if area > best_area:
+                    best_area = area
+                    handle_center = Gf.Vec3d((hmin[0]+hmax[0])/2, (hmin[1]+hmax[1])/2, (hmin[2]+hmax[2])/2)
             dc = body_w2l.TransformAffine(Gf.Vec3d(
                 (bb1[0][0]+bb1[1][0])/2, (bb1[0][1]+bb1[1][1])/2, (bb1[0][2]+bb1[1][2])/2))
             bc = body_w2l.TransformAffine(Gf.Vec3d(
                 (bb0[0][0]+bb0[1][0])/2, (bb0[0][1]+bb0[1][1])/2, (bb0[0][2]+bb0[1][2])/2))
             idx = {"X":0,"Y":1,"Z":2}[ax]
-            drawer_offset = dc[idx] - bc[idx]   # + = drawer on +axis side of body
+            if handle_center is not None:
+                hc = body_w2l.TransformAffine(handle_center)
+                # Opening direction = from drawer center toward handle.
+                drawer_offset = hc[idx] - dc[idx]
+            else:
+                # Fallback: drawer vs body center.
+                drawer_offset = dc[idx] - bc[idx]
             travel_sign = 1 if hi > abs(lo) else -1
             if drawer_offset * travel_sign < 0:
                 backward_drawers.append(j["name"])
@@ -390,7 +454,9 @@ def audit(stage, classification=None):
             c5_detail += " — need more joints"
         if zero_anchor_joints:
             c5_pass = False
-            c5_detail += f" — {len(zero_anchor_joints)} joints have ZERO anchors (localPos0=localPos1=(0,0,0))"
+            c5_detail += (f" — {len(zero_anchor_joints)} joints have ZERO anchors "
+                          f"(localPos0=localPos1=(0,0,0)) AND world-space anchor could not be "
+                          f"resolved — check body0/body1 rels are set")
         if misaligned_joints:
             c5_pass = False
             worst = max(j["anchor_miss_m"] for j in misaligned_joints)
@@ -413,6 +479,40 @@ def audit(stage, classification=None):
             c5_detail += (f" — {len(backward_drawers)} drawer(s) open the wrong direction "
                           f"(e.g. {backward_drawers[0]}) — check prismatic direction-selection "
                           f"compares in body-local frame, not world")
+        # F40: Implausible prismatic travel on a small asset. A 5mm button on
+        # a 15cm tool should not have 60cm travel. Catches cases where the
+        # bbox-derived travel over-shot (deeply nested part, inflated bbox)
+        # and gemini_articulation wasn't consulted.
+        implausible_prismatic = []
+        try:
+            stage_bb = mesh_world_bbox(stage, dp_path)
+        except Exception:
+            stage_bb = None
+        if stage_bb:
+            stage_size = max(
+                abs(stage_bb[1][0] - stage_bb[0][0]),
+                abs(stage_bb[1][1] - stage_bb[0][1]),
+                abs(stage_bb[1][2] - stage_bb[0][2]),
+            )
+        else:
+            stage_size = None
+        for j in joints:
+            if j.get("type") != "PhysicsPrismaticJoint":
+                continue
+            lo = j.get("pris_lo")
+            hi = j.get("pris_hi")
+            if lo is None or hi is None:
+                continue
+            travel = abs(hi - lo)
+            if stage_size and travel > stage_size * 0.5:
+                implausible_prismatic.append((j["name"], travel, stage_size))
+        if implausible_prismatic:
+            c5_pass = False
+            n, tr, sz = implausible_prismatic[0]
+            c5_detail += (f" — {len(implausible_prismatic)} prismatic joint(s) have implausible "
+                          f"travel (e.g. {n}: {tr*100:.0f}cm on a {sz*100:.0f}cm asset) — "
+                          f"check gemini_articulation range_meters is passed to apply_physics "
+                          f"prismatic branch (F40)")
         # Serial-chain collapse: classifier declared N movables but pipeline
         # produced fewer joints. Root cause: nested movables dropped without
         # declared "parent" chain, or classifier omitted parent field entirely.
@@ -1104,10 +1204,26 @@ def apply_collision_q1(stage, xform_path, is_body=False):
     if not meshes:
         return 0, 0
 
+    # F44: for movable parts (drawers, doors, shelves, etc.), internal
+    # organizer meshes (holders/cage/rack/grid/lattice) must be SKIPPED from
+    # collision entirely — their hulls or decompositions still project
+    # outside the drawer's outer envelope and collide with adjacent stacked
+    # drawers. Drawers rely on base + front + handle for collision; the
+    # internal dividers are visual-only. Seen on MedicalutilityCart_A03_01
+    # drawer3 holders (2026-04-18) where the mesh spanned 47cm (entire
+    # drawer-stack height) and a convexHull made drawers pass through each
+    # other during teleop. Simply excluding `holders`-family meshes from
+    # CollisionAPI keeps them visible but non-colliding.
+    SKIP_COLLISION_KEYWORDS = ("holders", "holder", "cage", "rack",
+                               "lattice", "grid", "divider", "organizer")
     meshes.sort(key=lambda x: x[1], reverse=True)
     n_col = 0
     n_decomp = 0
     for mesh_prim, npts in meshes:
+        mesh_name_lower = mesh_prim.GetName().lower()
+        if not is_body and any(kw in mesh_name_lower for kw in SKIP_COLLISION_KEYWORDS):
+            # Visual-only — no CollisionAPI applied.
+            continue
         UsdPhysics.CollisionAPI.Apply(mesh_prim)
         mc = UsdPhysics.MeshCollisionAPI.Apply(mesh_prim)
         use_decomp = is_body and npts > 2000
@@ -1372,7 +1488,18 @@ def reparent_prims_preserve_world_xform(stage, prim_paths, new_parent_path):
 # --- Wheel structural splitting ---
 
 WHEEL_STRUCTURAL_KEYWORDS = ("fixer", "bolt", "body", "mount", "stopper",
-                             "frame", "caps", "bracket", "fork", "brake")
+                             "frame", "caps", "bracket", "fork", "brake",
+                             # Added 2026-04-18 after Mobilecartsandtables_C01_01
+                             # shipped with bracket rotating as part of tire.
+                             # Source USD named the caster bracket/cover parts
+                             # `wheel_base_01` / `wheel_trim_01` which fell
+                             # outside the original keyword set. Scope is safe:
+                             # split_wheel_structural_parts only inspects DIRECT
+                             # children of continuous-joint wheels (never body
+                             # or chassis), so false-positive matching to a
+                             # "base_link" elsewhere in the hierarchy cannot
+                             # happen here.
+                             "base", "trim")
 
 def split_wheel_structural_parts(stage, movables, body_path):
     """Move structural child meshes (fixer/body/bolts) from wheel Xforms to body.
@@ -1459,7 +1586,17 @@ def resolve_movable_parts(stage, body_path, dp_path, classification):
             continue
 
         joint_type = cls.split(":")[1]
-        axis = spec.get("axis", "Z" if joint_type == "revolute" else "Y")
+        axis_raw = spec.get("axis", "Z" if joint_type == "revolute" else "Y")
+        # F46b: axis may carry an optional sign prefix ("+X", "-X") to override
+        # the auto direction-select heuristic for prismatic drawers that open
+        # AGAINST the handle-face convention (e.g. a top lid that opens toward
+        # the back while other drawers open toward the front).
+        axis_sign = 0
+        if isinstance(axis_raw, str) and len(axis_raw) == 2 and axis_raw[0] in "+-":
+            axis_sign = 1 if axis_raw[0] == "+" else -1
+            axis = axis_raw[1]
+        else:
+            axis = axis_raw
         parent_name = spec.get("parent", "body")
 
         path = body_path.AppendChild(name)
@@ -1478,9 +1615,119 @@ def resolve_movable_parts(stage, body_path, dp_path, classification):
             "path": path,
             "joint": joint_type,
             "axis": axis,
+            "axis_sign": axis_sign,  # 0 = auto, +1 = +axis, -1 = -axis
             "parent": parent_name,
         }
     return movables
+
+
+def bake_xform_scales(stage):
+    """Bake all non-unit xformOp:scale ops into mesh vertex data and translate
+    ops so every Xform ends with scale=(1,1,1), preserving world positions.
+
+    F43: MedicalutilityCart_A03_01 raw USD had `xformOp:scale=(100,100,100)`
+    on its inner chassis Xform AND nested compensating scales (0.02, 52, …) on
+    arm/screencase/etc. Isaac Lab's ArticulationCfg spawned the asset but
+    interpreted the inner scales inconsistently with the USD renderer —
+    the cart physically functioned but appeared floating above the ground.
+
+    Single-pass, nesting-safe algorithm using cumulative scale from the stage
+    root. For each prim:
+      - Compute cum_scale = product of all ancestor scale ops (up to and
+        including the prim's PARENT scale — not the prim's own scale).
+      - If Mesh: scale `points` + `extent` by (cum_scale × own_scale).
+      - Apply cum_scale to the prim's translate ops.
+      - Reset the prim's scale op to (1,1,1).
+    Because the traversal is parent-before-children and we capture cum_scale
+    as an accumulator, each descendant's values get exactly one scale-in.
+    Mesh vertices receive cum_scale × own_scale because that is the full
+    stack of scales they sit under (scale × rotate × translate composition
+    for uniform scales).
+    """
+    n_baked = 0
+
+    def cum_scale_from_root(prim):
+        """Product of all ancestor scales — excludes prim's OWN scale."""
+        sx = sy = sz = 1.0
+        p = prim.GetParent()
+        while p and p.IsValid() and p.GetPath() != Sdf.Path.absoluteRootPath:
+            xf = UsdGeom.Xformable(p)
+            for op in xf.GetOrderedXformOps():
+                if op.GetOpType() == UsdGeom.XformOp.TypeScale:
+                    v = op.Get()
+                    if v is not None:
+                        sx *= float(v[0]); sy *= float(v[1]); sz *= float(v[2])
+            p = p.GetParent()
+        return sx, sy, sz
+
+    def own_scale(prim):
+        xf = UsdGeom.Xformable(prim)
+        for op in xf.GetOrderedXformOps():
+            if op.GetOpType() == UsdGeom.XformOp.TypeScale:
+                v = op.Get()
+                if v is not None:
+                    return float(v[0]), float(v[1]), float(v[2])
+        return 1.0, 1.0, 1.0
+
+    # Pass 1: snapshot EVERY prim's cum_scale and own_scale BEFORE mutating
+    # anything. Modifying scales during traversal invalidates the cumulative
+    # product for descendants (a child's cum_scale would read its ancestor's
+    # already-reset 1.0 value).
+    snapshot = {}  # prim path str -> (cum_x, cum_y, cum_z, own_x, own_y, own_z)
+    has_nonunit = False
+    for prim in stage.Traverse():
+        if prim.GetTypeName() not in ("Xform", "Mesh"):
+            continue
+        cx, cy, cz = cum_scale_from_root(prim)
+        ox, oy, oz = own_scale(prim)
+        snapshot[str(prim.GetPath())] = (cx, cy, cz, ox, oy, oz)
+        if not (abs(ox-1.0) < 1e-6 and abs(oy-1.0) < 1e-6 and abs(oz-1.0) < 1e-6):
+            has_nonunit = True
+    if not has_nonunit:
+        return False
+
+    # Pass 2: apply snapshot values. Mesh points scale by (cum × own), translate
+    # ops scale by cum, scale ops reset to (1,1,1).
+    for prim in stage.Traverse():
+        if prim.GetTypeName() not in ("Xform", "Mesh"):
+            continue
+        cx, cy, cz, ox, oy, oz = snapshot[str(prim.GetPath())]
+        mesh_sx, mesh_sy, mesh_sz = cx*ox, cy*oy, cz*oz
+
+        if prim.IsA(UsdGeom.Mesh) and (abs(mesh_sx-1.0) > 1e-6 or abs(mesh_sy-1.0) > 1e-6 or abs(mesh_sz-1.0) > 1e-6):
+            pts_attr = prim.GetAttribute("points")
+            if pts_attr and pts_attr.HasValue():
+                pts = pts_attr.Get()
+                pts_attr.Set([Gf.Vec3f(float(p[0])*mesh_sx, float(p[1])*mesh_sy, float(p[2])*mesh_sz) for p in pts])
+            ext_attr = prim.GetAttribute("extent")
+            if ext_attr and ext_attr.HasValue():
+                ext = ext_attr.Get()
+                ext_attr.Set([
+                    Gf.Vec3f(float(ext[0][0])*mesh_sx, float(ext[0][1])*mesh_sy, float(ext[0][2])*mesh_sz),
+                    Gf.Vec3f(float(ext[1][0])*mesh_sx, float(ext[1][1])*mesh_sy, float(ext[1][2])*mesh_sz),
+                ])
+
+        xf = UsdGeom.Xformable(prim)
+        for op in xf.GetOrderedXformOps():
+            if op.IsInverseOp():
+                continue
+            if op.GetOpType() == UsdGeom.XformOp.TypeTranslate:
+                v = op.Get()
+                if v is not None and (abs(cx-1.0) > 1e-6 or abs(cy-1.0) > 1e-6 or abs(cz-1.0) > 1e-6):
+                    new = (float(v[0])*cx, float(v[1])*cy, float(v[2])*cz)
+                    op.Set(Gf.Vec3d(*new) if isinstance(v, Gf.Vec3d) else Gf.Vec3f(*new))
+            elif op.GetOpType() == UsdGeom.XformOp.TypeTransform:
+                m = op.Get()
+                if m is not None and (abs(cx-1.0) > 1e-6 or abs(cy-1.0) > 1e-6 or abs(cz-1.0) > 1e-6):
+                    scaled = Gf.Matrix4d(m)
+                    scaled.SetRow3(3, Gf.Vec3d(m[3][0]*cx, m[3][1]*cy, m[3][2]*cz))
+                    op.Set(scaled)
+            elif op.GetOpType() == UsdGeom.XformOp.TypeScale:
+                op.Set(Gf.Vec3f(1.0, 1.0, 1.0))
+
+    n_nonunit = sum(1 for v in snapshot.values() if not (abs(v[3]-1.0) < 1e-6 and abs(v[4]-1.0) < 1e-6 and abs(v[5]-1.0) < 1e-6))
+    print(f"    baked {n_nonunit} xformOp:scale ops into vertex data (cumulative-scale algorithm)")
+    return True
 
 
 def normalize_to_meters(stage):
@@ -1489,9 +1736,16 @@ def normalize_to_meters(stage):
     Scales all mesh vertices and translation xformOps by metersPerUnit,
     then sets metersPerUnit to 1.0. This ensures the output USD works
     in any simulator without needing external scale factors.
+
+    Also bakes out any lingering `xformOp:scale` ops into descendant vertex
+    data — see bake_xform_scales (F43).
     """
     mpu = UsdGeom.GetStageMetersPerUnit(stage)
     if abs(mpu - 1.0) < 0.001:
+        # Even when mpu is already 1.0, a non-unit xformOp:scale could still
+        # be lurking on an inner Xform and confuse physics engines (F43).
+        if bake_xform_scales(stage):
+            print(f"\n  NORMALIZE: mpu already 1.0, but baked residual xformOp:scale ops")
         return False
 
     print(f"\n  NORMALIZE: stage is in {'centimeters' if abs(mpu-0.01)<0.001 else f'units (mpu={mpu})'}, converting to meters")
@@ -1533,6 +1787,9 @@ def normalize_to_meters(stage):
     n_meshes = sum(1 for p in stage.Traverse() if p.GetTypeName() == "Mesh")
     print(f"    Scaled {n_meshes} meshes + xform translations by {mpu}")
     print(f"    metersPerUnit set to 1.0")
+    # F43: also bake any xformOp:scale residue so Isaac Lab + PhysX see the
+    # same geometry the renderer does.
+    bake_xform_scales(stage)
     return True
 
 
@@ -1670,10 +1927,13 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
 
     # --- C1: Rigid Bodies + Mass ---
     print(f"\n  RIGID BODIES:")
-    # Graspable props: if no movable parts and object is small (<3kg estimated),
-    # make body dynamic so the robot can pick it up. Large furniture stays kinematic.
+    # Graspable props: if object is small (<3kg estimated), make body dynamic
+    # so the robot can pick it up. Applies to both non-articulated tools
+    # (Forceps) AND articulated handheld tools (HoldingDevice with button +
+    # hinge arms, working scissors, syringes with plunger). Large furniture
+    # and fixtures stay kinematic.
     has_movables = len(movables) > 0
-    if not has_movables and not dynamic_body:
+    if not dynamic_body:
         est_mass = gemini_mass  # Use Gemini mass if available
         if not est_mass:
             est_mass = estimate_mass_from_mesh(stage, body_path, density=500)
@@ -1682,7 +1942,9 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
             est_mass = estimate_mass(body_bbox_check, mpu, density=500) if body_bbox_check else 999
         if est_mass < 3.0:
             dynamic_body = True
-            print(f"    (small object {est_mass:.2f}kg, no joints — auto-dynamic for grasping)")
+            reason = ("no joints" if not has_movables
+                      else f"{len(movables)} movable part(s) — handheld articulated tool")
+            print(f"    (small object {est_mass:.2f}kg, {reason} — auto-dynamic for grasping)")
     body_kinematic = not dynamic_body
     apply_rigid_body(stage, body_path, kinematic=body_kinematic, dynamic_body=dynamic_body)
     body_bbox = mesh_world_bbox(stage, body_path)
@@ -1821,6 +2083,16 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                                 lp0_f, lp1_f, axis=axis, hinge_edge=hinge)
             print(f"    RevoluteJoint  {name}  axis={axis} hinge={hinge} parent={parent_name}")
         elif jtype == "prismatic":
+            # F40: Gemini-reported travel range takes precedence over
+            # bbox-derived travel for small components whose bbox includes
+            # ancestor transforms (e.g. a 5mm push-button on a deeply-nested
+            # valve assembly — bbox Y-extent is the full arm length, not
+            # the button travel). Seen on HoldingDevice_A01_01 valvebutton
+            # (2026-04-18): bbox gave 60cm travel, Gemini said 5mm.
+            gemini_spec = (gemini_articulation or {}).get(name)
+            gemini_range = gemini_spec.get("range_meters") if gemini_spec else None
+            gemini_bidir = gemini_spec.get("limits_bidirectional", False) if gemini_spec else False
+
             # For prismatic joints, travel is computed against the PARENT
             # link's bbox (not the root body). In flat fan-out assets
             # parent_bbox == body_bbox so behavior is unchanged; for serial
@@ -1938,20 +2210,110 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                 parent_prim = stage.GetPrimAtPath(parent_path)
                 parent_w2l = UsdGeom.Xformable(parent_prim).ComputeLocalToWorldTransform(
                     Usd.TimeCode.Default()).GetInverse()
+                # F46: prefer sub-mesh (handle/lock/knob/rotor) position over
+                # full drawer bbox center for the direction decision. The
+                # handle sits on the drawer's OPENING face; its offset along
+                # the prismatic axis robustly identifies which face opens,
+                # even when the drawer bbox is symmetric about the chassis
+                # center (which fools the bbox-center heuristic). Seen on
+                # MedicalutilityCart_A03_01 drawer1 (2026-04-18) — symmetric
+                # 44cm-wide drawer with a lock on the -X edge, classifier
+                # used bbox-center and defaulted to +X → drawer opened into
+                # the cart's back face instead of the handle face.
+                part_prim = stage.GetPrimAtPath(path)
+                handle_kws = ("handle", "knob", "pull", "lock", "rotor",
+                              "grip", "latch")
+                handle_center_world = None
+                if part_prim:
+                    best_handle_area = 0.0
+                    for desc in Usd.PrimRange(part_prim):
+                        # Inspect BOTH Mesh prims and Xform wrappers named
+                        # handle/lock/knob/rotor. Compute their mesh bbox
+                        # directly from points (mesh_world_bbox expects an
+                        # ANCESTOR of a mesh and returns None on a Mesh leaf).
+                        nm = desc.GetName().lower()
+                        if not any(kw in nm for kw in handle_kws):
+                            continue
+                        # Collect all descendant-mesh points under this
+                        # sub-Xform (or the mesh itself).
+                        mesh_prims = []
+                        if desc.IsA(UsdGeom.Mesh):
+                            mesh_prims.append(desc)
+                        else:
+                            mesh_prims.extend(_get_all_descendant_meshes(desc))
+                        hmin = Gf.Vec3d(1e30, 1e30, 1e30)
+                        hmax = Gf.Vec3d(-1e30, -1e30, -1e30)
+                        hok = False
+                        for mp in mesh_prims:
+                            pts = mp.GetAttribute("points")
+                            if not pts or not pts.HasValue():
+                                continue
+                            l2w = UsdGeom.Xformable(mp).ComputeLocalToWorldTransform(
+                                Usd.TimeCode.Default())
+                            for pt in pts.Get():
+                                wp = l2w.TransformAffine(Gf.Vec3d(float(pt[0]), float(pt[1]), float(pt[2])))
+                                hmin = Gf.Vec3d(min(hmin[0], wp[0]), min(hmin[1], wp[1]), min(hmin[2], wp[2]))
+                                hmax = Gf.Vec3d(max(hmax[0], wp[0]), max(hmax[1], wp[1]), max(hmax[2], wp[2]))
+                                hok = True
+                        if not hok:
+                            continue
+                        area = (hmax[0]-hmin[0]) * (hmax[1]-hmin[1])
+                        if area > best_handle_area:
+                            best_handle_area = area
+                            handle_center_world = Gf.Vec3d(
+                                (hmin[0]+hmax[0])/2,
+                                (hmin[1]+hmax[1])/2,
+                                (hmin[2]+hmax[2])/2,
+                            )
                 dc_world = Gf.Vec3d((bbox[0][0] + bbox[1][0]) / 2,
                                     (bbox[0][1] + bbox[1][1]) / 2,
                                     (bbox[0][2] + bbox[1][2]) / 2)
                 bc_world = Gf.Vec3d((parent_bbox[0][0] + parent_bbox[1][0]) / 2,
                                     (parent_bbox[0][1] + parent_bbox[1][1]) / 2,
                                     (parent_bbox[0][2] + parent_bbox[1][2]) / 2)
-                dc_local = parent_w2l.TransformAffine(dc_world)
                 bc_local = parent_w2l.TransformAffine(bc_world)
-                if dc_local[axis_idx] < bc_local[axis_idx]:
-                    lower_m, upper_m = -travel, 0.0
-                else:
+                # F46b: classify.json may carry an explicit sign (+X/-X) to
+                # override the auto direction-select. Use that first.
+                explicit_sign = info.get("axis_sign", 0)
+                if explicit_sign == 1:
                     lower_m, upper_m = 0.0, travel
+                    print(f"    (direction-select via classify override: axis +{axis})")
+                elif explicit_sign == -1:
+                    lower_m, upper_m = -travel, 0.0
+                    print(f"    (direction-select via classify override: axis −{axis})")
+                elif handle_center_world is not None:
+                    # Use handle-vs-drawer-center along the prismatic axis:
+                    # the handle sits on the opening face, so opening direction
+                    # points FROM drawer center TOWARD the handle.
+                    dc_local = parent_w2l.TransformAffine(dc_world)
+                    hc_local = parent_w2l.TransformAffine(handle_center_world)
+                    if hc_local[axis_idx] < dc_local[axis_idx]:
+                        lower_m, upper_m = -travel, 0.0
+                    else:
+                        lower_m, upper_m = 0.0, travel
+                    print(f"    (direction-select via handle/lock: axis {'−' if lower_m < 0 else '+'}{axis}, F46)")
+                else:
+                    dc_local = parent_w2l.TransformAffine(dc_world)
+                    if dc_local[axis_idx] < bc_local[axis_idx]:
+                        lower_m, upper_m = -travel, 0.0
+                    else:
+                        lower_m, upper_m = 0.0, travel
             else:
                 lower_m, upper_m = 0.0, travel
+            # F40 override: If Gemini gave an explicit range_meters and the
+            # bbox-derived travel exceeds it by >3x, trust Gemini. This covers
+            # the "deeply-nested small part, inflated bbox" case (buttons on
+            # valve assemblies, small levers on complex tools) without
+            # second-guessing bbox for normal drawers/sliders.
+            if gemini_range and gemini_range > 0:
+                bbox_travel = abs(upper_m - lower_m)
+                if bbox_travel > gemini_range * 3.0:
+                    if gemini_bidir:
+                        lower_m, upper_m = -gemini_range, gemini_range
+                    else:
+                        lower_m, upper_m = 0.0, gemini_range
+                    print(f"    (Gemini range override: bbox={bbox_travel:.3f}m → Gemini={gemini_range:.4f}m "
+                          f"{'bidirectional' if gemini_bidir else 'one-way'} — F40)")
             make_prismatic_joint(stage, joint_path, parent_path, path,
                                  lp0_f, lp1_f, axis=axis,
                                  lower_m=lower_m, upper_m=upper_m)
@@ -1984,12 +2346,33 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     dp_spec = stage.GetRootLayer().GetPrimAtPath(dp_path)
     schemas = dp_spec.GetInfo("apiSchemas")
     items = list(schemas.prependedItems) if schemas and hasattr(schemas, "prependedItems") else []
+    changed = False
     if "PhysicsArticulationRootAPI" not in items:
         items.append("PhysicsArticulationRootAPI")
+        changed = True
+    # F45: Enable inter-link self-collisions. PhysX always skips collision
+    # between directly-adjacent links (connected by a joint) — so a drawer
+    # joined to the chassis will never collide with the chassis, regardless
+    # of this flag. But two drawers both joined to the chassis are
+    # NON-adjacent to each other, and need this flag set to True to collide.
+    # Default=False made drawers pass through each other on
+    # MedicalutilityCart_A03_01 (2026-04-18). Enabling it is safe for all
+    # assets because adjacent-link collisions are still skipped.
+    if "PhysxArticulationAPI" not in items:
+        items.append("PhysxArticulationAPI")
+        changed = True
+    if changed:
         new_list = Sdf.TokenListOp()
         new_list.prependedItems = items
         dp_spec.SetInfo("apiSchemas", new_list)
+    # Set the self-collision attr to True (can't be done through dp_spec.SetInfo
+    # — need a UsdAttribute). Use the stage-level prim.
+    sc_attr = default_prim.GetAttribute("physxArticulation:enabledSelfCollisions")
+    if not sc_attr:
+        sc_attr = default_prim.CreateAttribute("physxArticulation:enabledSelfCollisions", Sdf.ValueTypeNames.Bool)
+    sc_attr.Set(True)
     print(f"    ArticulationRootAPI on '{default_prim.GetName()}' (default prim)")
+    print(f"    EnabledSelfCollisions=True (non-adjacent links collide — F45)")
 
     # --- Save ---
     stage.GetRootLayer().Save()

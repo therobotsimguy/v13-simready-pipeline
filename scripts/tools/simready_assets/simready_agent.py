@@ -413,7 +413,9 @@ Correct output:
 - F08: Joint type matches part type (hinged=revolute, sliding=prismatic, spinning=continuous)
 - F09: Axis matches physics (vertical hinge=Z, horizontal=X, wheel=thin bbox dimension)
 - F10: Every movable has a "parent" field; parent is either "body" or another movable's name
-- F11: If Gemini lists N movable_parts nested in hierarchy, produce N movables with declared parent chain (do NOT collapse to 1)"""
+- F11: If Gemini lists N movable_parts nested in hierarchy, produce N movables with declared parent chain (do NOT collapse to 1)
+- F14c: SYMMETRIC-PIVOT INSTRUMENTS (scissors, clamps, pliers, forceps, bipolar tools):
+  If the hierarchy has two symmetric arm Xforms (e.g. `*_dx_*`/`*_sx_*`, `*_left_*`/`*_right_*`) pivoting around a shared pin, set `body = <default_prim_name>` (the top-level root Xform — same name as the USD file stem). Both arms become `movable:revolute`. Do NOT pick one arm as body — URDF export will fail with "more than one to-neighbor" on the revolute joint even though AUDIT reports 7/7. See `simready-mechanism-lookup` → Symmetric-Pivot Instruments."""
 
     auditor_system = f"""You are a SimReady audit diagnostician.
 When a USD asset fails the 7-criteria audit after make_simready.py --fix, you diagnose
@@ -532,9 +534,11 @@ Tell the classifier to return JSON in this exact format:
 Parse the classifier's JSON response. Write it to {CLASSIFY_TMP}
 Verify the JSON is valid before saving.
 
-### STEP 2b: SAVE OBJECT DATA
-If Object Understanding data is available, write it to /tmp/v9_object.json
-This passes Gemini's mass and material density to make_simready.py.
+DO NOT modify or re-write {OBJECT_TMP} — it already contains the full
+Gemini object-understanding output (including `movable_parts[]` with
+`range_meters` per part). Overwriting it with a simplified schema drops
+the per-part range data that `make_simready.py` needs for prismatic
+travel override (F40). The pipeline already persisted it before you ran.
 
 ### STEP 3: APPLY PHYSICS
 Run this exact command:

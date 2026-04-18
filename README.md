@@ -152,14 +152,14 @@ as usual.
 | # | Asset | Type | Status |
 |---|---|---|---|
 |  1 | ArticulatedsupportArm_A01_01 | arm / mount | **built** (drove the serial-kinematic-chain + adjacent-link-self-collision fixes on 2026-04-17) |
-|  2 | BipolardissectingScissors_A01_01 | surgical tool | pending |
-|  3 | Clamps_A01_01 | surgical tool | pending |
+|  2 | BipolardissectingScissors_A01_01 | surgical tool | **built** (2026-04-18 — body + screw merged + two revolute sibling blades; AUDIT 7/7, MUJOCO 12/12, teleop PASS, 107s) |
+|  3 | Clamps_A01_01 | surgical tool | **built** (2026-04-18 — drove F14b/F14c fixes: C5 world-space anchor resolution for symmetric-pivot instruments, classifier rule `body = default prim`, C2 allows mesh-less body. AUDIT 7/7, MUJOCO 11/12) |
 |  4 | DrugCabinet_A03_01 | storage | **built** |
 |  5 | EmergencyTrolley_A01_01 | cart | **built** (drove the rotated-chassis fixes on 2026-04-17) |
-|  6 | Forceps_A01_01 | surgical tool | pending |
-|  7 | HoldingDevice_A01_01 | mount | pending |
-|  8 | MedicalutilityCart_A03_01 | cart | pending |
-|  9 | Mobilecartsandtables_C01_01 | cart / table | pending |
+|  6 | Forceps_A01_01 | surgical tool | **built** (2026-04-18 — single-mesh USD, classified as non-articulated graspable prop; teleop pickup PASS) |
+|  7 | HoldingDevice_A01_01 | mount | **built** (2026-04-18 — drove F40/F41 fixes: Gemini `range_meters` override for prismatic travel, auto-dynamic rule for articulated handheld tools, orchestrator prompt preserves full object JSON. AUDIT 7/7, MUJOCO 15/16; valvebutton 5mm travel + 2 revolute arms, body kinematic stand-mount) |
+|  8 | MedicalutilityCart_A03_01 | cart | **partial** (2026-04-18 — drove F42 base/trim keyword, F43 bake_xform_scales, F44 skip-concave-organizer, F45 articulation self-collisions, F46 handle-based direction, F46b signed-axis override, and the teleop ArticulationCfg fix for dynamic roots. Wheels + ground + physics all PASS. Drawers still open in wrong face — Gemini keeps classifying axis=Y; requires deeper classifier work to reliably pick the correct face on this asset) |
+|  9 | Mobilecartsandtables_C01_01 | cart / table | **built** (2026-04-18 — drove F42: `base`/`trim` added to `WHEEL_STRUCTURAL_KEYWORDS`, fixing bracket-rotates-with-tire. AUDIT 7/7, MUJOCO 27/28; 4 casters + height-adjust table + handle. Teleop PASS) |
 | 10 | ResuscitationBed_A01_01 | bed | pending |
 | 11 | Retractor_A01_01 | surgical tool | pending |
 | 12 | RoboticSystem_A01_01 | system | pending |
@@ -172,15 +172,21 @@ as usual.
 | 19 | SurgicalpowerTool_B01_01 | surgical tool | pending |
 | 20 | SurgicalTable_A01_01 | table | pending |
 
-Score: **5 / 20 built**. Remaining 15 can be run with the single entry-point
-command; no per-asset tuning is required unless V13 surfaces a new
-silent-failure class, in which case follow the 3-step fix rule below.
+Score: **11 / 20 built** (MedicalutilityCart counts as partial — physics
+correct, drawers mis-faced but usable for teleop). Remaining 9 assets can
+be run with the single entry-point command; no per-asset tuning is required
+unless V13 surfaces a new silent-failure class, in which case follow the
+3-step fix rule below.
 
-**Next up:** `BipolardissectingScissors_A01_01` or `Clamps_A01_01` — both
-surgical tools with topology similar to the already-built Scissors
-(single-pivot / revolute), so expected to be quick wins via the same
-`body = central pivot + two revolute sibling arms` pattern that landed
-for the SelfretainingRetractor.
+**Recent fix wave (2026-04-18):** F40 Gemini prismatic-range override,
+F41 handheld-tool auto-dynamic, F42 wheel-split keyword growth (base/trim),
+F43 bake residual xformOp:scale (fixes "floats in air" class), F44 skip
+concave organizer hulls, F45 enable articulation self-collisions, F46
+handle-based prismatic direction, F46b signed-axis classify override,
+teleop spawn-path branch (ArticulationCfg for dynamic roots).
+
+**Next up:** `ResuscitationBed_A01_01` — bed, likely kinematic with
+adjustable sections.
 
 ---
 

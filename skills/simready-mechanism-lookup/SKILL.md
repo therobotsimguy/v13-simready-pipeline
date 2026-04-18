@@ -102,6 +102,43 @@ Most mechanical assemblies follow this parent-child pattern:
 
 **Key rule**: Only direct children of main_body get joints. Sub-components stay as children of their parent (F38).
 
+## Symmetric-Pivot Instruments (scissors, clamps, pliers, forceps, bipolar tools)
+
+Hierarchy signature: two symmetric arm Xforms (often named `*_dx_*`/`*_sx_*`, `*_left_*`/`*_right_*`, or `*_a_*`/`*_b_*`) pivoting around a shared pin. There is ONE correct articulation pattern:
+
+**CANONICAL — dual-revolute around default prim (F14c):**
+```json
+{"body": "<default_prim_name>", "parts": {
+  "<arm_left>":  {"class": "movable:revolute", "axis": "Z", "parent": "body"},
+  "<arm_right>": {"class": "movable:revolute", "axis": "Z", "parent": "body"}
+}}
+```
+The default prim (the outer root Xform, same name as the asset file) is the body. Both arms become revolute movables pivoting around the shared pin. Examples: `BipolardissectingScissors_A01_01`, `Scissors_A01_01`, `SelfretainingRetractor_A01_01`.
+
+**Why not "one arm as body":** If the classifier picks `body = arm_left` and `arm_right = movable:revolute`, the URDF tree has no edge connecting `arm_left` to the root, so USD→URDF conversion fails with "more than one to-neighbor" on the revolute joint — even though PhysX accepts the joint. Phase 7 MuJoCo validation fails even at AUDIT 7/7.
+
+**Central pivot prim (when present):** If the raw USD has a separate `*_screw_*` / `*_pin_*` / `*_pivot_*` Xform between the arms, classify it as `structural` so it merges into the body as static geometry. If no such prim exists (e.g. Clamps has only two arm Xforms under the root), the canonical pattern still applies — the body just has no distinct central geometry of its own, only the arms' aggregated mesh.
+
+**Zero-anchor exception (F14b):** Both arms share the pivot pin as their Xform origin, so `localPos0 = localPos1 = (0,0,0)` is physically correct for these instruments. Audit must resolve anchors in world-space; only fail when `anchor_miss_m > 0.01m`.
+
+## Handheld Articulated Tools (F41 — dynamic-base rule)
+
+Handheld tools with on-body controls (buttons, levers, triggers) — e.g. holding devices, syringes with plungers, staplers, working scissors — must have a **dynamic base** so the robot can pick them up, AND articulated controls so the robot can actuate them after pickup.
+
+**Auto-dynamic rule:** any asset where Gemini reports `estimated_mass_kg < 3.0` gets `dynamic_body = True` regardless of whether it has movable parts. The old rule gated this on `not has_movables`, which prevented articulated handheld tools from being graspable. V13 implements this in `apply_physics` RIGID BODIES step.
+
+**Small-part travel rule (F40):** For buttons and other small prismatic controls, the bbox of a deeply-nested part includes ancestor transforms and produces an inflated travel distance. The `gemini_articulation[part].range_meters` value (from `object_understanding`) takes precedence when bbox travel exceeds Gemini's range by >3×.
+
+Canonical classification for a handheld articulated tool:
+```json
+{"body": "<default_prim_name>", "parts": {
+  "<hinge_arm_left>":  {"class": "movable:revolute",  "axis": "Z", "parent": "body"},
+  "<hinge_arm_right>": {"class": "movable:revolute",  "axis": "Z", "parent": "body"},
+  "<button>":          {"class": "movable:prismatic", "axis": "Y", "parent": "body"}
+}}
+```
+No `--dynamic` flag is needed — the pipeline auto-detects the handheld category from Gemini mass.
+
 ## Reference
 Full mechanism descriptions (100 objects with assembly sequences, component lists, and behavioral descriptions):
 - `scripts/tools/simready_assets/reference_library/industrial_assets_part1.md` (1-25: robotic arms, CNC, gearboxes, cylinders, valves)
