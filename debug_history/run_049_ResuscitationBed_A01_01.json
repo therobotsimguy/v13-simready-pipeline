@@ -1,0 +1,363 @@
+{
+  "id": "run_049",
+  "asset": "ResuscitationBed_A01_01",
+  "object_type": "furniture",
+  "timestamp": "2026-04-18T16:39:03",
+  "elapsed_s": 549.77,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 71.75
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 71.75
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 71.75
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 71.75
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 71.75
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 71.75
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 71.75
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 71.75
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.053,
+        "decisions": {
+          "prims": 41
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 39.642,
+        "decisions": {
+          "n_movable_seen": 15
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 32.047,
+        "decisions": {
+          "object_name": "hospital resuscitation bed",
+          "mass_kg": 200
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 447.129,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 3.999,
+        "decisions": {
+          "mujoco": "1/2 pass, 0 warn, 1 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 26.891,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.005,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.053
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 39.642
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 32.047
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 447.129
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 3.999
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 26.891
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.005
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 278.0,
+        "masses": {
+          "sm_resuscitationbed_a01_01": 139.0,
+          "sm_resuscitationbed_a01_ivpole_pipe2_01": 2.0,
+          "sm_resuscitationbed_a01_panelsection1_01": 5.0,
+          "sm_resuscitationbed_a01_panelsection2_01": 5.0,
+          "sm_resuscitationbed_a01_panelsection3_01": 5.0,
+          "sm_resuscitationbed_a01_rail1_01": 5.0,
+          "sm_resuscitationbed_a01_rail2_01": 5.0,
+          "sm_resuscitationbed_a01_railelbow1_01": 5.0,
+          "sm_resuscitationbed_a01_railelbow12_01": 5.0,
+          "sm_resuscitationbed_a01_rail3_01": 5.0,
+          "sm_resuscitationbed_a01_wheel1_01": 0.5,
+          "sm_resuscitationbed_a01_wheel2_01": 0.5,
+          "sm_resuscitationbed_a01_wheel3_01": 0.5,
+          "sm_resuscitationbed_a01_wheel4_01": 0.5,
+          "sm_resuscitationbed_a01_pedal1_01": 5.0,
+          "sm_resuscitationbed_a01_pedal2_01": 5.0,
+          "sm_resuscitationbed_a01_pedal3_01": 5.0,
+          "sm_resuscitationbed_a01_bedbase_01": 2.0
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "1/2 pass, 0 warn, 1 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "hospital resuscitation bed",
+    "object_type": "furniture",
+    "material": "powder_coated_steel",
+    "material_density_kg_m3": 7850,
+    "estimated_mass_kg": 200,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "caster_wheels",
+        "behavior": "wheel",
+        "motion": "Four caster wheels (wheel1_01 to wheel4_01) that both swivel 360 degrees around a vertical axis and roll continuously around a horizontal axis.",
+        "range_description": "360 degree swivel, continuous roll",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Z for swivel, perpendicular axis for roll",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "bedbase_01",
+        "behavior": "slider",
+        "motion": "The entire bed platform raises and lowers vertically via a telescoping hydraulic mechanism.",
+        "range_description": "Adjustable height from approx. 50cm to 90cm",
+        "range_meters": 0.4,
+        "joint_type": "prismatic",
+        "axis": "Z",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "panelsection3_01",
+        "behavior": "hinge",
+        "motion": "The backrest panel pivots upwards from a flat position.",
+        "range_description": "0 to 75 degrees from horizontal",
+        "range_degrees": 75,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "panelsection1_01",
+        "behavior": "hinge",
+        "motion": "The leg/foot rest panel pivots to raise or lower the patient's legs.",
+        "range_description": "-30 to 15 degrees from horizontal",
+        "range_degrees": 45,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "side_rails",
+        "behavior": "hinge",
+        "motion": "Two side rails (rail1_01, rail2_01) fold down from a vertical (up) position to a horizontal (down) position.",
+        "range_description": "0 to 90 degrees",
+        "range_degrees": 90,
+        "joint_type": "revolute",
+        "axis": "Y",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "rail3_01",
+        "behavior": "hinge",
+        "motion": "The end rail (headboard/footboard) folds down from a vertical (up) position.",
+        "range_description": "0 to 90 degrees",
+        "range_degrees": 90,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "ivpole_pipe2_01",
+        "behavior": "slider",
+        "motion": "The inner tube of the IV pole telescopes vertically to adjust its height.",
+        "range_description": "Extends up to 60 cm",
+        "range_meters": 0.6,
+        "joint_type": "prismatic",
+        "axis": "Z",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "foot_pedals",
+        "behavior": "lever",
+        "motion": "Seven foot pedals (pedal1_01 to pedal7_01) that depress to activate functions like brakes or height adjustments.",
+        "range_description": "0 to 30 degrees",
+        "range_degrees": 30,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      }
+    ],
+    "special_notes": "The four wheels are casters, each with two degrees of freedom: swivel (Z-axis rotation) and roll (rotation around the wheel's axle). The bed's articulation (height, backrest, leg rest) is typically powered and not free-moving. The side rails likely have a locking mechanism to hold them in the upright position.",
+    "is_graspable": false,
+    "grip_location": null
+  }
+}

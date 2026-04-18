@@ -263,7 +263,7 @@
   },
   "audit_score": "7/7",
   "mujoco_score": "0/1 pass, 0 warn, 1 fail",
-  "verdict": "PENDING",
+  "verdict": "PARTIAL",
   "user_notes": "User skipped verdict",
   "issues_found": [],
   "classification": {},
@@ -449,5 +449,6 @@
     "special_notes": "Caster wheels have both swivel (vertical Z-axis) and roll (horizontal axis) joints. The foot pedal on each trash can should be kinematically linked to its small access lid. Drawers have sliding limits to prevent full removal. The monitor arm has multiple joints for full articulation.",
     "is_graspable": false,
     "grip_location": "The main handle (`sm_base_a03_handle_01`) is for pushing the cart."
-  }
+  },
+  "verdict_notes": "Wheels PASS (F42 base/trim keyword fix), ground/floating PASS (F43 bake_xform_scales fix), physics runs (teleop ArticulationCfg fix). Drawer direction still incorrect \u2014 Gemini keeps choosing axis=Y but user reports top-two drawers merge. Leaving as partial pending drawer classifier heuristic work."
 }
