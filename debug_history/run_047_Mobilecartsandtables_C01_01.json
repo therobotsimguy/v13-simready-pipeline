@@ -1,0 +1,452 @@
+{
+  "id": "run_047",
+  "asset": "Mobilecartsandtables_C01_01",
+  "object_type": "furniture",
+  "timestamp": "2026-04-18T14:17:58",
+  "elapsed_s": 469.52,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 72.33
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 72.33
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 72.33
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 72.33
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 72.33
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 72.33
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 72.33
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 72.33
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.027,
+        "decisions": {
+          "prims": 8
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 26.424,
+        "decisions": {
+          "n_movable_seen": 6
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 45.874,
+        "decisions": {
+          "object_name": "height-adjustable mobile utility cart",
+          "mass_kg": 30
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.0,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 373.478,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 4.48,
+        "decisions": {
+          "mujoco": "27/28 pass, 1 warn, 0 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 19.234,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.002,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.027
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 26.424
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 45.874
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.0
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 373.478
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 4.48
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 19.234
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.002
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 42.0,
+        "masses": {
+          "sm_mobilecartsandtables_c01_01": 21.0,
+          "sm_mobilecartsandtables_c01_handle_01": 5.0,
+          "sm_mobilecartsandtables_c01_wheel1_01": 0.5,
+          "sm_mobilecartsandtables_c01_wheel2_01": 0.5,
+          "sm_mobilecartsandtables_c01_wheel3_01": 0.5,
+          "sm_mobilecartsandtables_c01_wheel4_01": 0.5,
+          "sm_mobilecartsandtables_c01_table_01": 2.0
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "27/28 pass, 1 warn, 0 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "height-adjustable mobile utility cart",
+    "object_type": "furniture",
+    "material": "powder_coated_steel",
+    "material_density_kg_m3": 7850,
+    "estimated_mass_kg": 30,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_mobilecartsandtables_c01_table_01",
+        "behavior": "slider",
+        "motion": "Vertical height adjustment of the main table surface",
+        "range_description": "Adjusts vertically by approximately 30-40 cm",
+        "range_meters": 0.35,
+        "joint_type": "prismatic",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel1_01",
+        "behavior": "wheel",
+        "motion": "Swiveling of the caster assembly around the vertical axis",
+        "range_description": "Continuous 360-degree rotation",
+        "range_meters": -1,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel1_tire_01",
+        "behavior": "wheel",
+        "motion": "Rolling of the wheel about its axle",
+        "range_description": "Continuous rotation",
+        "range_meters": -1,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel1_brake_01",
+        "behavior": "lever",
+        "motion": "Pivots to engage or disengage the wheel lock",
+        "range_description": "Pivots approximately 45 degrees",
+        "range_meters": 0.785,
+        "joint_type": "revolute",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel2_01",
+        "behavior": "wheel",
+        "motion": "Swiveling of the caster assembly around the vertical axis",
+        "range_description": "Continuous 360-degree rotation",
+        "range_meters": -1,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel2_tire_01",
+        "behavior": "wheel",
+        "motion": "Rolling of the wheel about its axle",
+        "range_description": "Continuous rotation",
+        "range_meters": -1,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel2_brake_01",
+        "behavior": "lever",
+        "motion": "Pivots to engage or disengage the wheel lock",
+        "range_description": "Pivots approximately 45 degrees",
+        "range_meters": 0.785,
+        "joint_type": "revolute",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel3_01",
+        "behavior": "wheel",
+        "motion": "Swiveling of the caster assembly around the vertical axis",
+        "range_description": "Continuous 360-degree rotation",
+        "range_meters": -1,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel3_tire_01",
+        "behavior": "wheel",
+        "motion": "Rolling of the wheel about its axle",
+        "range_description": "Continuous rotation",
+        "range_meters": -1,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel3_brake_01",
+        "behavior": "lever",
+        "motion": "Pivots to engage or disengage the wheel lock",
+        "range_description": "Pivots approximately 45 degrees",
+        "range_meters": 0.785,
+        "joint_type": "revolute",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel4_01",
+        "behavior": "wheel",
+        "motion": "Swiveling of the caster assembly around the vertical axis",
+        "range_description": "Continuous 360-degree rotation",
+        "range_meters": -1,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel4_tire_01",
+        "behavior": "wheel",
+        "motion": "Rolling of the wheel about its axle",
+        "range_description": "Continuous rotation",
+        "range_meters": -1,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_wheel4_brake_01",
+        "behavior": "lever",
+        "motion": "Pivots to engage or disengage the wheel lock",
+        "range_description": "Pivots approximately 45 degrees",
+        "range_meters": 0.785,
+        "joint_type": "revolute",
+        "axis": "Y",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_button1_01",
+        "behavior": "button",
+        "motion": "Presses in and out",
+        "range_description": "Depresses approximately 5mm",
+        "range_meters": 0.005,
+        "joint_type": "prismatic",
+        "axis": "X",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_button2_01",
+        "behavior": "button",
+        "motion": "Presses in and out",
+        "range_description": "Depresses approximately 5mm",
+        "range_meters": 0.005,
+        "joint_type": "prismatic",
+        "axis": "X",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_button3_01",
+        "behavior": "button",
+        "motion": "Presses in and out",
+        "range_description": "Depresses approximately 5mm",
+        "range_meters": 0.005,
+        "joint_type": "prismatic",
+        "axis": "X",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_button4_01",
+        "behavior": "button",
+        "motion": "Presses in and out",
+        "range_description": "Depresses approximately 5mm",
+        "range_meters": 0.005,
+        "joint_type": "prismatic",
+        "axis": "X",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_mobilecartsandtables_c01_button5_01",
+        "behavior": "button",
+        "motion": "Presses in and out",
+        "range_description": "Depresses approximately 5mm",
+        "range_meters": 0.005,
+        "joint_type": "prismatic",
+        "axis": "X",
+        "limits_bidirectional": true
+      }
+    ],
+    "special_notes": "This is a mobile cart with four caster wheels. Each caster has two degrees of freedom: continuous rolling about its axle and continuous swiveling about the vertical mount. Each wheel assembly includes a brake lever that should lock both rolling and swiveling motions. The main tabletop is height-adjustable via a prismatic joint. The five buttons are cosmetic or represent electronic controls and should have a small prismatic motion.",
+    "is_graspable": false,
+    "grip_location": "The main push handle, composed of `sm_mobilecartsandtables_c01_handlepart1_01` and `sm_mobilecartsandtables_c01_handlepart2_01`."
+  }
+}

@@ -257,7 +257,7 @@
   },
   "audit_score": "7/7",
   "mujoco_score": "0/1 pass, 0 warn, 1 fail",
-  "verdict": "PENDING",
+  "verdict": "PASS",
   "user_notes": "User skipped verdict",
   "issues_found": [],
   "classification": {},
@@ -493,5 +493,6 @@
     "special_notes": "The cart is mobile via four caster wheels, each with independent swivel and roll joints. The trash can lever's motion should be coupled to the small lid's opening. The monitor arm has multiple articulation points. The cart is pushed via the handle `sm_base_a03_handle_01`. Several loose items (cups, lids, bottle) are on the cart and are separate, graspable objects, not articulated parts of the cart itself.",
     "is_graspable": false,
     "grip_location": null
-  }
+  },
+  "verdict_notes": "Physics correct (wheels at Z=0, chassis at Z=0.083 = caster height). Drove teleop fix: dynamic-root assets now spawn via ArticulationCfg so gravity runs on chassis. Source USD has no low skirt between chassis and ground \u2014 visible 8cm void is modeling limitation of the raw asset, not a pipeline bug."
 }

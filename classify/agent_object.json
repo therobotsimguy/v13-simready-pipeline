@@ -1,233 +1,193 @@
 {
-  "object_name": "Medical utility cart with drawers and monitor arm",
+  "object_name": "height-adjustable mobile utility cart",
   "object_type": "furniture",
   "material": "powder_coated_steel",
   "material_density_kg_m3": 7850,
-  "estimated_mass_kg": 75,
+  "estimated_mass_kg": 30,
   "is_articulated": true,
   "movable_parts": [
     {
-      "name": "sm_wheel_a03_frontright_01",
-      "behavior": "wheel",
-      "motion": "360-degree swivel of the caster wheel assembly around the vertical axis.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_a03_frontright_base_01",
-      "behavior": "wheel",
-      "motion": "Rolling of the wheel around its horizontal axle.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "X",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_a03_frontleft_01",
-      "behavior": "wheel",
-      "motion": "360-degree swivel of the caster wheel assembly around the vertical axis.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_a03_frontleft_base_01",
-      "behavior": "wheel",
-      "motion": "Rolling of the wheel around its horizontal axle.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "X",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_a03_backright_01",
-      "behavior": "wheel",
-      "motion": "360-degree swivel of the caster wheel assembly around the vertical axis.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_a03_backright_base_01",
-      "behavior": "wheel",
-      "motion": "Rolling of the wheel around its horizontal axle.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "X",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_a03_backleft_01",
-      "behavior": "wheel",
-      "motion": "360-degree swivel of the caster wheel assembly around the vertical axis.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_wheel_a03_backleft_base_01",
-      "behavior": "wheel",
-      "motion": "Rolling of the wheel around its horizontal axle.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "X",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_drawer1_a03_01",
-      "behavior": "drawer",
-      "motion": "Slides in and out along the cart's depth axis.",
-      "range_description": "Slides out approximately 35 cm.",
+      "name": "sm_mobilecartsandtables_c01_table_01",
+      "behavior": "slider",
+      "motion": "Vertical height adjustment of the main table surface",
+      "range_description": "Adjusts vertically by approximately 30-40 cm",
       "range_meters": 0.35,
       "joint_type": "prismatic",
-      "axis": "Y",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_drawer2_a03_01",
-      "behavior": "drawer",
-      "motion": "Slides in and out along the cart's depth axis.",
-      "range_description": "Slides out approximately 30 cm.",
-      "range_meters": 0.3,
-      "joint_type": "prismatic",
-      "axis": "Y",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_drawer3_a03_01",
-      "behavior": "drawer",
-      "motion": "Slides in and out along the cart's depth axis.",
-      "range_description": "Slides out approximately 30 cm.",
-      "range_meters": 0.3,
-      "joint_type": "prismatic",
-      "axis": "Y",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_drawer4_a03_01",
-      "behavior": "drawer",
-      "motion": "Slides in and out along the cart's depth axis.",
-      "range_description": "Slides out approximately 30 cm.",
-      "range_meters": 0.3,
-      "joint_type": "prismatic",
-      "axis": "Y",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_drawer5_a03_01",
-      "behavior": "drawer",
-      "motion": "Slides in and out along the cart's depth axis.",
-      "range_description": "Slides out approximately 30 cm.",
-      "range_meters": 0.3,
-      "joint_type": "prismatic",
-      "axis": "Y",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_drawer1_a03_lockrotor_01",
-      "behavior": "lever",
-      "motion": "Rotates to lock/unlock the drawer.",
-      "range_description": "Rotates 90 degrees.",
-      "range_meters": 1.5708,
-      "joint_type": "revolute",
-      "axis": "Y",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_trashcan1_a03_biglid_01",
-      "behavior": "door",
-      "motion": "Hinges open upwards.",
-      "range_description": "Opens up to 90 degrees.",
-      "range_meters": 1.5708,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_trashcan1_a03_smalllid_01",
-      "behavior": "door",
-      "motion": "Hinges open upwards, operated by the foot lever.",
-      "range_description": "Opens up to 70 degrees.",
-      "range_meters": 1.2217,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_trashcan1_a03_lever_01",
-      "behavior": "lever",
-      "motion": "Pivots downwards when pressed to open the small lid.",
-      "range_description": "Pivots down about 20 degrees.",
-      "range_meters": 0.3491,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_trashcan2_a03_biglid_01",
-      "behavior": "door",
-      "motion": "Hinges open upwards.",
-      "range_description": "Opens up to 90 degrees.",
-      "range_meters": 1.5708,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_trashcan2_a03_smalllid_01",
-      "behavior": "door",
-      "motion": "Hinges open upwards, operated by the foot lever.",
-      "range_description": "Opens up to 70 degrees.",
-      "range_meters": 1.2217,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_trashcan2_a03_lever_01",
-      "behavior": "lever",
-      "motion": "Pivots downwards when pressed to open the small lid.",
-      "range_description": "Pivots down about 20 degrees.",
-      "range_meters": 0.3491,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_arm_a03_01",
-      "behavior": "hinge",
-      "motion": "Swivels horizontally at its base.",
-      "range_description": "Swivels 180 degrees left and right.",
-      "range_meters": 3.1415,
-      "joint_type": "revolute",
       "axis": "Z",
       "limits_bidirectional": true
     },
     {
-      "name": "sm_arm_a03_screencase_01",
-      "behavior": "hinge",
-      "motion": "Tilts up and down.",
-      "range_description": "Tilts up/down by about 20 degrees from center.",
-      "range_meters": 0.6981,
+      "name": "sm_mobilecartsandtables_c01_wheel1_01",
+      "behavior": "wheel",
+      "motion": "Swiveling of the caster assembly around the vertical axis",
+      "range_description": "Continuous 360-degree rotation",
+      "range_meters": -1,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel1_tire_01",
+      "behavior": "wheel",
+      "motion": "Rolling of the wheel about its axle",
+      "range_description": "Continuous rotation",
+      "range_meters": -1,
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel1_brake_01",
+      "behavior": "lever",
+      "motion": "Pivots to engage or disengage the wheel lock",
+      "range_description": "Pivots approximately 45 degrees",
+      "range_meters": 0.785,
       "joint_type": "revolute",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel2_01",
+      "behavior": "wheel",
+      "motion": "Swiveling of the caster assembly around the vertical axis",
+      "range_description": "Continuous 360-degree rotation",
+      "range_meters": -1,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel2_tire_01",
+      "behavior": "wheel",
+      "motion": "Rolling of the wheel about its axle",
+      "range_description": "Continuous rotation",
+      "range_meters": -1,
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel2_brake_01",
+      "behavior": "lever",
+      "motion": "Pivots to engage or disengage the wheel lock",
+      "range_description": "Pivots approximately 45 degrees",
+      "range_meters": 0.785,
+      "joint_type": "revolute",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel3_01",
+      "behavior": "wheel",
+      "motion": "Swiveling of the caster assembly around the vertical axis",
+      "range_description": "Continuous 360-degree rotation",
+      "range_meters": -1,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel3_tire_01",
+      "behavior": "wheel",
+      "motion": "Rolling of the wheel about its axle",
+      "range_description": "Continuous rotation",
+      "range_meters": -1,
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel3_brake_01",
+      "behavior": "lever",
+      "motion": "Pivots to engage or disengage the wheel lock",
+      "range_description": "Pivots approximately 45 degrees",
+      "range_meters": 0.785,
+      "joint_type": "revolute",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel4_01",
+      "behavior": "wheel",
+      "motion": "Swiveling of the caster assembly around the vertical axis",
+      "range_description": "Continuous 360-degree rotation",
+      "range_meters": -1,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel4_tire_01",
+      "behavior": "wheel",
+      "motion": "Rolling of the wheel about its axle",
+      "range_description": "Continuous rotation",
+      "range_meters": -1,
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_wheel4_brake_01",
+      "behavior": "lever",
+      "motion": "Pivots to engage or disengage the wheel lock",
+      "range_description": "Pivots approximately 45 degrees",
+      "range_meters": 0.785,
+      "joint_type": "revolute",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_button1_01",
+      "behavior": "button",
+      "motion": "Presses in and out",
+      "range_description": "Depresses approximately 5mm",
+      "range_meters": 0.005,
+      "joint_type": "prismatic",
+      "axis": "X",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_button2_01",
+      "behavior": "button",
+      "motion": "Presses in and out",
+      "range_description": "Depresses approximately 5mm",
+      "range_meters": 0.005,
+      "joint_type": "prismatic",
+      "axis": "X",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_button3_01",
+      "behavior": "button",
+      "motion": "Presses in and out",
+      "range_description": "Depresses approximately 5mm",
+      "range_meters": 0.005,
+      "joint_type": "prismatic",
+      "axis": "X",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_button4_01",
+      "behavior": "button",
+      "motion": "Presses in and out",
+      "range_description": "Depresses approximately 5mm",
+      "range_meters": 0.005,
+      "joint_type": "prismatic",
+      "axis": "X",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_mobilecartsandtables_c01_button5_01",
+      "behavior": "button",
+      "motion": "Presses in and out",
+      "range_description": "Depresses approximately 5mm",
+      "range_meters": 0.005,
+      "joint_type": "prismatic",
       "axis": "X",
       "limits_bidirectional": true
     }
   ],
-  "special_notes": "The cart is mobile via four caster wheels, each with independent swivel and roll joints. The trash can lever's motion should be coupled to the small lid's opening. The monitor arm has multiple articulation points. The cart is pushed via the handle `sm_base_a03_handle_01`. Several loose items (cups, lids, bottle) are on the cart and are separate, graspable objects, not articulated parts of the cart itself.",
+  "special_notes": "This is a mobile cart with four caster wheels. Each caster has two degrees of freedom: continuous rolling about its axle and continuous swiveling about the vertical mount. Each wheel assembly includes a brake lever that should lock both rolling and swiveling motions. The main tabletop is height-adjustable via a prismatic joint. The five buttons are cosmetic or represent electronic controls and should have a small prismatic motion.",
   "is_graspable": false,
-  "grip_location": null
+  "grip_location": "The main push handle, composed of `sm_mobilecartsandtables_c01_handlepart1_01` and `sm_mobilecartsandtables_c01_handlepart2_01`."
 }
