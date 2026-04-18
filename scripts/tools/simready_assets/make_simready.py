@@ -1426,11 +1426,19 @@ def find_handle_meshes(stage, movable_paths):
 # ═══════════════════════════════════════════════════════════════════
 
 def resolve_body_xform(stage, default_prim, body_name):
-    """Find the body Xform by name."""
+    """Find the body Xform by name — searches the whole subtree before
+    falling back to first-child. Previously silently defaulted to the
+    first direct Xform child when the named body was nested deeper,
+    which made the classifier's body choice a no-op on assets with a
+    doubly-nested default prim (e.g. scissors / retractor hierarchies
+    where the real body is a grandchild)."""
     dp_path = default_prim.GetPath()
     candidate = dp_path.AppendChild(body_name)
     if stage.GetPrimAtPath(candidate).IsValid():
         return candidate
+    for prim in stage.Traverse():
+        if prim.GetName() == body_name and prim.GetTypeName() == "Xform":
+            return prim.GetPath()
     for child in default_prim.GetChildren():
         if child.GetTypeName() == "Xform":
             return child.GetPath()
