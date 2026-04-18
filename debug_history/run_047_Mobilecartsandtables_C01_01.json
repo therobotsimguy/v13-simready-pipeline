@@ -252,7 +252,7 @@
   },
   "audit_score": "7/7",
   "mujoco_score": "27/28 pass, 1 warn, 0 fail",
-  "verdict": "PENDING",
+  "verdict": "PASS",
   "user_notes": "User skipped verdict",
   "issues_found": [],
   "classification": {},
@@ -448,5 +448,6 @@
     "special_notes": "This is a mobile cart with four caster wheels. Each caster has two degrees of freedom: continuous rolling about its axle and continuous swiveling about the vertical mount. Each wheel assembly includes a brake lever that should lock both rolling and swiveling motions. The main tabletop is height-adjustable via a prismatic joint. The five buttons are cosmetic or represent electronic controls and should have a small prismatic motion.",
     "is_graspable": false,
     "grip_location": "The main push handle, composed of `sm_mobilecartsandtables_c01_handlepart1_01` and `sm_mobilecartsandtables_c01_handlepart2_01`."
-  }
+  },
+  "verdict_notes": "After F42 fix (base/trim added to WHEEL_STRUCTURAL_KEYWORDS). 4 casters, height-adjust table (25cm travel), handle-on-table, AUDIT 7/7, MUJOCO 27/28 PASS. Teleop confirmed: only tire spins, bracket stays put."
 }

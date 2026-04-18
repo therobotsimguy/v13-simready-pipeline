@@ -1,0 +1,453 @@
+{
+  "id": "run_048",
+  "asset": "MedicalutilityCart_A03_01",
+  "object_type": "furniture",
+  "timestamp": "2026-04-18T16:16:10",
+  "elapsed_s": 306.18,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 80.49
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 80.49
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 80.49
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 80.49
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 80.49
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 80.49
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 80.49
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 80.49
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.017,
+        "decisions": {
+          "prims": 83
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 43.093,
+        "decisions": {
+          "n_movable_seen": 20
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 37.373,
+        "decisions": {
+          "object_name": "Medical utility cart",
+          "mass_kg": 65
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.0,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 200.61,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 0.629,
+        "decisions": {
+          "mujoco": "0/1 pass, 0 warn, 1 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 24.454,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.004,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.017
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 43.093
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 37.373
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.0
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 200.61
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 0.629
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 24.454
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.004
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 156.0,
+        "masses": {
+          "sm_medicalutilitycart_a03_01": 39.0,
+          "sm_drawer1_a03_lockrotor_01": 2.5,
+          "sm_trashcan1_a03_biglid_01": 2.5,
+          "sm_trashcan1_a03_smalllid_01": 2.5,
+          "sm_trashcan1_a03_lever_01": 2.5,
+          "sm_trashcan2_a03_biglid_01": 2.5,
+          "sm_trashcan2_a03_smalllid_01": 2.5,
+          "sm_trashcan2_a03_lever_01": 2.5,
+          "sm_wheel_a03_frontright_01": 0.25,
+          "sm_wheel_a03_frontleft_01": 0.25,
+          "sm_wheel_a03_backright_01": 0.25,
+          "sm_wheel_a03_backleft_01": 0.25,
+          "sm_arm_a03_01": 2.5,
+          "sm_drawer1_a03_01": 1.0,
+          "sm_drawer2_a03_01": 1.0,
+          "sm_drawer3_a03_01": 1.0,
+          "sm_drawer4_a03_01": 1.0,
+          "sm_drawer5_a03_01": 1.0
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "0/1 pass, 0 warn, 1 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "Medical utility cart",
+    "object_type": "furniture",
+    "material": "powder_coated_steel",
+    "material_density_kg_m3": 7850,
+    "estimated_mass_kg": 65,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_wheel_a03_frontright_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel with 360-degree swivel around the vertical axis and continuous rolling",
+        "range_description": "360-degree swivel, continuous roll",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Z for swivel, local X for roll",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_a03_frontleft_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel with 360-degree swivel around the vertical axis and continuous rolling",
+        "range_description": "360-degree swivel, continuous roll",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Z for swivel, local X for roll",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_a03_backright_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel with 360-degree swivel around the vertical axis and continuous rolling",
+        "range_description": "360-degree swivel, continuous roll",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Z for swivel, local X for roll",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_wheel_a03_backleft_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel with 360-degree swivel around the vertical axis and continuous rolling",
+        "range_description": "360-degree swivel, continuous roll",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Z for swivel, local X for roll",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_drawer1_a03_01",
+        "behavior": "drawer",
+        "motion": "Slides forward horizontally",
+        "range_description": "Slides out approximately 40 cm",
+        "range_meters": 0.4,
+        "joint_type": "prismatic",
+        "axis": "Y",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drawer1_a03_lockrotor_01",
+        "behavior": "lever",
+        "motion": "Rotates to lock/unlock the top drawer",
+        "range_description": "Rotates 90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "Y",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drawer2_a03_01",
+        "behavior": "drawer",
+        "motion": "Slides forward horizontally",
+        "range_description": "Slides out approximately 40 cm",
+        "range_meters": 0.4,
+        "joint_type": "prismatic",
+        "axis": "Y",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drawer3_a03_01",
+        "behavior": "drawer",
+        "motion": "Slides forward horizontally",
+        "range_description": "Slides out approximately 40 cm",
+        "range_meters": 0.4,
+        "joint_type": "prismatic",
+        "axis": "Y",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drawer4_a03_01",
+        "behavior": "drawer",
+        "motion": "Slides forward horizontally",
+        "range_description": "Slides out approximately 40 cm",
+        "range_meters": 0.4,
+        "joint_type": "prismatic",
+        "axis": "Y",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_drawer5_a03_01",
+        "behavior": "drawer",
+        "motion": "Slides forward horizontally",
+        "range_description": "Slides out approximately 40 cm",
+        "range_meters": 0.4,
+        "joint_type": "prismatic",
+        "axis": "Y",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_trashcan1_a03_biglid_01",
+        "behavior": "door",
+        "motion": "Hinged lid that pivots upward to open",
+        "range_description": "Pivots up 90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_trashcan1_a03_smalllid_01",
+        "behavior": "door",
+        "motion": "Hinged access lid that pivots upward, operated by the foot pedal",
+        "range_description": "Pivots up 45 degrees",
+        "range_meters": 0.785,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_trashcan1_a03_lever_01",
+        "behavior": "lever",
+        "motion": "Foot pedal that pivots downward to open the small lid",
+        "range_description": "Pivots down 20 degrees",
+        "range_meters": 0.35,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_trashcan2_a03_biglid_01",
+        "behavior": "door",
+        "motion": "Hinged lid that pivots upward to open",
+        "range_description": "Pivots up 90 degrees",
+        "range_meters": 1.57,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_trashcan2_a03_smalllid_01",
+        "behavior": "door",
+        "motion": "Hinged access lid that pivots upward, operated by the foot pedal",
+        "range_description": "Pivots up 45 degrees",
+        "range_meters": 0.785,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_trashcan2_a03_lever_01",
+        "behavior": "lever",
+        "motion": "Foot pedal that pivots downward to open the small lid",
+        "range_description": "Pivots down 20 degrees",
+        "range_meters": 0.35,
+        "joint_type": "revolute",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_arm_a03_01",
+        "behavior": "slider",
+        "motion": "Monitor arm swivels horizontally at its base and the screen tilts vertically",
+        "range_description": "+/- 90 degree swivel, +/- 30 degree tilt",
+        "range_meters": 3.14,
+        "joint_type": "revolute",
+        "axis": "Z for swivel, local X for tilt",
+        "limits_bidirectional": true
+      }
+    ],
+    "special_notes": "Caster wheels have both swivel (vertical Z-axis) and roll (horizontal axis) joints. The foot pedal on each trash can should be kinematically linked to its small access lid. Drawers have sliding limits to prevent full removal. The monitor arm has multiple joints for full articulation.",
+    "is_graspable": false,
+    "grip_location": "The main handle (`sm_base_a03_handle_01`) is for pushing the cart."
+  }
+}
