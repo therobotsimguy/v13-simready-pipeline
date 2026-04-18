@@ -249,7 +249,7 @@
   },
   "audit_score": "7/7",
   "mujoco_score": "15/16 pass, 1 warn, 0 fail",
-  "verdict": "PENDING",
+  "verdict": "PASS",
   "user_notes": "User skipped verdict",
   "issues_found": [],
   "classification": {},
@@ -295,5 +295,6 @@
     "special_notes": "The two side arms pivot outwards to retract tissue. The valve button likely controls a locking mechanism for the arms' positions, which should be simulated as a dynamic constraint that can be toggled.",
     "is_graspable": true,
     "grip_location": "The central body ('sm_holdingdevice_a01_central_01') is the primary handle."
-  }
+  },
+  "verdict_notes": "Valvebutton 5mm travel (F40 Gemini range override works), 2 revolute arms open/close, body kinematic (stand-mounted device)."
 }

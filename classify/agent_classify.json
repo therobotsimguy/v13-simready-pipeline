@@ -1,45 +1,34 @@
 {
-  "body": "sm_holdingdevice_a01_01",
+  "body": "sm_medicalutilitycart_a03_01",
   "parts": {
-    "sm_holdingdevice_a01_dx_01": {
-      "class": "movable:revolute",
-      "axis": "Z"
-    },
-    "sm_holdingdevice_a01_sx_01": {
-      "class": "movable:revolute",
-      "axis": "Z"
-    },
-    "sm_holdingdevice_a01_valvebutton_01": {
-      "class": "movable:prismatic",
-      "axis": "Z",
-      "parent": "sm_holdingdevice_a01_dx_01"
-    },
-    "sm_holdingdevice_a01_stickercentral_01": {
-      "class": "decorative"
-    },
-    "sm_holdingdevice_a01_central_01": {
-      "class": "structural"
-    },
-    "sm_holdingdevice_a01_hingecentral_01": {
-      "class": "structural"
-    },
-    "sm_holdingdevice_a01_stickerdx_01": {
-      "class": "decorative"
-    },
-    "sm_holdingdevice_a01_hingedx_01": {
-      "class": "structural"
-    },
-    "sm_holdingdevice_a01_valve_01": {
-      "class": "structural"
-    },
-    "sm_holdingdevice_a01_hingesx_01": {
-      "class": "structural"
-    },
-    "sm_holdingdevice_a01_sxcap_01": {
-      "class": "structural"
-    },
-    "sm_holdingdevice_a01_stickersx_01": {
-      "class": "decorative"
-    }
+    "sm_wheel_a03_frontright_01": {"class": "movable:continuous", "axis": "X"},
+    "sm_wheel_a03_frontleft_01": {"class": "movable:continuous", "axis": "X"},
+    "sm_wheel_a03_backright_01": {"class": "movable:continuous", "axis": "X"},
+    "sm_wheel_a03_backleft_01": {"class": "movable:continuous", "axis": "X"},
+    "sm_drawer1_a03_01": {"class": "movable:prismatic", "axis": "Y"},
+    "sm_drawer2_a03_01": {"class": "movable:prismatic", "axis": "Y"},
+    "sm_drawer3_a03_01": {"class": "movable:prismatic", "axis": "Y"},
+    "sm_drawer4_a03_01": {"class": "movable:prismatic", "axis": "Y"},
+    "sm_drawer5_a03_01": {"class": "movable:prismatic", "axis": "Y"},
+    "sm_arm_a03_01": {"class": "movable:revolute", "axis": "Z"},
+    "sm_trashcan1_a03_01": {"class": "structural"},
+    "sm_trashcan2_a03_01": {"class": "structural"},
+    "sm_base_a03_shelfcover_01": {"class": "structural"},
+    "sm_base_a03_handle_01": {"class": "structural"},
+    "sm_base_a03_shelf_01": {"class": "structural"},
+    "sm_base_a03_trashcanpart_01": {"class": "structural"},
+    "sm_base_a03_legs_01": {"class": "structural"},
+    "sm_base_a03_cup1_01": {"class": "structural"},
+    "sm_base_a03_cuplid1_01": {"class": "structural"},
+    "sm_base_a03_platform_01": {"class": "structural"},
+    "sm_base_a03_drawerbase_01": {"class": "structural"},
+    "sm_base_a03_topbase_01": {"class": "structural"},
+    "sm_base_a03_cup2_01": {"class": "structural"},
+    "sm_base_a03_cuplid2_01": {"class": "structural"},
+    "sm_base_a03_bottle_01": {"class": "structural"},
+    "sm_base_a03_drawerholders1_01": {"class": "structural"},
+    "sm_base_a03_drawerholders2_01": {"class": "structural"},
+    "sm_base_a03_lockrotor_01": {"class": "movable:revolute", "axis": "Y"},
+    "sm_base_a03_drawerlock_01": {"class": "structural"}
   }
 }
