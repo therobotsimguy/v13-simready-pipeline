@@ -1,9 +1,4 @@
 {
-  "body": "sm_clamps_a01_sx_01",
-  "parts": {
-    "sm_clamps_a01_dx_01": {
-      "class": "movable:revolute",
-      "axis": "Z"
-    }
-  }
+  "body": "sm_forceps_a01_01",
+  "parts": {}
 }

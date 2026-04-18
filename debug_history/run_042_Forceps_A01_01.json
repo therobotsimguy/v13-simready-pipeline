@@ -1,9 +1,9 @@
 {
-  "id": "run_041",
-  "asset": "Clamps_A01_01",
+  "id": "run_042",
+  "asset": "Forceps_A01_01",
   "object_type": "instrument",
-  "timestamp": "2026-04-18T11:23:56",
-  "elapsed_s": 386.98,
+  "timestamp": "2026-04-18T11:59:49",
+  "elapsed_s": 93.6,
   "skills": {
     "entries": [
       {
@@ -11,56 +11,56 @@
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 38.86
+        "elapsed_s": 22.24
       },
       {
         "skill": "simready-criteria",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 38.86
+        "elapsed_s": 22.24
       },
       {
         "skill": "failure-modes",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 38.86
+        "elapsed_s": 22.24
       },
       {
         "skill": "simready-joint-params",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 38.86
+        "elapsed_s": 22.24
       },
       {
         "skill": "robot-model",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 38.86
+        "elapsed_s": 22.24
       },
       {
         "skill": "simready-collision",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 38.86
+        "elapsed_s": 22.24
       },
       {
         "skill": "simready-mechanism-lookup",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 38.86
+        "elapsed_s": 22.24
       },
       {
         "skill": "usd-physx-schemas",
         "reason": "Loaded into classifier agent system prompt",
         "decision": "",
         "impact": "info",
-        "elapsed_s": 38.86
+        "elapsed_s": 22.24
       }
     ],
     "summary": {
@@ -121,52 +121,52 @@
       {
         "stage": "read_hierarchy",
         "part": null,
-        "elapsed_s": 0.046,
+        "elapsed_s": 0.017,
         "decisions": {
-          "prims": 6
+          "prims": 3
         }
       },
       {
         "stage": "visual_analysis",
         "part": null,
-        "elapsed_s": 18.951,
+        "elapsed_s": 13.408,
         "decisions": {
-          "n_movable_seen": 2
+          "n_movable_seen": 0
         }
       },
       {
         "stage": "object_understanding",
         "part": null,
-        "elapsed_s": 19.865,
+        "elapsed_s": 8.811,
         "decisions": {
-          "object_name": "hemostatic clamp",
-          "mass_kg": 0.1
+          "object_name": "surgical forceps",
+          "mass_kg": 0.06
         }
       },
       {
         "stage": "skill_loading",
         "part": null,
-        "elapsed_s": 0.001,
+        "elapsed_s": 0.002,
         "decisions": {}
       },
       {
         "stage": "agent_classify_and_build",
         "part": null,
-        "elapsed_s": 334.768,
+        "elapsed_s": 59.562,
         "decisions": {}
       },
       {
         "stage": "mujoco_validation",
         "part": null,
-        "elapsed_s": 0.416,
+        "elapsed_s": 0.638,
         "decisions": {
-          "mujoco": "0/1 pass, 0 warn, 1 fail"
+          "mujoco": "4/4 pass, 0 warn, 0 fail"
         }
       },
       {
         "stage": "visual_verification",
         "part": null,
-        "elapsed_s": 12.933,
+        "elapsed_s": 11.157,
         "decisions": {}
       },
       {
@@ -179,31 +179,31 @@
     "summary": {
       "read_hierarchy": {
         "calls": 1,
-        "total_s": 0.046
+        "total_s": 0.017
       },
       "visual_analysis": {
         "calls": 1,
-        "total_s": 18.951
+        "total_s": 13.408
       },
       "object_understanding": {
         "calls": 1,
-        "total_s": 19.865
+        "total_s": 8.811
       },
       "skill_loading": {
         "calls": 1,
-        "total_s": 0.001
+        "total_s": 0.002
       },
       "agent_classify_and_build": {
         "calls": 1,
-        "total_s": 334.768
+        "total_s": 59.562
       },
       "mujoco_validation": {
         "calls": 1,
-        "total_s": 0.416
+        "total_s": 0.638
       },
       "visual_verification": {
         "calls": 1,
-        "total_s": 12.933
+        "total_s": 11.157
       },
       "physics_diagnostics": {
         "calls": 1,
@@ -214,18 +214,19 @@
   "diagnostics": {
     "checks": {
       "D1_disconnected": {
-        "count": 0,
-        "paths": []
+        "count": 1,
+        "paths": [
+          "/sm_forceps_a01_01/sm_forceps_a01_01"
+        ]
       },
       "D2_orphaned_colliders": {
         "count": 0,
         "paths": []
       },
       "D3_mass_ratio": {
-        "ratio": 25.0,
+        "ratio": 1.0,
         "masses": {
-          "sm_clamps_a01_sx_01": 1.0,
-          "sm_clamps_a01_dx_01": 0.03999999910593033
+          "sm_forceps_a01_01": 5.0
         }
       },
       "D4_anchor_mismatch": {
@@ -246,43 +247,21 @@
     "issues_found": 0
   },
   "audit_score": "7/7",
-  "mujoco_score": "0/1 pass, 0 warn, 1 fail",
-  "verdict": "PASS",
+  "mujoco_score": "4/4 pass, 0 warn, 0 fail",
+  "verdict": "PENDING",
   "user_notes": "User skipped verdict",
   "issues_found": [],
   "classification": {},
   "gemini_output": {
-    "object_name": "hemostatic clamp",
+    "object_name": "surgical forceps",
     "object_type": "instrument",
     "material": "stainless_steel",
     "material_density_kg_m3": 7800,
-    "estimated_mass_kg": 0.1,
-    "is_articulated": true,
-    "movable_parts": [
-      {
-        "name": "sm_clamps_a01_dx_01",
-        "behavior": "lever",
-        "motion": "The right half of the clamp, including one handle and one jaw, pivots around a central pin.",
-        "range_description": "0-40 degrees from the closed position",
-        "range_meters": 0.698,
-        "joint_type": "revolute",
-        "axis": "Z",
-        "limits_bidirectional": true
-      },
-      {
-        "name": "sm_clamps_a01_sx_01",
-        "behavior": "lever",
-        "motion": "The left half of the clamp, including one handle and one jaw, pivots around a central pin.",
-        "range_description": "0-40 degrees from the closed position",
-        "range_meters": 0.698,
-        "joint_type": "revolute",
-        "axis": "Z",
-        "limits_bidirectional": true
-      }
-    ],
-    "special_notes": "The two halves, sm_clamps_a01_dx_01 and sm_clamps_a01_sx_01, pivot around a common central point. The tips of the jaws should align precisely when closed. The handles may have a ratchet mechanism for locking, which is part of the static mesh and not separately articulated.",
+    "estimated_mass_kg": 0.06,
+    "is_articulated": false,
+    "movable_parts": [],
+    "special_notes": "The entire object is a single, static mesh. The jaws and handles are fused and cannot articulate.",
     "is_graspable": true,
-    "grip_location": "The finger loops on the handles."
-  },
-  "verdict_notes": "Fixed via 3 pipeline changes (F14b C5 world-space anchor, F14c classifier body=default prim, C2 allows mesh-less body). AUDIT 7/7, MUJOCO 11/12 PASS, both arms pivot correctly."
+    "grip_location": "The ring handles"
+  }
 }
