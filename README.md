@@ -151,7 +151,7 @@ as usual.
 
 | # | Asset | Type | Status |
 |---|---|---|---|
-|  1 | ArticulatedsupportArm_A01_01 | arm / mount | pending |
+|  1 | ArticulatedsupportArm_A01_01 | arm / mount | **built** (drove the serial-kinematic-chain + adjacent-link-self-collision fixes on 2026-04-17) |
 |  2 | BipolardissectingScissors_A01_01 | surgical tool | pending |
 |  3 | Clamps_A01_01 | surgical tool | pending |
 |  4 | DrugCabinet_A03_01 | storage | **built** |
@@ -165,16 +165,22 @@ as usual.
 | 12 | RoboticSystem_A01_01 | system | pending |
 | 13 | RoboticSystem_B01_Console_01 | system | pending |
 | 14 | Scissors_A01_01 | surgical tool | **built** |
-| 15 | SelfretainingRetractor_A01_01 | surgical tool | **built** |
+| 15 | SelfretainingRetractor_A01_01 | surgical tool | **built** (motion PASS — shift-drag arms at `--asset_scale 5.0`; prongs visually clip at close position — geometry limitation, not a pipeline bug; see `LEARNINGS.md` → scissor self-collision) |
 | 16 | SurgicalChair_A01_01 | chair | pending |
 | 17 | SurgicalChair_B01_01 | chair | pending |
 | 18 | SurgicalMicroScope_A01_01 | system | pending |
 | 19 | SurgicalpowerTool_B01_01 | surgical tool | pending |
 | 20 | SurgicalTable_A01_01 | table | pending |
 
-Score: **4 / 20 built**. Remaining 16 can be run with the single entry-point
+Score: **5 / 20 built**. Remaining 15 can be run with the single entry-point
 command; no per-asset tuning is required unless V13 surfaces a new
 silent-failure class, in which case follow the 3-step fix rule below.
+
+**Next up:** `BipolardissectingScissors_A01_01` or `Clamps_A01_01` — both
+surgical tools with topology similar to the already-built Scissors
+(single-pivot / revolute), so expected to be quick wins via the same
+`body = central pivot + two revolute sibling arms` pattern that landed
+for the SelfretainingRetractor.
 
 ---
 
