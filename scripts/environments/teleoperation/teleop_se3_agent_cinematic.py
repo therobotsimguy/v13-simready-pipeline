@@ -143,49 +143,19 @@ def main() -> None:
     # physics engine picks it up before simulation starts. The USD has no internal
     # physicsScene or simulationOwner (avoids reference scope issues). Root body
     # is kinematic (stays at spawn position, no world anchor needed).
-    from pxr import Usd as _Usd, UsdGeom as _UsdGeom, UsdPhysics as _UsdPhys
+    from pxr import Usd as _Usd, UsdGeom as _UsdGeom
     _tmp_stage = _Usd.Stage.Open(asset_path)
     _mpu = _UsdGeom.GetStageMetersPerUnit(_tmp_stage)
     _s = _mpu if abs(_mpu - 1.0) > 0.01 else 1.0
     if args_cli.asset_scale:
         _s *= args_cli.asset_scale
     _scale = (_s, _s, _s) if abs(_s - 1.0) > 0.001 else None
-
-    # V13: Scale prismatic joint limits BEFORE PhysX loads them.
-    # PhysX treats prismatic limits as absolute meters (joint-space),
-    # NOT scaled by the prim's scale transform. So we pre-scale them
-    # in a temp copy of the USD so PhysX gets correct limits at any scale.
-    _spawn_path = asset_path
-    if _scale and abs(_s - 1.0) > 0.001:
-        import shutil, tempfile
-        _tmp_dir = tempfile.mkdtemp(prefix="v13_scaled_")
-        _tmp_usd = os.path.join(_tmp_dir, os.path.basename(asset_path))
-        shutil.copy2(asset_path, _tmp_usd)
-        # Copy Textures if present
-        _tex_src = os.path.join(os.path.dirname(asset_path), "Textures")
-        _tex_dst = os.path.join(_tmp_dir, "Textures")
-        if os.path.isdir(_tex_src):
-            shutil.copytree(_tex_src, _tex_dst)
-        _scale_stage = _Usd.Stage.Open(_tmp_usd)
-        _n_scaled = 0
-        for _p in _scale_stage.Traverse():
-            if _p.IsA(_UsdPhys.Joint) and "Prismatic" in _p.GetTypeName():
-                for _attr_name in ("physics:lowerLimit", "physics:upperLimit"):
-                    _a = _p.GetAttribute(_attr_name)
-                    if _a and _a.HasValue():
-                        _a.Set(_a.Get() * _s)
-                _n_scaled += 1
-        if _n_scaled:
-            _scale_stage.GetRootLayer().Save()
-            _spawn_path = _tmp_usd
-            print(f"[JointScale] Pre-scaled {_n_scaled} prismatic joint limit(s) by {_s:.1f}x in temp USD")
-        del _scale_stage
     del _tmp_stage
 
     env_cfg.scene.cabinet = AssetBaseCfg(
         prim_path="{ENV_REGEX_NS}/CustomAsset",
         spawn=UsdFileCfg(
-            usd_path=_spawn_path,
+            usd_path=asset_path,
             scale=_scale,
         ),
         init_state=AssetBaseCfg.InitialStateCfg(
@@ -221,7 +191,12 @@ def main() -> None:
             finger_count = 0
             for prim in stage.Traverse():
                 prim_path = str(prim.GetPath())
-                if prim_path.startswith(robot_prim_path) or prim_path.startswith("/World/envs/env_0"):
+                # Tight contactOffset is a Franka-specific fix (robot shapes
+                # inherit 10cm default from Nucleus USD). Applying it to the
+                # whole env was over-scoped: thin custom-asset geometry (e.g.
+                # scissor/retractor prongs ~1mm thick) tunnels under force
+                # through a 50μ contact window. Scope strictly to robot prims.
+                if prim_path.startswith(robot_prim_path):
                     if prim.HasAPI(_UsdPhysics.CollisionAPI):
                         prim.CreateAttribute("physxCollision:contactOffset", _Sdf.ValueTypeNames.Float).Set(0.00005)
                         prim.CreateAttribute("physxCollision:restOffset", _Sdf.ValueTypeNames.Float).Set(0.0)
@@ -244,7 +219,6 @@ def main() -> None:
             print(f"[CollisionFix] Set contactOffset=0.00005 on {fixed_count} shapes, decomp on {finger_count} finger/hand meshes")
     except Exception as e:
         print(f"[CollisionFix] Could not fix robot offsets: {e}")
-
 
     # --- Teleop device (using original Isaac Lab pattern) ---
     should_reset = False
