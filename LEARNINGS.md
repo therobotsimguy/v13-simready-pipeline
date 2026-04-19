@@ -229,6 +229,107 @@ chassis asset, **first suspect body-local-vs-world confusion in
 
 ---
 
+## 2026-04-18 — F49 world-anchor for fixtures (DrugCabinet + Fridge, Newton-validated)
+
+Newton's articulation parser treats `kinematicEnabled=True` bodies as
+outside-any-articulation and drops every joint rooted on them:
+
+    N joints were not included in any articulation and were parsed as
+    orphan joints
+
+The PhysX-idiomatic way to pin furniture silently broke Newton
+compatibility. `DrugCabinet_A03_01` and `Refrigerator_A01_01` each
+shipped clean 7/7 audits in V13 but loaded with detached doors in
+Newton — doors spawned at their authored world positions while the
+chassis got the scene's world transform, so they visually drifted
+apart.
+
+**Fix:** `make_world_anchor_joint` creates a `PhysicsFixedJoint` with
+`body0Rel` empty (= world) and `body1Rel` pointing to the main body.
+Body stays `kinematicEnabled=False`; PhysX treats the fixed joint as
+infinitely stiff, so Isaac Sim simulation is unchanged. Newton's parser
+now sees a proper fixed-base articulation: chassis + N doors + N
+wheels under a single ArticulationRoot.
+
+Applied to every asset built without `--dynamic`. Existing fixture
+builds must be rebuilt via `make_simready.py --fix` to pick up the
+new encoding.
+
+**Audit additions:**
+- C4 Flat Hierarchy now lints `ArticulationRootAPI` placement — FAILs
+  if missing from the default prim or misplaced on a child prim
+  (requested by Newton's #5 feedback).
+- C5 zero-anchor check excludes `PhysicsFixedJoint` flagged
+  `is_world_anchor=True` — `(0,0,0)` anchors on a world-pinned fixed
+  joint are legitimate.
+- C6 drive-count already excluded `PhysicsFixedJoint` from DOF
+  expectations.
+
+**Validated:** Isaac Sim teleop PASS on both assets (doors open,
+chassis anchored). Newton PASS on both assets (orphan-joint warnings
+gone, world-transform moves the whole articulation together).
+
+**Systemic lesson:** authoring idioms that are "canonical" under one
+solver can silently break another. When a consumer reports a portable-
+USD asset "doesn't load," check what they interpret from the flags
+the authoring pipeline sets, not just what those flags mean in the
+source solver's documentation. Prefer explicit schema patterns
+(FixedJoint to world) over solver-side flags (`kinematicEnabled`) when
+both are available — the explicit form is a conservation law; the flag
+is a convention.
+
+Skill: `skills/usd-physx-schemas/SKILL.md` → *Fixture anchoring:
+FixedJoint-to-world, not kinematicEnabled*.
+Commit: `8cd837a`.
+
+---
+
+## 2026-04-18 — F47 + F48 silent input-drop failures (ResuscitationBed_A01_01)
+
+Two unrelated bugs surfaced on the same asset; both exhibit the same
+pattern: `apply_physics` silently drops inputs that violate an
+invariant no existing audit check could see.
+
+**F47 — zero-thickness collision meshes.** Three flat decal meshes
+(bbox Z=0) were children of the body rigid body. `apply_collision_q1`
+applied `CollisionAPI` to every mesh descendant unconditionally. PhysX
+routes convex approximation through qhull; qhull cannot fit a 3D hull
+to coplanar points and returns NaN bounds. The NaN cascades through
+the broadphase — every rigid body's transform becomes
+`Invalid PhysX transform` at sim init, and the whole articulation
+vanishes from the viewport. MuJoCo exhibits the same failure as
+"qhull error" during model load.
+
+Fix: `_is_degenerate_mesh(prim)` gates every `CollisionAPI.Apply()`
+call. C2 audit FAILs if any CollisionAPI prim has any bbox axis < 1e-6.
+
+**F48 — classifier class-value drift.** The LLM classifier occasionally
+returned `{"class": "wheel"}` instead of the canonical
+`{"class": "movable:continuous"}`. The main dispatch in `apply_physics`
+checks `cls.startswith("movable:")` and silently skipped the 4 wheels,
+shipping a 139kg bed that slid on ground friction instead of rolling
+on casters. Audit passed 7/7 because the drop was invisible.
+
+Fix: `_normalize_class_aliases(stage, classification, dp_path)` treats
+`"wheel"` and `"caster"` as aliases for `"movable:continuous"` and
+infers the axle axis from the thinnest world-bbox dim when the
+classifier omits `axis`. C5 audit FAILs on any class string outside
+the accepted set.
+
+**Systemic lesson:** a 7/7 audit is necessary-but-not-sufficient.
+When an asset "builds clean but behaves wrong in teleop," suspect
+silent dropping of parts at `apply_physics`. Cheap diagnostics:
+- Count `joints` in the output USD vs `movable:*` entries in
+  `classify.json` — mismatch means chain-collapse or class drift.
+- Check `CollisionAPI` prims for any zero-axis bbox — crash waiting
+  to happen the moment the asset loads.
+
+Skill: `skills/usd-physx-schemas/SKILL.md` → *Zero-thickness collision
+meshes* / *Classifier-class aliases*.
+Commit: `a4fcd15`.
+
+---
+
 ## 2026-04-18 — F44/F45/F46 drawer collision + direction (MedicalutilityCart_A03_01)
 
 After F43 landed the wheels on the ground, three more failures surfaced on the
