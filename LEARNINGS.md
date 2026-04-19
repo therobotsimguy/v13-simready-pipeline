@@ -377,6 +377,100 @@ for any joint with an explicit override — user intent is authoritative.
 
 ---
 
+## 2026-04-19 — F43 pivot-sandwich regression (InstrumentTrolley_B01_01)
+
+**Symptom:** fresh rebuild of `InstrumentTrolley_B01_01` (same classify.json as
+the known-good reference build) audited clean at 7/7, but in teleop the tires
+were visibly offset ~7cm from the chassis and each wheel **orbited an off-center
+hinge** when rotated. Shift+drag rolled the trolley normally but the geometry
+looked wrong. Comparing joint anchors vs the pre-F43 reference build showed a
+`(-0.052, -0.036, +0.007)m` anchor delta per wheel.
+
+**Root cause:** the original F43 `bake_xform_scales` multiplied mesh vertices by
+the scalar `(cum_scale × own_scale)` as if scale-about-origin. USD's scale op,
+when it sits inside a `translate:pivot` / `!invert!translate:pivot` sandwich,
+has **scale-about-pivot** semantics: `P_scaled = s·P + (1-s)·pivot`. The trolley
+tire had `xformOp:scale = (1.172, 1.172, 1.172)` with pivot at
+`(-0.297, -0.215, 0.040)` in the tire's local frame. The naive bake dropped the
+`(1-s)·pivot` term, shifting tire vertices by exactly that vector in local
+space. After the subsequent translate + tiny Z-rotation, the drift propagated
+to world space unchanged — wheel bodies sat at the correct origin, but the tire
+mesh (and therefore the tire-bbox-center joint anchor) drifted 7cm.
+
+The reference `~/SimReady_Output/simready/InstrumentTrolley_B01_01/` was built
+before F43 existed, so its non-unit scale never got baked — which is why it
+*renders* correctly.
+
+**Fix:** `bake_xform_scales` rewritten as a three-pass **snapshot → reset →
+reauthor** algorithm:
+
+1. Snapshot each descendant Mesh's world-space points using the ORIGINAL L2W.
+2. Reset every `xformOp:scale` to `(1,1,1)`; scale non-inverse translate ops by
+   cum_scale so the Xform hierarchy stays semantically clean.
+3. For every snapshotted Mesh, compute the new L2W and reauthor local points as
+   `new_L2W^-1 · world_points`. Recompute `extent` from the new points.
+
+Correct regardless of op ordering, pivot sandwiches, or nested scales — we
+never reason about the op chain, we just pre-image world positions through the
+new transform. Cross-ref `skills/usd-physx-schemas §"baking a non-unit
+xformOp:scale inside a pivot sandwich"`.
+
+**Audit guard (C7 extension):** any residual non-unit `xformOp:scale` in the
+output USD now **fails C7** with a message naming `bake_xform_scales (F43)` as
+the fix location. Next regression of this class won't silently pass.
+
+**Verified:** fresh rebuild of InstrumentTrolley_B01_01 now matches the
+reference build's joint-anchor world positions to sub-mm; teleop rolls
+correctly.
+
+**Systemic lesson:** when baking transforms, don't reason about the op chain —
+snapshot the output, mutate the ops, re-pre-image. Robust against every op
+ordering the authoring tool decides to use. Reasoning about `translate:pivot`
+sandwiches directly is a losing game: the next DCC will invent a new op combo
+you didn't think of.
+
+---
+
+## 2026-04-19 — Tier 1 skill-library integration follow-up (2026-04-19 bundle)
+
+**Context:** 2026-04-19 absorbed 6 research bundles into the skill library
+(+1,453 lines, 98 failure modes across F/D/K/S axes, C8-C11 audit criteria).
+That landed only step 2 of the 3-step fix rule. Tier 1 closes step 1 (CODE)
+and step 3 (AUDIT) for the **low-risk, warning-level** subset:
+
+- **Blow's tetrahedral inertia** added in
+  `scripts/tools/simready_assets/math_skill/inertia.py` — `tetrahedral_inertia_tensor`
+  and `parallel_axis_shift`. Verified on unit cube (exact), sphere (<0.5%
+  tessellation error), off-center cube (parallel-axis shift correct). Not yet
+  wired into `apply_physics` mass authoring — callable from future Tier 2 work.
+
+- **Warning-level audit checks** added via `_tier1_warnings()` in
+  `make_simready.py`, printed in a `WARNINGS (N)` block below the SCORE line:
+  - **F50** swept-overlap plausibility (revolute range > 180° or prismatic
+    travel > 3× body depth along axis).
+  - **F59** anisotropic `physics:diagonalInertia` without explicit
+    `physics:principalAxes`.
+  - **F61** scene-level `maxDepenetrationVelocity` cap reminder when any
+    articulation root is present.
+  - **F62** articulation root with `physxArticulation:enabledSelfCollisions`
+    unset or False.
+  - **K12** `diagonalInertia` condition number > 1e6.
+  - **K16** classifier-declared axis vs authored `physics:axis` mismatch.
+  - **C10** tier-certification heuristic — flags likely CPU/offline routing
+    when DOF > 20, convex-decomposition hulls > 5, or any non-convex collider
+    is present.
+
+- **Regression-tested** on `InstrumentTrolley_B01_01` (7/7 + 2 warnings) and
+  `Refrigerator_A01_01` (7/7 + 2 warnings). No existing check regressed; new
+  warnings are advisory and correctly distinguish old vs fresh builds (e.g.
+  F62 fires on older builds that predate F45 self-collision).
+
+**Systemic lesson:** when adding rules to a skill, also plan the code path AND
+the audit guard in the same session. SKILL-only lands a description; pipelines
+enforce what the audit checks, not what the skill describes.
+
+---
+
 ## 2026-04-18 — F43 bake residual xformOp:scale (MedicalutilityCart_A03_01)
 
 **Symptom:** Cart physically functioned in teleop — gravity worked, shift+drag

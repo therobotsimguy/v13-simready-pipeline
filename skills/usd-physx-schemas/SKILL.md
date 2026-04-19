@@ -352,6 +352,28 @@ Wheels, after pipeline reparent, ended up at sign-flipped (X,Y) positions:
 raw (±0.34, ±0.22), pipeline output (±0.54, ±0.33) and (±0.99, ±0.89). Fix was
 a one-line order swap in `reparent_prims_preserve_world_xform`.
 
+### Rule: baking a non-unit `xformOp:scale` inside a pivot sandwich
+
+When an Xform's xformOpOrder places a scale op *between* `translate:pivot` and
+`!invert!translate:pivot`, the authored semantics are **scale-about-pivot**:
+`P_scaled = s·P + (1-s)·pivot`. A naive bake that multiplies mesh points by
+the scalar `s` alone drops the `(1-s)·pivot` term and shifts geometry by that
+vector in the local frame. On a prim with a subsequent translate + rotation,
+the drift propagates to world space unchanged (rotations are linear, translates
+commute with the drift).
+
+**Rule:** when baking scale ops to (1,1,1), don't try to reason about the op
+chain — snapshot each descendant Mesh's world points under the original L2W,
+reset scales, recompute the new L2W, then reauthor local points as
+`new_L2W^-1 · world_points`. Robust regardless of pivot sandwiches, nested
+scales, or unusual op orderings.
+
+**Symptom seen on:** `InstrumentTrolley_B01_01` — tire mesh under
+`xformOp:scale=(1.172,1.172,1.172)` inside a pivot sandwich. Rebuild via the
+naive bake landed the tire-center joint anchor ~7cm off the wheel body origin.
+Wheels rotated around an offset point in teleop. Fix was `bake_xform_scales`
+in `make_simready.py` switching to snapshot→reset→reauthor.
+
 ### Solver Differences: PGS vs TGS
 
 | Aspect | PGS (default CPU) | TGS (GPU default) |

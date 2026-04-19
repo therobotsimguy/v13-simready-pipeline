@@ -634,7 +634,7 @@ def audit(stage, classification=None):
         c6_detail = "no joints — drives N/A"
     results["C6 Joint Drives"] = {"pass": c6_pass, "detail": c6_detail, "na": not joints}
 
-    # C7: Clean Asset (no scene, no contactOffset, meters)
+    # C7: Clean Asset (no scene, no contactOffset, meters, no residual xformOp:scale)
     mpu = UsdGeom.GetStageMetersPerUnit(stage)
     c7_issues = []
     if has_physics_scene:
@@ -644,11 +644,252 @@ def audit(stage, classification=None):
     if abs(mpu - 1.0) > 0.01:
         unit_name = "centimeters" if abs(mpu - 0.01) < 0.001 else f"mpu={mpu}"
         c7_issues.append(f"stage in {unit_name}, not meters")
+    # F43 regression guard: any non-unit xformOp:scale in the output means
+    # bake_xform_scales either didn't run or failed. A pivot-sandwich scale
+    # (scale between translate:pivot and !invert!translate:pivot) silently
+    # shifts geometry by (1-s)·pivot when baked naively — wheels end up
+    # orbiting an offset hinge. See usd-physx-schemas §"baking a non-unit
+    # xformOp:scale inside a pivot sandwich" and bake_xform_scales for the
+    # snapshot→reset→reauthor algorithm.
+    residual_scales = []
+    for prim in stage.Traverse():
+        if prim.GetTypeName() not in ("Xform", "Mesh"):
+            continue
+        for op in UsdGeom.Xformable(prim).GetOrderedXformOps():
+            if op.GetOpType() != UsdGeom.XformOp.TypeScale:
+                continue
+            v = op.Get()
+            if v is None:
+                continue
+            if any(abs(float(v[i]) - 1.0) > 1e-6 for i in range(3)):
+                residual_scales.append((str(prim.GetPath()), tuple(float(v[i]) for i in range(3))))
+                break
+    if residual_scales:
+        n = len(residual_scales)
+        path0, s0 = residual_scales[0]
+        c7_issues.append(f"{n} residual xformOp:scale(s) "
+                         f"(e.g. {path0} = {s0}) — bake_xform_scales (F43) "
+                         f"must run; geometry drifts by (1-s)·pivot on "
+                         f"pivot-sandwich scales")
     c7_pass = len(c7_issues) == 0
-    c7_detail = "clean (meters, no scene)" if c7_pass else "; ".join(c7_issues)
+    c7_detail = "clean (meters, no scene, unit scales)" if c7_pass else "; ".join(c7_issues)
     results["C7 Clean Asset"] = {"pass": c7_pass, "detail": c7_detail}
 
+    # Tier 1 warning-level checks (2026-04-19 skill-library integration).
+    # Advisory only — never flip a C1-C7 result. See skills/failure-modes
+    # §Tier 2/5 for F50/F59/F61/F62/K12/K16 and skills/simready-criteria §C10.
+    results["_warnings"] = _tier1_warnings(stage, rigid_bodies, joints,
+                                           art_root_paths, colliders,
+                                           classification)
+
     return results
+
+
+def _tier1_warnings(stage, rigid_bodies, joints, art_root_paths, colliders,
+                    classification):
+    """Collect advisory warnings (F50, F59, F61, F62, K12, K16, C10).
+
+    Returns a list of {code, msg} dicts. Empty list = nothing to flag.
+    """
+    w = []
+
+    # F59 — principal axes misaligned with geometry. PhysX defaults
+    # principalAxes to identity; if the body ships an explicit diagonalInertia
+    # without an explicit principalAxes quaternion, the diagonal is
+    # interpreted in the identity frame and can rotate the body at rest.
+    # F62 — self-collision flag OFF at articulation root. Makes any rest-pose
+    # "clean" audit unreliable (no pairs reported ≠ no geometric overlap).
+    # K12 — condition number of diagonalInertia > 1e6 → ill-conditioned mass
+    # matrix, solver instability risk.
+    for rb in rigid_bodies:
+        rb_prim = stage.GetPrimAtPath(rb["path"])
+        if not rb_prim:
+            continue
+        di = rb_prim.GetAttribute("physics:diagonalInertia")
+        pa = rb_prim.GetAttribute("physics:principalAxes")
+        di_val = di.Get() if di and di.HasValue() else None
+        pa_set = bool(pa and pa.HasValue())
+        if di_val is not None:
+            try:
+                ixx, iyy, izz = (float(di_val[0]), float(di_val[1]), float(di_val[2]))
+            except Exception:
+                ixx = iyy = izz = None
+            if ixx is not None:
+                if not pa_set and max(ixx, iyy, izz) > 1.2 * min(ixx, iyy, izz) > 0:
+                    w.append({
+                        "code": "F59",
+                        "msg": (f"{rb['path']} has anisotropic diagonalInertia "
+                                f"({ixx:.3g}, {iyy:.3g}, {izz:.3g}) but no "
+                                f"explicit principalAxes — body may rotate at "
+                                f"rest; author physics:principalAxes"),
+                    })
+                lo = min(v for v in (ixx, iyy, izz) if v > 0) if any(v > 0 for v in (ixx, iyy, izz)) else 0.0
+                hi = max(ixx, iyy, izz)
+                if lo > 0 and hi / lo > 1e6:
+                    w.append({
+                        "code": "K12",
+                        "msg": (f"{rb['path']} diagonalInertia cond = "
+                                f"{hi/lo:.2e} (>1e6) — redistribute mass or "
+                                f"regularize (K12)"),
+                    })
+
+    for art_path in art_root_paths:
+        art_prim = stage.GetPrimAtPath(art_path)
+        if not art_prim:
+            continue
+        sc = art_prim.GetAttribute("physxArticulation:enabledSelfCollisions")
+        sc_val = sc.Get() if sc and sc.HasValue() else None
+        if sc_val is not True:
+            w.append({
+                "code": "F62",
+                "msg": (f"{art_path} self-collision is "
+                        f"{'unset' if sc_val is None else sc_val}; overlap "
+                        f"audits may be false-clean — set "
+                        f"physxArticulation:enabledSelfCollisions=True before "
+                        f"geometry review"),
+            })
+
+    # F61 — depenetration velocity cap. V13 assets don't ship a scene by
+    # design (C7), so the cap must land in the host scene at load. Emit
+    # one reminder per asset whenever an articulation root is present.
+    if art_root_paths:
+        w.append({
+            "code": "F61",
+            "msg": ("no scene-level maxDepenetrationVelocity cap ships with "
+                    "the asset — Isaac Lab / Newton host must set "
+                    "physxScene:maxDepenetrationVelocity ~5.0 during debug "
+                    "loads to surface frame-1 overlaps"),
+        })
+
+    # F50 — swept overlap. Sample each revolute/prismatic joint at 10%
+    # increments and flag when body1's world-frame bbox centroid penetrates
+    # body0's bbox more than at rest. Heuristic but catches gross sweeps
+    # (e.g. a drawer that opens into a wall). Skips continuous joints
+    # (wheels) and world-anchor joints.
+    for j in joints:
+        if j.get("is_continuous") or j.get("is_world_anchor"):
+            continue
+        jtype = j.get("type")
+        if jtype not in ("PhysicsRevoluteJoint", "PhysicsPrismaticJoint"):
+            continue
+        lo = j.get("pris_lo") if jtype == "PhysicsPrismaticJoint" else None
+        hi = j.get("pris_hi") if jtype == "PhysicsPrismaticJoint" else None
+        b0, b1 = j.get("body0_path"), j.get("body1_path")
+        if not (b0 and b1):
+            continue
+        b0p, b1p = stage.GetPrimAtPath(b0), stage.GetPrimAtPath(b1)
+        if not (b0p and b1p):
+            continue
+        if jtype == "PhysicsRevoluteJoint":
+            lo_a = b1p.GetAttribute("physics:lowerLimit")
+            hi_a = b1p.GetAttribute("physics:upperLimit")
+            # revolute limits live on the joint prim, not body1 — correct below.
+            jprim = _find_joint_prim(stage, j.get("name"))
+            if not jprim:
+                continue
+            lo_a = jprim.GetAttribute("physics:lowerLimit")
+            hi_a = jprim.GetAttribute("physics:upperLimit")
+            lo_v = float(lo_a.Get()) if lo_a and lo_a.HasValue() else None
+            hi_v = float(hi_a.Get()) if hi_a and hi_a.HasValue() else None
+            if lo_v is None or hi_v is None or abs(hi_v - lo_v) > 1000:
+                continue
+            if abs(hi_v - lo_v) > 180.0:
+                w.append({
+                    "code": "F50",
+                    "msg": (f"{j['name']} revolute range is "
+                            f"{abs(hi_v - lo_v):.0f}° — plausibility flag; "
+                            f"swept-overlap test not implemented, verify "
+                            f"body1 doesn't pass through body0"),
+                })
+        else:  # prismatic — cheap travel-vs-body-depth sanity
+            if lo is None or hi is None:
+                continue
+            travel = abs(hi - lo)
+            try:
+                bb1 = mesh_world_bbox(stage, b1p.GetPath())
+            except Exception:
+                bb1 = None
+            if bb1:
+                body1_depth_along_axis = 0.0
+                ax = j.get("axis")
+                idx = {"X": 0, "Y": 1, "Z": 2}.get(ax, None)
+                if idx is not None:
+                    body1_depth_along_axis = abs(bb1[1][idx] - bb1[0][idx])
+                if body1_depth_along_axis > 0 and travel > 3.0 * body1_depth_along_axis:
+                    w.append({
+                        "code": "F50",
+                        "msg": (f"{j['name']} prismatic travel "
+                                f"{travel*100:.0f}cm is >3x body depth "
+                                f"{body1_depth_along_axis*100:.0f}cm — body "
+                                f"may exit parent volume mid-travel; verify"),
+                    })
+
+    # K16 — joint axis sanity against classifier intent. When classify.json
+    # declares an axis (e.g. "+X", "Y"), the authored joint's physics:axis
+    # should match the unsigned component. Catches frame-convention drift
+    # between the classifier prompt and apply_physics.
+    if classification is not None:
+        parts = classification.get("parts", {}) or {}
+        for j in joints:
+            jname = j.get("name", "")
+            if not jname.endswith("_joint"):
+                continue
+            pname = jname[: -len("_joint")]
+            spec = parts.get(pname)
+            if not spec:
+                continue
+            declared = str(spec.get("axis", "")).strip()
+            if not declared:
+                continue
+            declared_letter = declared[-1].upper() if declared else ""
+            if declared_letter not in ("X", "Y", "Z"):
+                continue
+            actual = j.get("axis")
+            if actual and actual != declared_letter:
+                w.append({
+                    "code": "K16",
+                    "msg": (f"{jname} classify declared axis={declared!r} but "
+                            f"physics:axis={actual!r} — frame-convention "
+                            f"drift; verify classifier prompt vs "
+                            f"apply_physics dispatch"),
+                })
+
+    # C10 — tier certification heuristic. GPU-batchable requires: tree
+    # articulation, ≤20 DOF, convex-only collision. CPU-tier triggers on
+    # loops, high DOF, or many convex-decomposition hulls.
+    dof_joints = [j for j in joints if j.get("type") != "PhysicsFixedJoint"
+                  and not j.get("is_world_anchor", False)]
+    n_dof = len(dof_joints)
+    decomp_cols = sum(1 for c in colliders if c.get("approx") == "convexDecomposition")
+    mesh_cols = sum(1 for c in colliders if c.get("approx") in ("none", "meshSimplification"))
+    reasons = []
+    if n_dof > 20:
+        reasons.append(f"{n_dof} DOF joints (>20)")
+    if decomp_cols > 5:
+        reasons.append(f"{decomp_cols} convex-decomposition hulls (>5)")
+    if mesh_cols > 0:
+        reasons.append(f"{mesh_cols} non-convex colliders")
+    if reasons:
+        w.append({
+            "code": "C10",
+            "msg": ("likely CPU/offline tier — " + "; ".join(reasons)
+                    + "; route to Newton Featherstone or PhysX CPU rather "
+                    + "than Isaac Lab GPU batches"),
+        })
+
+    return w
+
+
+def _find_joint_prim(stage, joint_name):
+    """Return the first UsdPhysics.Joint prim whose name matches `joint_name`.
+
+    Used by F50 sweep check to re-fetch joint limits (the joints[] list
+    captures prismatic limits but not revolute, to avoid bloating that dict).
+    """
+    for prim in stage.Traverse():
+        if prim.IsA(UsdPhysics.Joint) and prim.GetName() == joint_name:
+            return prim
+    return None
 
 
 def print_audit(results, label="AUDIT"):
@@ -657,6 +898,8 @@ def print_audit(results, label="AUDIT"):
     total = 0
     passed = 0
     for name, info in results.items():
+        if name.startswith("_"):
+            continue
         is_na = info.get("na", False)
         if is_na:
             status = "N/A "
@@ -670,6 +913,11 @@ def print_audit(results, label="AUDIT"):
         print(f"    {status}  {name}: {info['detail']}")
     if total > 0:
         print(f"    SCORE: {passed}/{total}")
+    warnings = results.get("_warnings") or []
+    if warnings:
+        print(f"    WARNINGS ({len(warnings)}):")
+        for wn in warnings:
+            print(f"      [{wn['code']}] {wn['msg']}")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -1804,8 +2052,8 @@ def resolve_movable_parts(stage, body_path, dp_path, classification):
 
 
 def bake_xform_scales(stage):
-    """Bake all non-unit xformOp:scale ops into mesh vertex data and translate
-    ops so every Xform ends with scale=(1,1,1), preserving world positions.
+    """Bake all non-unit xformOp:scale ops so every Xform ends with
+    scale=(1,1,1), preserving world positions of all mesh geometry.
 
     F43: MedicalutilityCart_A03_01 raw USD had `xformOp:scale=(100,100,100)`
     on its inner chassis Xform AND nested compensating scales (0.02, 52, …) on
@@ -1813,20 +2061,24 @@ def bake_xform_scales(stage):
     interpreted the inner scales inconsistently with the USD renderer —
     the cart physically functioned but appeared floating above the ground.
 
-    Single-pass, nesting-safe algorithm using cumulative scale from the stage
-    root. For each prim:
-      - Compute cum_scale = product of all ancestor scale ops (up to and
-        including the prim's PARENT scale — not the prim's own scale).
-      - If Mesh: scale `points` + `extent` by (cum_scale × own_scale).
-      - Apply cum_scale to the prim's translate ops.
-      - Reset the prim's scale op to (1,1,1).
-    Because the traversal is parent-before-children and we capture cum_scale
-    as an accumulator, each descendant's values get exactly one scale-in.
-    Mesh vertices receive cum_scale × own_scale because that is the full
-    stack of scales they sit under (scale × rotate × translate composition
-    for uniform scales).
+    Robust (snapshot→reset→reauthor) algorithm — correct regardless of op
+    order, including `translate:pivot`/`!invert!translate:pivot` sandwiches
+    wrapping the scale op. Prior implementation multiplied mesh points by
+    the scalar scale, ignoring pivot-about semantics (s·P + (1-s)·pivot),
+    which drifted tire geometry on InstrumentTrolley_B01_01 by ~5cm per
+    wheel at teleop time. Discovered 2026-04-19 during Tier 1 regression.
+
+    Three passes:
+      A. Snapshot each Mesh's world-space points under the ORIGINAL
+         transform chain, before any mutation.
+      B. Reset every xformOp:scale to (1,1,1), and scale non-inverse
+         translate ops by their ancestors' cum_scale so Xform pivots/
+         translates stay in world-correct positions.
+      C. For every snapshotted Mesh, compute the new L2W (with scales=1)
+         and reauthor local points as new_L2W^-1 · world_points. This
+         preserves world mesh positions exactly regardless of whether the
+         original scale op sat inside a pivot sandwich.
     """
-    n_baked = 0
 
     def cum_scale_from_root(prim):
         """Product of all ancestor scales — excludes prim's OWN scale."""
@@ -1851,44 +2103,54 @@ def bake_xform_scales(stage):
                     return float(v[0]), float(v[1]), float(v[2])
         return 1.0, 1.0, 1.0
 
-    # Pass 1: snapshot EVERY prim's cum_scale and own_scale BEFORE mutating
-    # anything. Modifying scales during traversal invalidates the cumulative
-    # product for descendants (a child's cum_scale would read its ancestor's
-    # already-reset 1.0 value).
-    snapshot = {}  # prim path str -> (cum_x, cum_y, cum_z, own_x, own_y, own_z)
+    # --- Pre-scan: any non-unit scale anywhere? ---
+    nonunit_paths = set()
+    snapshot_cum = {}
     has_nonunit = False
     for prim in stage.Traverse():
         if prim.GetTypeName() not in ("Xform", "Mesh"):
             continue
         cx, cy, cz = cum_scale_from_root(prim)
         ox, oy, oz = own_scale(prim)
-        snapshot[str(prim.GetPath())] = (cx, cy, cz, ox, oy, oz)
+        snapshot_cum[str(prim.GetPath())] = (cx, cy, cz)
         if not (abs(ox-1.0) < 1e-6 and abs(oy-1.0) < 1e-6 and abs(oz-1.0) < 1e-6):
+            nonunit_paths.add(str(prim.GetPath()))
             has_nonunit = True
     if not has_nonunit:
         return False
 
-    # Pass 2: apply snapshot values. Mesh points scale by (cum × own), translate
-    # ops scale by cum, scale ops reset to (1,1,1).
+    # --- Pass A: snapshot world points for every Mesh whose chain carries scale ---
+    def chain_has_scale(prim):
+        p = prim
+        while p and p.IsValid() and p.GetPath() != Sdf.Path.absoluteRootPath:
+            if str(p.GetPath()) in nonunit_paths:
+                return True
+            p = p.GetParent()
+        return False
+
+    mesh_world_points = {}
+    for prim in stage.Traverse():
+        if not prim.IsA(UsdGeom.Mesh):
+            continue
+        if not chain_has_scale(prim):
+            continue
+        pts_attr = prim.GetAttribute("points")
+        if not pts_attr or not pts_attr.HasValue():
+            continue
+        l2w = UsdGeom.Xformable(prim).ComputeLocalToWorldTransform(Usd.TimeCode.Default())
+        mesh_world_points[str(prim.GetPath())] = [
+            l2w.TransformAffine(Gf.Vec3d(float(p[0]), float(p[1]), float(p[2])))
+            for p in pts_attr.Get()
+        ]
+
+    # --- Pass B: reset scale ops to (1,1,1); scale translate ops by ancestor cum_scale ---
+    # Translates get scaled by ancestors' cum_scale (not own scale) so that
+    # an ancestor's baked-out scale is still reflected in descendants'
+    # offset positions. Mesh points are handled separately in Pass C.
     for prim in stage.Traverse():
         if prim.GetTypeName() not in ("Xform", "Mesh"):
             continue
-        cx, cy, cz, ox, oy, oz = snapshot[str(prim.GetPath())]
-        mesh_sx, mesh_sy, mesh_sz = cx*ox, cy*oy, cz*oz
-
-        if prim.IsA(UsdGeom.Mesh) and (abs(mesh_sx-1.0) > 1e-6 or abs(mesh_sy-1.0) > 1e-6 or abs(mesh_sz-1.0) > 1e-6):
-            pts_attr = prim.GetAttribute("points")
-            if pts_attr and pts_attr.HasValue():
-                pts = pts_attr.Get()
-                pts_attr.Set([Gf.Vec3f(float(p[0])*mesh_sx, float(p[1])*mesh_sy, float(p[2])*mesh_sz) for p in pts])
-            ext_attr = prim.GetAttribute("extent")
-            if ext_attr and ext_attr.HasValue():
-                ext = ext_attr.Get()
-                ext_attr.Set([
-                    Gf.Vec3f(float(ext[0][0])*mesh_sx, float(ext[0][1])*mesh_sy, float(ext[0][2])*mesh_sz),
-                    Gf.Vec3f(float(ext[1][0])*mesh_sx, float(ext[1][1])*mesh_sy, float(ext[1][2])*mesh_sz),
-                ])
-
+        cx, cy, cz = snapshot_cum[str(prim.GetPath())]
         xf = UsdGeom.Xformable(prim)
         for op in xf.GetOrderedXformOps():
             if op.IsInverseOp():
@@ -1907,8 +2169,29 @@ def bake_xform_scales(stage):
             elif op.GetOpType() == UsdGeom.XformOp.TypeScale:
                 op.Set(Gf.Vec3f(1.0, 1.0, 1.0))
 
-    n_nonunit = sum(1 for v in snapshot.values() if not (abs(v[3]-1.0) < 1e-6 and abs(v[4]-1.0) < 1e-6 and abs(v[5]-1.0) < 1e-6))
-    print(f"    baked {n_nonunit} xformOp:scale ops into vertex data (cumulative-scale algorithm)")
+    # --- Pass C: reauthor mesh local points from snapshotted world points ---
+    for path_str, world_pts in mesh_world_points.items():
+        prim = stage.GetPrimAtPath(path_str)
+        if not prim:
+            continue
+        new_l2w = UsdGeom.Xformable(prim).ComputeLocalToWorldTransform(Usd.TimeCode.Default())
+        new_w2l = new_l2w.GetInverse()
+        new_local = [new_w2l.TransformAffine(wp) for wp in world_pts]
+        prim.GetAttribute("points").Set(
+            [Gf.Vec3f(float(p[0]), float(p[1]), float(p[2])) for p in new_local]
+        )
+        ext_attr = prim.GetAttribute("extent")
+        if ext_attr and new_local:
+            xs = [p[0] for p in new_local]
+            ys = [p[1] for p in new_local]
+            zs = [p[2] for p in new_local]
+            ext_attr.Set([
+                Gf.Vec3f(float(min(xs)), float(min(ys)), float(min(zs))),
+                Gf.Vec3f(float(max(xs)), float(max(ys)), float(max(zs))),
+            ])
+
+    print(f"    baked {len(nonunit_paths)} xformOp:scale ops "
+          f"({len(mesh_world_points)} meshes reauthored via world-snapshot)")
     return True
 
 
@@ -2811,7 +3094,7 @@ def run(input_usd, fix=False, provider="anthropic", model=None, output_dir=None,
         if gemini_articulation:
             print(f"  Gemini articulation: {len(gemini_articulation)} parts with range data")
     print(f"\n{'='*60}")
-    print(f"  make_simready (V8)")
+    print(f"  make_simready (V13)")
     print(f"{'='*60}")
     print(f"  Input: {input_usd}")
     print(f"  Mode:  {'AUDIT + FIX' if fix else 'AUDIT ONLY'}")
@@ -2822,7 +3105,7 @@ def run(input_usd, fix=False, provider="anthropic", model=None, output_dir=None,
     results = audit(stage)
     print_audit(results, label="AUDIT (current state)")
 
-    all_pass = all(r["pass"] for r in results.values())
+    all_pass = all(r["pass"] for k, r in results.items() if not k.startswith("_"))
     if all_pass:
         print(f"\n  Asset is already SimReady. Nothing to do.")
         return input_usd
