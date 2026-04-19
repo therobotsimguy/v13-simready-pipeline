@@ -83,10 +83,31 @@ respond.
 
 ## Pipeline knowledge: `skills/`
 
-13 skills describe everything the classifier needs to know about USD
+**15 skills** describe everything the classifier needs to know about USD
 physics, PhysX gotchas, joint parameters, failure modes, robot constraints,
-and collision strategy. They load automatically into the classifier's
-system prompt at runtime — no manual setup.
+collision strategy, deformables, and Newton-engine compatibility. They load
+automatically into the classifier's system prompt at runtime — no manual
+setup.
+
+Skill inventory:
+
+| Skill | Scope |
+|---|---|
+| `articulation-pipelines` | 3-stage pipeline + graph-IR compiler architecture, CoACD, synthesis context |
+| `usd-physx-schemas` | PhysX compat matrix, OmniPhysics deformable APIs, one-way lowering, GPU PCM |
+| `failure-modes` | **98 modes across 4 axes** — F (classical), D (deformables), K (kinematic/synthesis), S (solver-engine) |
+| `simready-criteria` | **C1–C11 audit** — basic physics + cross-solver validation + tier certification + Newton parity |
+| `simready-joint-params` | 20 object categories + Rabinowicz/Bhushan friction, Stribeck, BIFMA/IEC/ASME standards |
+| `simready-mechanism-lookup` | 100 mechanisms + Reuleaux pairs, biomechanical joints, OpenSim/MyoSuite |
+| `simready-behaviors` | 18 behaviors (incl. compliant_hinge/slider via Howell PRBM) × 16 constraints |
+| `collision-physics` | Rigid + deformable collision, gripper-deformable gap, production-tier labels |
+| `blender-3d-generation` | 8 patterns (incl. PRBM-aware, collision-aware), ArtLLM/ArticFlow/AKD |
+| `robot-model` | Franka Panda specs + OR deployment constraints (sterility, 150N cap, haptic absence) |
+| `sim-ready-datasets` | Dataset catalog + musculoskeletal + cloth calibration (CLO 3D, Browzwear) |
+| `simready-math` | Deterministic math + Blow's tetrahedral inertia + parallel-axis theorem |
+| `simready-collision` | Trolley wheel / grip rules pointer |
+| **`deformable-physics-robotics`** (new) | Cloth, ropes, cables, soft-body — FEM/XPBD/VBD/MPM, fTetWild, D01-D18 modes |
+| **`newton-physx-compat-matrix`** (new) | Newton solver backends (VBD/Featherstone/MuJoCo Warp), MPM coupling, dual-output parity |
 
 When pipeline behavior needs to change, **edit the skills first, then the
 code**. The classifier reads skills; future Claude sessions read skills;
@@ -95,13 +116,25 @@ durable record of pipeline decisions.
 
 ---
 
-## Audit criteria (`C1`–`C7`)
+## Audit criteria (`C1`–`C11`)
 
-Every asset must pass all 7 criteria before it's considered SimReady.
+Every asset must pass the core criteria before it's considered SimReady.
 `simready_agent.py` runs the audit automatically; `make_simready.py --fix`
-runs it before and after applying physics. 7/7 means the asset is
-structurally valid. It does **not** guarantee it feels right in teleop —
-always test physically after building.
+runs it before and after applying physics.
+
+**Core (required, blocks release):**
+- **C1** Rigid Bodies, **C2** Collision Shapes, **C3** Friction Materials,
+  **C4** Flat Hierarchy, **C5** Joints, **C6** Drives, **C7** Clean Asset
+
+**Extended (warning-level in V13.0, promoted to blockers as tooling matures):**
+- **C8** Cross-solver validation (state-trajectory MSE < 1e-4 across PhysX + MuJoCo + Newton over 10s gravity drop)
+- **C9** Scale viability (stable at IsaacLab batch sizes — 32+ envs)
+- **C10** Tier certification (GPU-batchable vs CPU/offline high-fidelity — drives Isaac Lab vs Newton routing)
+- **C11** Newton / PhysX dual-output parity (gravity drop, teleop push, joint sweep, contact force comparison)
+
+7/7 on core means the asset is structurally valid. C8–C11 quantify fidelity
+and dual-output readiness. Passing the audit does **not** guarantee it feels
+right in teleop — always test physically after building.
 
 ---
 
@@ -185,10 +218,48 @@ concave organizer hulls, F45 enable articulation self-collisions, F46
 handle-based prismatic direction, F46b signed-axis classify override,
 teleop spawn-path branch (ArticulationCfg for dynamic roots), F47
 zero-thickness collider skip (qhull NaN → broadphase crash), F48
-wheel/caster class-alias normalization (silently-dropped rolling joints).
+wheel/caster class-alias normalization (silently-dropped rolling joints),
+F49 world-anchor FixedJoint for fixtures (Newton-compatible; replaces
+`kinematicEnabled=True` on fixtures — DrugCabinet + Fridge verified).
+
+**Skill-library integration (2026-04-19):** 6 research bundles (2.8 MB,
+152 files) absorbed via 3-phase review (inventory → plan → execute).
+Results:
+- **2 new skills:** `deformable-physics-robotics`, `newton-physx-compat-matrix`
+- **Failure modes: 39 → 98** across 4 segregated axes (F/D/K/S)
+- **Audit criteria: C1–C7 → C1–C11**
+- **Behaviors: 16 → 18** (added compliant_hinge + compliant_slider via Howell PRBM)
+- **+1,453 lines** of new skill content, all with provenance tags
 
 **Next up:** pick from `Retractor_A01_01`, `RoboticSystem_A01_01`,
-`SurgicalChair_A01_01`, or another pending asset.
+`SurgicalChair_A01_01`, or another pending asset. Deformable-asset track
+(bedsheets, IV tubing, surgical drapes, cables) is now unblocked via
+`deformable-physics-robotics` — Newton VBD + MuJoCo Warp path.
+
+---
+
+## Dual output: PhysX (Isaac Sim) + Newton
+
+V13 produces SimReady USD assets that target **both** NVIDIA Isaac Sim
+(PhysX 5) and NVIDIA Newton as separate products. The skill library is
+structured to support this:
+
+- **Base USD Physics schemas** (`physics.usda`) are engine-agnostic
+- **Engine-specific overrides** go in `physx.usda` (PhysX) or `newton.usda` (Newton)
+- **C11 parity audit** verifies behavior equivalence across both engines
+
+When to use which engine:
+- **PhysX (Isaac Sim)** — default for rigid articulated assets. Mature tooling,
+  validated teleop path, F49 world-anchor fixtures verified.
+- **Newton** — required for deformables (cloth, cable, soft body via VBD),
+  granular/MPM coupling, differentiable physics for param calibration.
+  Primary path: VBD + MuJoCo Warp. Secondary: VBD + Featherstone.
+- **Both (dual-output)** — required for assets that must behave identically
+  in both environments. Validate via C11 test battery.
+
+See `skills/newton-physx-compat-matrix/SKILL.md` for the full compatibility
+matrix and `skills/deformable-physics-robotics/SKILL.md` for the deformable
+solver stack.
 
 ---
 
