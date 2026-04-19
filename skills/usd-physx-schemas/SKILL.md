@@ -207,6 +207,53 @@ Properties extracted from Isaac Sim's PhysxSchema module. These EXTEND the base 
 
 **Negative scale is NOT supported for convex meshes** — will silently produce wrong collision shape.
 
+### Zero-thickness collision meshes (F47)
+
+**Rule**: Never apply `CollisionAPI` to a mesh where any axis of its bounding
+box is < 1e-6 m. Flat 2D geometry (decals, stickers, labels, logos,
+paper-thin panels) has coplanar vertices. `convexHull` / `convexDecomposition`
+both route through **qhull**, and qhull cannot fit a 3D hull to coplanar
+points — it returns garbage (NaN / inf) bounds.
+
+**Why it cascades**: PhysX submits those NaN bounds to the **broadphase**.
+The broadphase raises `PhysX error: Illegal BroadPhaseUpdateData` and flags
+**every** rigid body's transform as `Invalid PhysX transform` on the next
+tick — not just the degenerate mesh's owner. The entire articulation
+disappears from the sim. MuJoCo exhibits the same failure as "qhull error"
+during model load.
+
+**Root cause in V13**: `make_simready.py::apply_collision_q1` and
+`apply_collision_wheels` iterate all mesh descendants of a rigid body and
+apply `CollisionAPI` unconditionally. Decals that are children of the body
+(not classified as separate parts) silently inherit colliders.
+
+**Fix**: `_is_degenerate_mesh(prim)` gates every `CollisionAPI.Apply()` call.
+Audit (`C2`) fails if any `CollisionAPI` prim has a degenerate mesh.
+
+**First seen**: `ResuscitationBed_A01_01` (2026-04-18) — 3 decal meshes
+with bbox Z = 0 caused the whole articulation to vanish at sim init.
+
+### Classifier-class aliases (F48)
+
+The canonical class values the pipeline accepts are
+`movable:revolute`, `movable:prismatic`, `movable:continuous`,
+`structural`, and `decorative`. The Claude classifier occasionally
+drifts to the shorthand `"wheel"` or `"caster"` (both describe rolling
+continuous joints). `make_simready.py::_normalize_class_aliases` treats
+these as aliases for `movable:continuous` and infers the axle axis from
+the thinnest world-bbox dimension when the classifier omits `axis`.
+
+Without this normalization, unknown class values silently fall through
+the main dispatch and become structural — the asset has the right mass
+and geometry but no rolling mechanism, so a `--dynamic` body slides on
+ground friction instead of rolling on casters. The C5 audit now also
+FAILs on any class value outside the accepted set, making drift loud
+rather than silent.
+
+**First seen**: `ResuscitationBed_A01_01` (2026-04-18) — 4 wheels
+classified as `"wheel"` were dropped; the 139kg bed acted as a static
+block.
+
 ## Articulation Rules
 
 ### When to Use ArticulationRootAPI

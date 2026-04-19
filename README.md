@@ -160,7 +160,7 @@ as usual.
 |  7 | HoldingDevice_A01_01 | mount | **built** (2026-04-18 — drove F40/F41 fixes: Gemini `range_meters` override for prismatic travel, auto-dynamic rule for articulated handheld tools, orchestrator prompt preserves full object JSON. AUDIT 7/7, MUJOCO 15/16; valvebutton 5mm travel + 2 revolute arms, body kinematic stand-mount) |
 |  8 | MedicalutilityCart_A03_01 | cart | **partial** (2026-04-18 — drove F42 base/trim keyword, F43 bake_xform_scales, F44 skip-concave-organizer, F45 articulation self-collisions, F46 handle-based direction, F46b signed-axis override, and the teleop ArticulationCfg fix for dynamic roots. Wheels + ground + physics all PASS. Drawers still open in wrong face — Gemini keeps classifying axis=Y; requires deeper classifier work to reliably pick the correct face on this asset) |
 |  9 | Mobilecartsandtables_C01_01 | cart / table | **built** (2026-04-18 — drove F42: `base`/`trim` added to `WHEEL_STRUCTURAL_KEYWORDS`, fixing bracket-rotates-with-tire. AUDIT 7/7, MUJOCO 27/28; 4 casters + height-adjust table + handle. Teleop PASS) |
-| 10 | ResuscitationBed_A01_01 | bed | pending |
+| 10 | ResuscitationBed_A01_01 | bed | **built** (2026-04-18 — drove F47 zero-thickness collider skip + F48 wheel/caster class alias. 4 wheels had been silently dropped as class="wheel" (not `movable:continuous`); 3 flat decals crashed PhysX broadphase via qhull NaN. AUDIT 7/7, MUJOCO 38/44, teleop rolls on casters) |
 | 11 | Retractor_A01_01 | surgical tool | pending |
 | 12 | RoboticSystem_A01_01 | system | pending |
 | 13 | RoboticSystem_B01_Console_01 | system | pending |
@@ -172,8 +172,8 @@ as usual.
 | 19 | SurgicalpowerTool_B01_01 | surgical tool | pending |
 | 20 | SurgicalTable_A01_01 | table | pending |
 
-Score: **11 / 20 built** (MedicalutilityCart counts as partial — physics
-correct, drawers mis-faced but usable for teleop). Remaining 9 assets can
+Score: **12 / 20 built** (MedicalutilityCart counts as partial — physics
+correct, drawers mis-faced but usable for teleop). Remaining 8 assets can
 be run with the single entry-point command; no per-asset tuning is required
 unless V13 surfaces a new silent-failure class, in which case follow the
 3-step fix rule below.
@@ -183,10 +183,12 @@ F41 handheld-tool auto-dynamic, F42 wheel-split keyword growth (base/trim),
 F43 bake residual xformOp:scale (fixes "floats in air" class), F44 skip
 concave organizer hulls, F45 enable articulation self-collisions, F46
 handle-based prismatic direction, F46b signed-axis classify override,
-teleop spawn-path branch (ArticulationCfg for dynamic roots).
+teleop spawn-path branch (ArticulationCfg for dynamic roots), F47
+zero-thickness collider skip (qhull NaN → broadphase crash), F48
+wheel/caster class-alias normalization (silently-dropped rolling joints).
 
-**Next up:** `ResuscitationBed_A01_01` — bed, likely kinematic with
-adjustable sections.
+**Next up:** pick from `Retractor_A01_01`, `RoboticSystem_A01_01`,
+`SurgicalChair_A01_01`, or another pending asset.
 
 ---
 

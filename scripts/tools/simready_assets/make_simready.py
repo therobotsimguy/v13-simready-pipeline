@@ -103,10 +103,16 @@ def audit(stage, classification=None):
             )
             if has_binding:
                 mat_bindings += 1
+            # F47: flag zero-thickness collision meshes. Qhull fails on
+            # coplanar points, PhysX broadphase gets NaN, asset disappears
+            # at sim start. Fix in apply_collision_q1 / apply_collision_wheels:
+            # skip meshes where any bbox axis < 1e-6.
+            is_degenerate = prim.IsA(UsdGeom.Mesh) and _is_degenerate_mesh(prim)
             colliders.append({
                 "name": prim.GetName(),
                 "approx": approx_val,
                 "has_physics_mat_binding": has_binding,
+                "degenerate": is_degenerate,
             })
 
         if prim.IsA(UsdPhysics.Joint):
@@ -235,6 +241,18 @@ def audit(stage, classification=None):
     if bodies_without_colliders:
         c2_pass = False
         c2_detail += f" — {len(bodies_without_colliders)} rigid body(s) have NO colliders: {bodies_without_colliders}"
+    # F47: zero-thickness collision meshes (flat decals, stickers, labels)
+    # crash qhull at physics init. PhysX reports "Illegal BroadPhaseUpdateData"
+    # and every rigid body's transform becomes "Invalid". Asset disappears
+    # from sim. Fix: apply_collision_q1 / apply_collision_wheels must skip
+    # meshes with any bbox axis < 1e-6 (see _is_degenerate_mesh).
+    degenerate_colliders = [c["name"] for c in colliders if c.get("degenerate")]
+    if degenerate_colliders:
+        c2_pass = False
+        c2_detail += (f" — F47: {len(degenerate_colliders)} zero-thickness "
+                      f"collider(s) will crash qhull/PhysX broadphase "
+                      f"(e.g. {degenerate_colliders[0]}); fix in "
+                      f"apply_collision_q1 via _is_degenerate_mesh skip")
     results["C2 Collision Shapes"] = {"pass": c2_pass, "detail": c2_detail}
 
     # C3: Friction Materials + GripMaterial on handles (F29, F31)
@@ -518,9 +536,13 @@ def audit(stage, classification=None):
         # declared "parent" chain, or classifier omitted parent field entirely.
         # See usd-physx-schemas: Serial Kinematic Chains.
         if classification is not None:
+            # Count canonical "movable:*" AND shorthand aliases ("wheel",
+            # "caster") — both are accepted inputs; apply_physics normalizes
+            # the shorthand to "movable:continuous" (F48).
             expected_movable = sum(
                 1 for spec in classification.get("parts", {}).values()
                 if str(spec.get("class", "")).startswith("movable:")
+                or str(spec.get("class", "")) in _WHEEL_ALIASES
             )
             if len(joints) < expected_movable:
                 c5_pass = False
@@ -528,6 +550,25 @@ def audit(stage, classification=None):
                               f"movable parts but only {len(joints)} joints produced "
                               f"— check parent field in classify.json (see "
                               f"usd-physx-schemas: Serial Kinematic Chains)")
+            # F48: flag any class value outside the accepted set. Catches
+            # classifier drift early — unknown values otherwise fall through
+            # the apply_physics dispatch and silently become structural.
+            unknown_classes = []
+            for pname, spec in classification.get("parts", {}).items():
+                cv = str(spec.get("class", ""))
+                if cv in _ACCEPTED_CLASSES:
+                    continue
+                if cv in _WHEEL_ALIASES:
+                    continue
+                unknown_classes.append((pname, cv))
+            if unknown_classes:
+                c5_pass = False
+                nm, cv = unknown_classes[0]
+                c5_detail += (f" — F48: {len(unknown_classes)} part(s) have unknown "
+                              f"class value (e.g. {nm!r}={cv!r}); accepted: "
+                              f"{_ACCEPTED_CLASSES + _WHEEL_ALIASES}. Fix in "
+                              f"apply_physics via _normalize_class_aliases or "
+                              f"update the classifier prompt.")
     else:
         c5_pass = True
         c5_detail = "no movable parts — joints N/A"
@@ -924,6 +965,55 @@ def mesh_world_bbox(stage, xform_path):
     return bmin, bmax
 
 
+_ACCEPTED_CLASSES = (
+    "movable:revolute", "movable:prismatic", "movable:continuous",
+    "structural", "decorative",
+)
+_WHEEL_ALIASES = ("wheel", "caster")
+
+
+def _normalize_class_aliases(stage, classification, dp_path):
+    """Normalize classifier shorthand to the canonical schema.
+
+    - "wheel" / "caster"  →  "movable:continuous" + inferred axle axis
+      (thinnest world-bbox dimension = axle direction).
+
+    The Claude classifier occasionally drops to this shorthand even though
+    the prompt specifies the canonical form; without normalization, the
+    main dispatch (line ~1635) silently skips these parts and the asset
+    has no rolling mechanism.
+    """
+    parts = classification.get("parts", {})
+    for name, spec in parts.items():
+        cls = str(spec.get("class", ""))
+        if cls not in _WHEEL_ALIASES:
+            continue
+        # Resolve the part's world bbox to pick the axle axis (thinnest).
+        part_prim = None
+        for candidate in (dp_path.AppendChild(name),):
+            if stage.GetPrimAtPath(candidate).IsValid():
+                part_prim = stage.GetPrimAtPath(candidate)
+                break
+        if part_prim is None:
+            for prim in stage.Traverse():
+                if prim.GetName() == name and prim.GetTypeName() == "Xform":
+                    part_prim = prim
+                    break
+        axle_axis = spec.get("axis")
+        if not axle_axis and part_prim is not None:
+            bb = mesh_world_bbox(stage, part_prim.GetPath())
+            if bb:
+                bmin, bmax = bb
+                dims = [bmax[i] - bmin[i] for i in range(3)]
+                axle_axis = ["X", "Y", "Z"][dims.index(min(dims))]
+        spec["class"] = "movable:continuous"
+        if axle_axis:
+            spec["axis"] = axle_axis
+        spec.setdefault("parent", "body")
+        print(f"  [F48] Normalized '{name}' class={cls!r} → "
+              f"'movable:continuous' axis={spec.get('axis')}")
+
+
 # Keywords for rail/mechanism meshes that inflate drawer bbox beyond actual travel
 _DRAWER_RAIL_KEYWORDS = ("mechanism", "frame", "rail", "track", "slide", "runner", "guide")
 
@@ -976,6 +1066,27 @@ def _mesh_vert_count(prim):
     if pts and pts.HasValue():
         return len(pts.Get())
     return 0
+
+
+def _is_degenerate_mesh(prim, eps=1e-6):
+    """True if mesh has zero-thickness (any axis bbox < eps).
+
+    Flat 2D decals/stickers/labels fail qhull (coplanar points produce
+    NaN bounds) and crash PhysX broadphase. Such meshes must NOT get
+    CollisionAPI. See usd-physx-schemas: Zero-thickness collision meshes.
+    """
+    pts_attr = prim.GetAttribute("points")
+    if not pts_attr or not pts_attr.HasValue():
+        return False
+    pts = pts_attr.Get()
+    if pts is None or len(pts) < 3:
+        return True
+    xs = [p[0] for p in pts]
+    ys = [p[1] for p in pts]
+    zs = [p[2] for p in pts]
+    return (max(xs) - min(xs) < eps
+            or max(ys) - min(ys) < eps
+            or max(zs) - min(zs) < eps)
 
 
 def _get_all_descendant_meshes(prim):
@@ -1224,6 +1335,14 @@ def apply_collision_q1(stage, xform_path, is_body=False):
         if not is_body and any(kw in mesh_name_lower for kw in SKIP_COLLISION_KEYWORDS):
             # Visual-only — no CollisionAPI applied.
             continue
+        # F47: zero-thickness meshes (flat decals, stickers, labels) crash
+        # qhull (coplanar points → NaN bounds → PhysX "Illegal
+        # BroadPhaseUpdateData" and every rigid body reports "Invalid
+        # PhysX transform"). Seen on ResuscitationBed_A01_01 with 3 decal
+        # meshes (Z-thickness = 0). See usd-physx-schemas: Zero-thickness
+        # collision meshes.
+        if _is_degenerate_mesh(mesh_prim):
+            continue
         UsdPhysics.CollisionAPI.Apply(mesh_prim)
         mc = UsdPhysics.MeshCollisionAPI.Apply(mesh_prim)
         use_decomp = is_body and npts > 2000
@@ -1257,6 +1376,9 @@ def apply_collision_wheels(stage, xform_path):
         return 0
     n = 0
     for desc in _get_all_descendant_meshes(prim):
+        # F47: skip flat decals / stickers (qhull crash on coplanar points).
+        if _is_degenerate_mesh(desc):
+            continue
         UsdPhysics.CollisionAPI.Apply(desc)
         mc = UsdPhysics.MeshCollisionAPI.Apply(desc)
         mc.CreateApproximationAttr("convexDecomposition")
@@ -1801,6 +1923,15 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
 
     normalize_to_meters(stage)
     mpu = 1.0
+
+    # F48: classifier LLM drifts between the canonical "movable:continuous"
+    # and the shorthand "wheel" / "caster". Treat the shorthand as an alias
+    # so the pipeline is robust to prompt drift — otherwise wheels silently
+    # become structural and the asset has no rolling mechanism. Seen on
+    # ResuscitationBed_A01_01 (2026-04-18): 4 wheels labeled "wheel" were
+    # dropped, producing a 139kg block that slid on friction instead of
+    # rolling on casters.
+    _normalize_class_aliases(stage, classification, default_prim.GetPath())
 
     # Strip existing physics
     n_j, n_a, n_m = strip_existing_physics(stage)
