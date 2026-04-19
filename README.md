@@ -24,6 +24,31 @@ python3 scripts/tools/simready_assets/simready_agent.py --input trolley.usd --dy
 python3 scripts/tools/simready_assets/simready_agent.py --input fridge.usd
 ```
 
+### `--dynamic` decision tree
+
+**Use `--dynamic`** if the whole asset should translate under a robot push:
+- trolleys, carts, mobile utility carts
+- beds on casters (ResuscitationBed, EmergencyTrolley)
+- wheelchairs, mobile IV stands
+- surgical tables if meant to be repositioned
+- any asset with **wheels/casters** that should roll
+
+**Omit `--dynamic`** for fixtures — the body is anchored to world via a
+`PhysicsFixedJoint` (F49 encoding; Newton-compatible), but **articulated
+children still move freely** on their joints:
+- fridge doors open (revolute)
+- drug-cabinet drawers slide (prismatic)
+- IV-pole tubes telescope (prismatic)
+- surgical-arm joints rotate (revolute)
+
+Common misconception: drawers/sliders need `--dynamic`. They don't —
+joint articulation is independent of whether the root is anchored.
+`--dynamic` only controls the **whole-body** mobility.
+
+Symptoms if you pick wrong:
+- Missing `--dynamic` on a trolley → wheels spin in place but body won't shift-drag.
+- Wrong `--dynamic` on a fixture → robot brushes the fridge, fridge walks across the room; 6-DOF free body wastes solver time in RL batches.
+
 That is the **only** command you need. It orchestrates:
 
 1. `read_hierarchy` — parse USD structure
