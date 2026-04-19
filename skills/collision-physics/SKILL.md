@@ -6,7 +6,9 @@ description: >-
   decomposition trade-offs, continuous collision detection (CCD), contact parameters,
   and physics engine integration. Use when selecting collision geometry, debugging
   collision issues, or optimizing simulation fidelity. Derived from 7 collision papers
-  plus ArtVIP dataset guidelines.
+  plus ArtVIP dataset guidelines. Also covers deformable collision (cloth, tetrahedra,
+  gripper-deformable gap), production-tier labels per collision type, and GPU-compute
+  penalty columns for scale planning.
 ---
 
 # Collision Physics Skill
@@ -176,6 +178,45 @@ q_target = {
 - Enables: trash can foot pedal, button-triggered door release
 
 For ArtVIP's 5 behavior primitives (latching, damping, cross-asset, within-asset, hover/hold), see **simready-behaviors** skill.
+
+## Deformable Collision Special Cases
+
+Deformables have different rules from rigid bodies. Full solver/pipeline detail in `deformable-physics-robotics`.
+
+| Geometry | Deformable Context | Rule |
+|----------|-------------------|------|
+| Triangle mesh | Cloth, shells | Unified sim + collision mesh. Aspect ratio < 1.5; no inverted triangles. |
+| Tetrahedral | Volumetric soft body | Sim mesh; Scaled Jacobian > 0.2; aspect ratio 1–3 |
+| CCD on deformables | Fast cables under tension | Available but expensive; prefer constraint-stabilized capsule chains |
+| Self-collision | Cloth, soft body | PhysX limits multi-body deformable-deformable contact. Merge multi-layer cloth into single self-colliding mesh |
+
+### Gripper-Deformable Gap (Known Limitation)
+
+Isaac Sim PhysX 5 gripper-on-deformable contact is **unstable as of 2026** (NVIDIA forum #318907). Workaround:
+- **Validate in MuJoCo flex first** (more stable contact model).
+- Use high friction μ on `GripMaterial` (sf=1.0, df=0.9) for cloth/rope grasping.
+- For production Franka-on-cloth, consider Newton VBD + MuJoCo Warp path (see `newton-physx-compat-matrix`).
+
+### Production-Tier Labels (for Collision Selection)
+
+Extend the Decision Matrix with these meta-columns:
+
+| Collision Type | Production Tier | GPU Compute Penalty | Notes |
+|----------------|-----------------|---------------------:|-------|
+| convexHull | v1.0 | 1.0× (baseline) | Fastest path |
+| convexDecomposition (CoACD) | v1.0 | 2–5× | Scales with hull count; audit GPU 64-vert limit |
+| SDF collision | research-alpha | 5–10× | Heavy memory; crashes reported (PhysX#383) |
+| Triangle mesh + SDF | research-alpha | 10×+ | Dynamic only via SDF; heavy |
+| Deformable surface (cloth) | v1.0 | 3–7× | XPBD/VBD solver |
+| Deformable volumetric (tet) | research-alpha | 10×+ | FEM/VBD; not yet production for complex scenes |
+
+<!-- source: bundle6/research_dynamics_formats_and_collision.csv + bundle2/findings_file(1)_wide_research_unzipped/2_grasp_manipulation_coupling + bundle5 CI-0035, confidence: HIGH -->
+
+### Frontier Warning (Scale-Related)
+
+At 1000+ simultaneous contacts (multi-gripper, tray scenarios), traditional PhysX contact approximations degrade. GNN-based learned contact (ContactNets, MeshGraphNets) is **research-stage** and not yet production-ready. For now: reduce contact count by simplifying collision geometry or splitting scenes.
+
+<!-- source: bundle3/neural_physics_report (research-stage), confidence: LOW -->
 
 ## Reference Papers
 Located at: `scripts/tools/simready_assets/reference_library/papers_collision/`

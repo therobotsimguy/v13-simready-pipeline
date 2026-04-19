@@ -5,6 +5,9 @@ description: >-
   any USD file — rigid or articulated — and determine what physics properties
   are present vs missing. Empirically derived from two working assets
   (InstrumentTrolley_B, Refrigerator_A) tested with Franka teleop in Isaac Sim.
+  Extended with C8 (cross-solver validation), C9 (scale viability at IsaacLab
+  batch sizes), C10 (GPU-batchable vs CPU-high-fidelity tier certification),
+  and C11 (Newton / PhysX dual-output parity).
 ---
 
 # SimReady Criteria Skill
@@ -153,6 +156,82 @@ The asset must NOT contain host-app responsibilities and must be in meters.
 **Why metersPerUnit matters:** If metersPerUnit = 0.01 (centimeters), Isaac Lab
 spawns the asset 100x too large. The pipeline normalizes to meters during Phase 3,
 but the audit must verify the output is correct.
+
+### C8: Cross-Solver Validation
+
+Advanced audit for assets that target multiple engines or require quantified fidelity. Applies especially to dual-output V13 assets.
+
+| Check | Rule |
+|-------|------|
+| Cross-simulator trajectory match | State-trajectory MSE < 1e-4 over 10s gravity drop across PhysX + MuJoCo + Newton |
+| Sensitivity to friction/mass | Behavior stable under ±10% perturbation on friction and mass |
+| Sim-to-real error bounds | Gripper gap < 5mm, door-open time < 0.5s vs real-world measurement |
+| Save/resume determinism | Never resume mid-contact (cross-ref S09). Always restart from beginning |
+
+**Pass gate:** all 4 sub-checks pass. Warning-level failures are acceptable for V13.0; must escalate to blockers by V13.2.
+
+<!-- source: bundle3/validation_report + bundle4/validation_gauntlet + bundle2/corrected_brief §17 + bundle5 s2r memo, confidence: HIGH -->
+
+### C9: Scale Viability
+
+Does the asset survive IsaacLab batched training?
+
+| Check | Rule |
+|-------|------|
+| Single-env stability | No NaN, bounded oscillation at N=1 |
+| Small-batch stability | Same behavior at N=4 as N=1 |
+| Target-batch stability | Stable at target N (32 for articulated; 128–256 for soft bodies) |
+| Solver tuning audit | `solver_position_iteration_count` and `dt` appropriate for asset complexity |
+
+**Heuristic:** if the asset has more than ~5 convex decomposition hulls OR a GPU-incompatible topology (K13), flag for C10 tier review. Cross-ref F58.
+
+<!-- source: bundle5 CI-0037 + bundle2/findings_file(2)/0_gpu_simulation_at_scale, confidence: HIGH -->
+
+### C10: Tier Certification
+
+Classify the asset at generation time as **GPU-batchable** OR **CPU/offline high-fidelity**. Drives pipeline routing.
+
+**GPU-batchable tier** — must ALL be true:
+- Tree articulation (no loops, OR loops handled via tree-plus-closure with explicit Baumgarte tuning)
+- Low DOF (≤~20 joints)
+- Convex collision only (primitives + single convex hull, OR convex decomposition within GPU hull budget ≤64 verts)
+- Regular memory layout (SoA-compatible)
+
+**CPU/offline high-fidelity tier** — assets with:
+- Native closed loops (>2)
+- Screw / gear transmissions with exact coupling
+- Hydraulic compliance or complex deformable coupling
+- Articulation + granular (MPM) — must use Newton
+- Deformable assets with FEM (PhysX) or VBD (Newton)
+
+**Never force a mismatched mechanism into GPU tier.** Soft fail (degraded physics) is worse than explicit routing to CPU offline.
+
+**Routing:**
+- GPU-batchable → Isaac Lab (PhysX GPU) + Newton GPU (Featherstone or VBD)
+- CPU/offline → Newton offline (Featherstone or custom backend) OR PhysX CPU
+
+<!-- source: bundle6/final_report §8 (GPU vs CPU tradeoffs), confidence: HIGH -->
+
+### C11: Newton / PhysX Dual-Output Parity
+
+If the asset ships to BOTH Isaac Sim (PhysX) and Newton as separate products, outputs must behave equivalently on a defined test battery. See `newton-physx-compat-matrix §7` for the full parity procedure.
+
+| Test | Metric | Tolerance |
+|------|-------|-----------|
+| Gravity drop 10s | Final COM position delta | < 5 mm |
+| Teleop push 100N lateral | Max joint deflection delta | < 5% |
+| Joint sweep full range | Time-to-complete delta | < 10% |
+| Contact force peaks | Max contact force ratio PhysX/Newton | 0.9 < ratio < 1.1 |
+| State trajectory MSE | Position state vector, 10s | < 1e-4 |
+
+**Known parity gaps (flag, don't silently fail):**
+- PhysX SDF collision vs Newton — Newton has no SDF support (use convex decomp for dual-output).
+- PhysX compliant contact (5.1+) vs Newton VBD — match within ±10%.
+- PhysX articulation damping vs Featherstone — slightly different numerical integration.
+
+**Initial rollout (V13.0):** C11 is warning-level. Promote to failure gate after empirical validation on the reference asset pair (Refrigerator_A, InstrumentTrolley_B).
+
+<!-- source: bundle2/newton_report_corrections + bundle6/final_report §Architecture, confidence: HIGH (procedure) / MED (exact tolerances) -->
 
 ## Part Classification Guide (for LLM)
 

@@ -4,7 +4,9 @@ description: >-
   Franka Emika Panda robot specs as reference for SimReady asset design.
   Use when building assets that a robot must manipulate — ensures handles
   are graspable, forces are achievable, clearances fit the gripper, and
-  joint parameters are within robot capabilities.
+  joint parameters are within robot capabilities. Also covers medical-OR
+  deployment constraints: sterility gripper gap, 150 N collaboration force
+  cap, rigid-contact tissue proxy, and the haptic-feedback absence in sim.
 ---
 
 # Robot Model Skill — Franka Emika Panda
@@ -120,6 +122,29 @@ env_cfg.scene.cabinet = AssetBaseCfg(
     ),
 )
 ```
+
+## OR (Operating Room) Deployment Constraints
+
+Additional hard constraints specific to medical-OR / clinical deployment. Apply when the asset is intended for surgical or clinical simulation.
+
+| Constraint | Value | Rationale |
+|------------|------:|-----------|
+| **Gripper gap (closed)** | < 1 mm | Sterility: fully-closed gripper cannot harbor contaminants |
+| **Collaboration force cap** | 150 N | Safety-certified collaboration force (Franka hardware can deliver 300 N but is capped in cobot mode) |
+| **Haptic feedback** | **ABSENT in sim** | No force-feedback loop in simulation; user/policy must be robust to this. In real-world surgical robotics, haptic is also often absent (da Vinci, for example, has no haptic feedback) |
+| **Tissue deformation** | Rigid-contact proxy | V13 baseline: treat tissue as rigid for early iterations. For deformable tissue, see `deformable-physics-robotics`. Live tissue sim is still largely research (liver 5–10 kPa, bladder 50–200 kPa stiffness ranges) |
+| **Sterilization cycles** | Implicit constraint | Real assets undergo autoclave or chemical sterilization that degrades surface texture; friction increases over time. Model via domain randomization on μ. |
+
+**Workflow implications:**
+- Validate the Franka can still grip small surgical instruments with the <1mm sterility-closed constraint.
+- Test teleop trajectories with the 150 N cap enforced — don't train policies that exceed this.
+- Acknowledge haptic absence when specifying demo scenarios — visual/proprioceptive feedback only.
+
+<!-- source: bundle3/surgical_simulation_memo + bundle4/section_file(4)/0_biomechanics_and_anatomy, confidence: HIGH -->
+
+### Gripper-Deformable Gap (cross-ref)
+
+As of 2026, Isaac Sim PhysX 5 gripper-on-deformable contact is unstable (NVIDIA forum #318907). For surgical drapes, IV tubing, or soft-tissue manipulation, validate in MuJoCo flex first OR use Newton VBD + MuJoCo Warp path. See `deformable-physics-robotics §9` and `collision-physics §Gripper-Deformable Gap`.
 
 ## Reference
 

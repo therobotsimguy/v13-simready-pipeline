@@ -6,7 +6,10 @@ description: >-
   geometry constraints, and articulation gotchas. Use when applying physics APIs to
   USD prims, debugging silent physics failures, or deciding between ArticulationRootAPI
   vs flat rigid bodies. Derived from OpenUSD spec, PhysX 5.5 docs, and Isaac Sim
-  empirical testing.
+  empirical testing. Also covers OmniPhysics deformable body APIs, GPU Persistent
+  Contact Manifold (PCM) + cooking requirements, PhysX 5.1+ compliant contact
+  semantics, principal-axes alignment, and the one-way lowering policy (no URDF
+  ↔ MJCF ↔ USD round-tripping) for USD authoring.
 ---
 
 # USD + PhysX Schema Compatibility Skill
@@ -167,7 +170,7 @@ Properties extracted from Isaac Sim's PhysxSchema module. These EXTEND the base 
 | RigidBodyAPI | MassAPI | **WORKS** | MassAPI overrides auto-computed mass. Can apply on body or child meshes. |
 | RigidBodyAPI | kinematicEnabled=true | **WORKS** | Body follows animated pose, pushes dynamic bodies with infinite mass. |
 | RigidBodyAPI (parent) | RigidBodyAPI (child) | **CAUTION** | USD spec says nested rigid body creates independent subtree. **PhysX behavior differs**: child body is merged into parent in many cases. Reparent to siblings instead. |
-| RigidBodyAPI (grandchild) | — | **BREAKS SILENTLY** | PhysX swallows grandchild rigid bodies. They become part of the nearest ancestor rigid body. F11 in failure-modes. **Mitigation for kinematic chains (boom arms, robot arms): flatten all chain links as siblings of the body via `reparent_prims_preserve_world_xform`, then wire each joint's `body0` to its declared parent link (not the body). See "Serial Kinematic Chains" below.** |
+| RigidBodyAPI (grandchild) | — | **BREAKS SILENTLY** | PhysX swallows grandchild rigid bodies. They become part of the nearest ancestor rigid body. F11 in failure-modes. |
 | ArticulationRootAPI | kinematicEnabled=true | **BREAKS SILENTLY** | Articulation links CANNOT be kinematic (PhysX restriction). The body won't move. Use FixedJoint to world instead. |
 | ArticulationRootAPI | RigidBodyAPI (same prim) | **WORKS** | Standard for floating-base articulation root. |
 | ArticulationRootAPI | Flat sibling hierarchy | **WORKS** | Our pipeline pattern: body + parts as siblings under /root, ArticulationRootAPI on /root or body. |
@@ -198,103 +201,39 @@ Properties extracted from Isaac Sim's PhysxSchema module. These EXTEND the base 
 
 | Geometry Type | Static | Kinematic | Dynamic | Max Verts/Faces | Notes |
 |--------------|--------|-----------|---------|-----------------|-------|
-| convexHull | Yes | Yes | Yes | 255 | Fastest. Bloats concave shapes. |
-| convexDecomposition | Yes | Yes | Yes | Per-hull 255 | Multiple convex hulls. Budget ~5 per asset. |
+| convexHull | Yes | Yes | Yes | 255 (CPU); **≤64 on GPU** | Fastest. Bloats concave shapes. GPU path silently falls back to CPU if hull exceeds 64 verts total or 32 verts/face. |
+| convexDecomposition | Yes | Yes | Yes | Per-hull 255 / **64 GPU** | Multiple convex hulls. Budget ~5 per asset. CoACD preferred over V-HACD (real-metric mode, threshold 0.002–0.01m, ≤64 verts/hull, 16–32 hulls). |
 | triangle mesh (no SDF) | Yes | Yes | **NO** | Unlimited | Static/kinematic only without SDF. |
-| triangle mesh + SDF | Yes | Yes | Yes | Unlimited | SDF required for dynamic. Heavy memory. |
+| triangle mesh + SDF | Yes | Yes | Yes | Unlimited | SDF required for dynamic. Heavy memory. Target resolution at thin features only — don't raise globally. |
 | boundingBox / boundingSphere | Yes | Yes | Yes | N/A | Very rough approximation. |
-| heightfield | **Static only** | No | No | Grid | Terrain only. |
+| heightfield | **Static only** | No | No | Grid | Terrain only. Margin > 0 causes continuous bouncing (S04). |
 
-**Negative scale is NOT supported for convex meshes** — will silently produce wrong collision shape.
+**Negative scale is NOT supported for convex meshes** — silently produces wrong collision shape. Bake orientation in the source DCC; never flip via negative scale.
 
-### Zero-thickness collision meshes (F47)
+### GPU Path Requirements (PhysX 5)
 
-**Rule**: Never apply `CollisionAPI` to a mesh where any axis of its bounding
-box is < 1e-6 m. Flat 2D geometry (decals, stickers, labels, logos,
-paper-thin panels) has coplanar vertices. `convexHull` / `convexDecomposition`
-both route through **qhull**, and qhull cannot fit a 3D hull to coplanar
-points — it returns garbage (NaN / inf) bounds.
+PhysX GPU rigid-body contact generation requires:
+- **Persistent Contact Manifold (PCM)** enabled — default on GPU.
+- **Mandatory pre-cooking** of collision data — runtime cooking = content pipeline failure.
+- **≤64 verts total AND ≤32 verts/face per convex hull** — else silent CPU fallback per-pair, killing batch throughput.
 
-**Why it cascades**: PhysX submits those NaN bounds to the **broadphase**.
-The broadphase raises `PhysX error: Illegal BroadPhaseUpdateData` and flags
-**every** rigid body's transform as `Invalid PhysX transform` on the next
-tick — not just the degenerate mesh's owner. The entire articulation
-disappears from the sim. MuJoCo exhibits the same failure as "qhull error"
-during model load.
+**Audit post-decomposition:** enforce GPU hull budget OR escalate to SDF OR re-decompose with stricter CoACD threshold.
 
-**Root cause in V13**: `make_simready.py::apply_collision_q1` and
-`apply_collision_wheels` iterate all mesh descendants of a rigid body and
-apply `CollisionAPI` unconditionally. Decals that are children of the body
-(not classified as separate parts) silently inherit colliders.
+<!-- source: bundle1/KB §1 + bundle6/final_report + research_notes_phase3_browser_findings.md, confidence: HIGH -->
 
-**Fix**: `_is_degenerate_mesh(prim)` gates every `CollisionAPI.Apply()` call.
-Audit (`C2`) fails if any `CollisionAPI` prim has a degenerate mesh.
+### Scale-Aware Contact/Rest Offsets
 
-**First seen**: `ResuscitationBed_A01_01` (2026-04-18) — 3 decal meshes
-with bbox Z = 0 caused the whole articulation to vanish at sim init.
+Contact offset should be **0.5–2% of smallest contact-relevant feature size**, not globally copied.
 
-### Classifier-class aliases (F48)
+| Asset Scale | Contact Offset | Rest Offset | Example |
+|-------------|---------------|-------------|---------|
+| Millimeter (gripper jaws, small tools) | 0.001–0.003 m | 0 | Franka fingers, surgical instruments |
+| Centimeter (knobs, latches, small mechanisms) | 0.002–0.008 m | 0 | Door handles, knobs, drawer pulls |
+| Meter (furniture, appliances) | 0.005–0.02 m | 0 | Cabinets, trolleys, fridges |
 
-The canonical class values the pipeline accepts are
-`movable:revolute`, `movable:prismatic`, `movable:continuous`,
-`structural`, and `decorative`. The Claude classifier occasionally
-drifts to the shorthand `"wheel"` or `"caster"` (both describe rolling
-continuous joints). `make_simready.py::_normalize_class_aliases` treats
-these as aliases for `movable:continuous` and infers the axle axis from
-the thinnest world-bbox dimension when the classifier omits `axis`.
+Rest offset should be 0 unless a visual gap or compliance is intentionally needed. Compute scale from the contact-critical feature (gripper jaw, hinge pin, drawer slide rail), not the asset's bounding box.
 
-Without this normalization, unknown class values silently fall through
-the main dispatch and become structural — the asset has the right mass
-and geometry but no rolling mechanism, so a `--dynamic` body slides on
-ground friction instead of rolling on casters. The C5 audit now also
-FAILs on any class value outside the accepted set, making drift loud
-rather than silent.
-
-**First seen**: `ResuscitationBed_A01_01` (2026-04-18) — 4 wheels
-classified as `"wheel"` were dropped; the 139kg bed acted as a static
-block.
-
-### Fixture anchoring: FixedJoint-to-world, not kinematicEnabled (F49)
-
-**Rule**: for non-`--dynamic` assets (fridges, cabinets, wall-mounted
-fixtures), the main body MUST be authored as `kinematicEnabled=False`
-(or omit the attr) and anchored to world with an explicit
-`PhysicsFixedJoint` whose `body0Rel` is empty (= world) and `body1Rel`
-points to the main body.
-
-**Why**: `kinematicEnabled=True` is the PhysX-idiomatic way to pin
-furniture, and Isaac Sim honors it. But Newton's articulation parser
-treats kinematic bodies as outside-any-articulation and drops every
-joint rooted on them — the standard warning is:
-
-    N joints were not included in any articulation and were parsed as
-    orphan joints
-
-Doors then become free-floating bodies connected by pairwise
-constraints, not proper articulated children, and visual placement
-breaks when a world transform is applied. PhysX treats a fixed joint
-to world as infinitely stiff, so the two encodings are **equivalent
-under PhysX/Isaac Sim** — there is no simulation-side regression from
-the switch, only a compatibility win.
-
-**Teleop implications**: Isaac Sim's
-`teleop_se3_agent_cinematic.py` detects dynamic root by reading
-`physics:kinematicEnabled` on the default prim's first rigid-body
-child. With F49 encoding it is always `False`, so every asset routes
-through the `ArticulationCfg` spawn path (same path used for dynamic
-trolleys). The `ImplicitActuatorCfg(joint_names_expr=[".*"],
-stiffness=0, damping=2)` actuator regex also matches the world-anchor
-fixed joint, but PhysX ignores drives on 0-DOF joints — no behavioral
-change.
-
-**Audit note**: a `PhysicsFixedJoint` with empty `body0Rel` and
-`(0,0,0)` anchors is the legitimate world-anchor pattern. The C5
-zero-anchor check skips joints flagged `is_world_anchor=True`; the
-drive-count check (C6) already excludes all `PhysicsFixedJoint`.
-
-**First shipped**: `DrugCabinet_A03_01` (2026-04-18) as the Option-A
-port for Newton compatibility. Isaac Sim teleop must be validated on
-the rebuilt asset before the encoding is applied to other fixtures.
+<!-- source: bundle1/KB §1 + research_notes_section1 + section6, confidence: HIGH -->
 
 ## Articulation Rules
 
@@ -313,9 +252,14 @@ the rebuilt asset before the encoding is applied to other fixtures.
 2. **No breakable joints** — articulation joints cannot break at runtime.
 3. **No direct pose setting** — cannot `SetTranslate()` on individual links. Must set joint positions.
 4. **No topology changes after scene insertion** — adding/removing links is silently blocked. Must remove articulation from scene, modify, re-add.
-5. **Tree topology required** — no loops allowed natively. Loops require external rigid-body joints.
+5. **Tree topology required** — no loops allowed natively. Loops require external rigid-body joints (use tree-plus-closure pattern: extract spanning tree, apply external D6/distance joint for closure).
 6. **No per-link sleep control** — entire articulation sleeps/wakes as unit.
 7. **Spherical joints can drift** — locked axes on spherical joints may drift due to quaternion integration.
+8. **Spherical articulation joints use pyramidal limits, not elliptical cone envelopes** — this blocks certain designs and diverges from USD spec.
+9. **Body 0 = parent, Body 1 = child** for articulation joints. Preserves tree semantics and consistent force propagation in PhysX reduced-coordinate solver.
+10. **Fixed-base flag vs fixed joint:** for a fixed root, use the fixed-base flag at articulation creation, NOT an external fixed joint — gives exact solve. An external fixed joint is a soft constraint and accumulates drift.
+
+<!-- source: bundle1/KB §2 + bundle6/final_report §7, confidence: HIGH -->
 
 ### Fixed-Base vs Floating
 
@@ -325,91 +269,6 @@ the rebuilt asset before the encoding is applied to other fixtures.
 | **Floating** | Default (no flag) | Root moves freely | Mobile robot, ragdoll |
 
 **Fixed-base is superior to FixedJoint-to-world** because the immovable property is solved perfectly, not approximately.
-
-## Serial Kinematic Chains (boom arms, robot arms, articulated support)
-
-The V13 pipeline default pattern — **reparent all movables as flat siblings of the body, hinge every joint to the body** — works for *flat fan-out* assets (trolleys with wheels, fridges with doors, cabinets with drawers). It **catastrophically fails for serial chains**, where a child's joint must hinge to its moving parent, not to the fixed body.
-
-### Failure Mode: collapsed chain
-
-Original hierarchy (medical boom arm):
-```
-body
-├── base                (structural mount)
-└── mechanism [pivot]   (yaw at wall)
-    └── arm [pivot]     (elbow pitch)
-        └── column [pivot]  (wrist yaw)
-            ├── plate1 [pivot]   (tilt)
-            └── plate2 [pivot]   (tilt)
-```
-
-With the *grandchildren-are-structural* rule, the classifier produces only `mechanism → revolute`. The arm, column, and plates collapse into the mechanism body, their pivots ignored. Symptom in teleop: arm bends once at the base and everything downstream is rigid. If mass is unbalanced, colliders can fall through the ground because most geometry has no body of its own.
-
-### Fix: declared parent chain
-
-The classifier must output a `"parent"` field per movable naming either `"body"` or another movable. Chain links declare each other as parent; flat parts declare `body`.
-
-```json
-{
-  "body": "root",
-  "parts": {
-    "base":      {"class": "structural"},
-    "mechanism": {"class": "movable:revolute", "axis": "Z", "parent": "body"},
-    "arm":       {"class": "movable:revolute", "axis": "Y", "parent": "mechanism"},
-    "column":    {"class": "movable:revolute", "axis": "Z", "parent": "arm"},
-    "plate1":    {"class": "movable:revolute", "axis": "Y", "parent": "column"},
-    "plate2":    {"class": "movable:revolute", "axis": "Y", "parent": "column"}
-  }
-}
-```
-
-`make_simready.py` then:
-
-1. **Reparents every movable to a sibling of the body** (flat physical layout — safe for PhysX, no nested rigid bodies). Deepest paths flatten first; world pose preserved via local = inv(new_parent_world) × world.
-2. **Wires each joint** with `body0 = movables[parent_name]["path"]` instead of the hard-coded body path. `body1 = path` unchanged.
-3. **Skips the nested-movable guard** when the declared parent matches the enclosing movable (valid chain). Undeclared nesting still deletes the inner movable as structural.
-4. **Continuous joints (wheels) always attach to body** regardless of parent declaration — wheels don't chain.
-
-### Adjacent-link self-collision is disabled by the solver
-
-PhysX `PxArticulationReducedCoordinate` **never lets two links joined by a single joint collide with each other** — even if both carry `CollisionAPI` meshes. This is a solver protection against constraint-violating contacts and is not configurable per joint.
-
-Consequence for chains: a welded sub-part attached only as `structural` geometry to a chain link silently fails to block a chained sibling that slides/rotates past it.
-
-**Example (the real bug):** a medical boom arm has `plate1` welded high on the column and `plate2` sliding up/down the column on a prismatic joint. Classifying `plate1` as `structural` (its meshes become part of the `column` link) makes `plate2`↔`column` adjacent → PhysX disables their collision → `plate2` slides straight through `plate1`'s geometry.
-
-**Fix pattern — welded link as FixedJoint sibling:** classify the welded part as `"movable:fixed"` with `parent` = the chain link it's welded to. It becomes its own rigid body connected by a FixedJoint (0-DOF). Now:
-
-- `plate1` ↔ `column` = adjacent (via FixedJoint) → no collision (harmless, they're welded in place).
-- `plate2` ↔ `plate1` = **non-adjacent** (both joined to `column`, but through different joints) → PhysX enables collision ✓.
-
-```json
-{
-  "plate1": {"class": "movable:fixed",    "parent": "column"},
-  "plate2": {"class": "movable:prismatic","axis": "Z", "parent": "column"}
-}
-```
-
-`make_simready.py` handles the fixed-link case specially: the fixed movable calls `apply_collision_q1(is_body=True)` so its full mesh tree (including names like `_frame_`, `_mechanism_` that the interior-keyword filter normally drops) gets collision coverage. Audit C6 excludes FixedJoints from the expected-drive count — fixed is 0-DOF and needs no drive.
-
-**Rule of thumb:** if a chained movable must be physically blocked by a welded sibling part, do NOT leave the welded part as `structural`. Declare it `movable:fixed` with the appropriate parent.
-
-### Rules of thumb
-
-| Topology | Signal | Parent field |
-|---|---|---|
-| Flat fan-out | Gemini lists movables that are all direct children of the body | omit or `"body"` |
-| Serial chain | Gemini lists movables nested multiple levels deep, each with its own pivot | walk the pivot chain, declare each link's immediate movable ancestor |
-| Mixed (boom arm on a rolling cart) | Some movables direct-child, some nested | flat ones → `"body"`; chain links → their ancestor |
-
-### Validation
-
-After build, audit should confirm:
-- Every classified movable has a corresponding joint (no collapse).
-- Every joint's `body0` resolves to either the body prim or another movable's reparented path.
-- No movable is a grandchild of the default prim in the output USD (all flat).
-
-If `len(classification.movable_parts) > len(joints_in_USD)`, the chain got collapsed — check the classifier's parent declarations and the nested-movable guard in `make_simready.py`.
 
 ## Joint Schema Details
 
@@ -428,10 +287,6 @@ If `len(classification.movable_parts) > len(joints_in_USD)`, the chain got colla
 | excludeFromArticulation | bool | false | Use maximal coordinates instead of reduced |
 
 **Both localPos at (0,0,0) = broken joint** — part pinned to origin. F14 in failure-modes.
-
-**EXCEPTION — symmetric-pivot instruments (F14b):** For scissors, clamps, pliers, and forceps, both bodies legitimately have their Xform origin at the shared pivot pin. In this case `localPos0 = localPos1 = (0,0,0)` is correct — both local zeros map to the SAME world point (the pivot). Audit must resolve anchors in world-space before failing: only flag when `anchor_miss_m > 0.01m` (world-space distance between the two resolved anchors). V13 implementation: `make_simready.py:282` filters `zero_anchor_joints` by `anchor_miss_m is None`, trusting the world-space `misaligned_joints` check for the rest.
-
-**Classifier must pick default-prim-name as body for symmetric-pivot instruments (F14c):** For scissors/clamps/pliers/forceps where the hierarchy has two symmetric arm Xforms and no distinct central body prim, the classifier MUST set `body = default_prim_name` (not either arm). URDF/MuJoCo converters treat the default prim as the kinematic root; when the classifier picks an arm as body, the remaining arm becomes a sibling with no explicit joint chaining it to root, and the converter fails with "more than one to-neighbor" on the revolute joint. Correct pattern: `body = sm_clamps_a01_01` (the root/default prim); both arms become `movable:revolute`. Seen on Clamps_A01_01 (2026-04-18).
 
 ### DriveAPI Formula
 
@@ -503,9 +358,43 @@ a one-line order swap in `reparent_prims_preserve_world_xform`.
 |--------|-------------------|-------------------|
 | Friction processing | Final 3 position iterations only | Every iteration |
 | Friction symmetry | Can be asymmetric | Symmetric |
-| Mass ratio handling | Degrades above ~10:1 | Better (up to ~100:1) |
+| Mass ratio handling | Degrades above ~10:1 | Better (up to ~100:1). Unstable above ~100:1 |
 | Joint error | Accumulates | Lower accumulation |
+| Drive stiffness semantics | Direct spring interpretation | Acceleration-spring interpretation — requires `eACCELERATION_SPRING` flag on D6 joints, else silently loses stiffness (F52) |
 | When to use | Simple scenes, CPU | Complex articulations, GPU |
+
+### Compliant Contact (PhysX 5.1+)
+
+PhysX 5.1 and later add **compliant contact** — implicit spring-damper at contact points. Use for well-defined stable contact (e.g., spring-loaded mechanisms, flexure-based compliant joints). **NOT a replacement for soft-body or deformable simulation** — see `deformable-physics-robotics` for FEM/XPBD/VBD options.
+
+Use for: spring-loaded latches, compliant-hinge PRBM joints, soft-close drawer dampers.
+Do not use for: large-deformation soft bodies, cloth, granular materials.
+
+<!-- source: bundle4/section_file(1)/2_compliant_mechanisms_report.md, confidence: HIGH -->
+
+### Principal Axes Alignment (Inertial Diagnostic)
+
+**Symptom:** asset jitters at rest or rotates unintentionally; Physics Debugger shows principal inertia axes misaligned with geometry.
+
+**Root cause:** inertia tensor diagonalization error OR COM off-center without tensor update.
+
+**Fix:**
+1. Re-diagonalize inertia tensor.
+2. Author `physics:principalAxes` explicitly (don't rely on auto-compute).
+3. Inspect alignment in Physics Debugger.
+4. Never adjust COM without recomputing inertia (parallel-axis theorem; see `simready-math`).
+
+<!-- source: bundle1/KB §3 + Isaac Sim tutorial 3, confidence: HIGH -->
+
+### Depenetration Velocity Capping (Load-Time Debug)
+
+**Symptom:** asset/gripper explodes violently on first frame — parts fly apart immediately on sim start.
+
+**Root cause:** PhysX attempts to resolve all initial penetrations in one step → unbounded impulses.
+
+**Fix:** limit max depenetration velocity during debug loading. This surfaces visible overlaps (so you can fix them) instead of catapulting the asset. Remove cap after overlaps resolved.
+
+<!-- source: bundle1/KB §8 + PhysX 5.3 Best Practices, confidence: HIGH -->
 
 ## SimReady Asset Pattern (Recommended)
 
@@ -579,6 +468,79 @@ Bugs and gotchas reported by users in the wild — things the docs don't warn ab
 4. **Quaternion precision** — Float32 quaternion math can silently corrupt joint angles in specific topologies (#204). No fix — it's a known limitation.
 5. **Don't toggle kinematic at runtime** on bodies with SDF or complex collision (#247). Set once and leave it.
 6. **URDF/USD conversion drops properties** — inertia (#980), gravity direction (#1293), joint limits (#973). Always validate after conversion.
+
+## Deformable Body APIs (PhysX 5 + OmniPhysics)
+
+For cloth, rope, cables, soft tissue. Full solver/pipeline detail in `deformable-physics-robotics`.
+
+### OmniPhysicsDeformableBodyAPI (root deformable prim)
+
+| Property | Type | Purpose |
+|----------|------|---------|
+| `omniphysics:mass` | float | Total mass of deformable |
+| `omniphysics:simMesh` | rel (Mesh/TetMesh) | Simulation mesh — where solver runs |
+| `omniphysics:collisionMesh` | rel (Mesh) | Collision mesh (often same as sim) |
+| `omniphysics:renderMesh` | rel (Mesh) | High-res visual mesh (skinned to sim) |
+
+### OmniPhysicsVolumeDeformableSimAPI (on TetMesh — volumetric soft bodies)
+
+| Property | Type | Purpose |
+|----------|------|---------|
+| `omniphysics:youngsModulus` | float | Stiffness (Pa). Soft tissue 1e3-1e5; rubber 1e6-1e7 |
+| `omniphysics:poissonsRatio` | float | Lateral:axial strain ratio. 0.3 typical; ~0.5 incompressible |
+| `omniphysics:density` | float | kg/m³ |
+
+### OmniPhysicsSurfaceDeformableSimAPI (on triangle Mesh — cloth/shell)
+
+| Property | Type | Purpose |
+|----------|------|---------|
+| `omniphysics:youngsModulus` | float | Stretch stiffness |
+| `omniphysics:bendingStiffness` | float | Resistance to folding |
+| `omniphysics:density` | float | Surface density (kg/m²) |
+| `omniphysics:restShapePoints` | point3f[] | Pre-stressed rest config — needed for tensioned cables or pre-stressed cloth |
+
+### OmniPhysicsDeformableAttachmentAPI (on attachment prim)
+
+| Attachment Type | Use Case | Stability |
+|-----------------|----------|-----------|
+| `point` | Pin to single location | Simple; high mass-ratio risk (D08) |
+| `spring` | Springy anchor | Damping tuning critical |
+| `fixed` | Rigid coupling | Expensive; use sparingly |
+
+### Critical Rules
+
+- **Single-collider limit:** a deformable body can have only ONE `CollisionAPI` prim. For dual-mesh (simulation + separate collision), collision must live on the simulation mesh.
+- **Tetrahedralization required** for volumetric bodies — use fTetWild. Scaled Jacobian > 0.2, aspect ratio 1–3 (reject otherwise).
+- **Cloth self-collision limits:** PhysX inter-body deformable-deformable contact is unreliable. For multi-layer cloth, merge into single self-colliding mesh.
+- **Gripper-deformable gap (Isaac Sim PhysX 5 as of 2026):** unstable per NVIDIA forum #318907. Validate via MuJoCo flex first.
+
+<!-- source: bundle2/findings_file_wide_research_unzipped/10_usd_physics_deformables + corrected_brief §11, confidence: HIGH -->
+
+## Authoring Conventions & One-Way Lowering
+
+V13 authors assets in USD and targets both Isaac Sim (PhysX) and Newton as separate outputs. Follow these rules to prevent semantic loss:
+
+### One-Way Lowering (no round-tripping)
+
+- Internal representation is a graph IR (see `articulation-pipelines §0`).
+- Lower the IR → USD / URDF / MJCF as needed for the target engine.
+- **Never round-trip** URDF → USD → MJCF → USD — each hop loses information silently.
+
+### Known Lossy Translations
+
+| From → To | Lost | Mitigation |
+|-----------|------|-----------|
+| Graph IR → URDF | Closed loops (URDF is tree-only); tendons; mimic semantics | Detect loops before URDF export; warn or use cut-joint formulation |
+| Graph IR → MJCF | Native USD schemas don't fully map; procedural constructs (`frame`, `replicate`, `attach`, `composite`) compile away at load — don't treat as persistent intent | Preserve as USD custom attrs; warn on lossy export |
+| Graph IR → USD | PhysX/Newton engine-specific overrides lost unless in extension layer | Author engine-specific overrides in `physx.usda` / `newton.usda` side layers (Asset Structure 3.0) |
+| URDF/MJCF → USD (import) | Closed loops; engine-specific solver semantics; actuator classes | Validate post-import against MuJoCo/PhysX reference before trusting converted asset |
+
+### USD Variant Sets
+
+- **Author variant sets on the root layer only, not multiple non-root layers.**
+- Multiple variants on non-root layers confuse Omniverse layer management; prefer root-level variant sets or single-layer variants per logical choice.
+
+<!-- source: bundle6/final_report §4 + bundle5/research_file_wide_research_unzipped/10_Omniverse_USD_variants + bundle2 USD physics deformables memo, confidence: HIGH -->
 
 ## Sources
 - OpenUSD Physics Schema: https://openusd.org/release/api/usd_physics_page_front.html

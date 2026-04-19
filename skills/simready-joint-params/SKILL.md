@@ -6,7 +6,11 @@ description: >-
   mass range, stiffness, damping, friction values, and robot interaction notes.
   Derived from the reference library's articulated_object_catalog and
   articulated_object_reference, plus ArtVIP empirical data. Use on EVERY asset to
-  get initial parameter estimates before geometry-based refinement.
+  get initial parameter estimates before geometry-based refinement. Includes
+  Rabinowicz/Bhushan tribological friction values, Stribeck velocity-dependent
+  friction curves, BIFMA/IEC/ASME standards-compliance cyclic loads, inertial
+  authoring precedence (CAD > proxy > auto), parallel-axis-theorem helpers, and
+  cross-simulator parameter mapping (PhysX compliance ↔ MuJoCo solimp/solref).
 ---
 
 # SimReady Joint Parameters Skill
@@ -89,6 +93,25 @@ description: >-
 | Pocket door | X | [0, width*0.95] | 5.0 | 10-30 |
 | Sliding shelf | Y | [0, depth*0.8] | 3.0 | 0.5-3 |
 
+## Additional Columns for Every Category Table
+
+Every category table above can be augmented with these columns for production-grade provenance:
+
+| New Column | Domain | Example Values |
+|------------|--------|----------------|
+| `max_velocity` | deg/s or m/s | 200–300 deg/s (training-safe default for revolute); 0.3–1.0 m/s (prismatic) |
+| `friction_source` | string | `steel_dry`, `steel_lubricated`, `teflon`, `elastomer`, `assumed` |
+| `density_source` | string | `MatWeb`, `CES_Selector`, `assumed`, `CAD_derived` |
+| `provenance_stack` | enum | `analytic`, `cad_derived`, `spec_derived`, `empirical_prior`, `fitted`, `learned` |
+| `confidence` | float [0, 1] | 0.95 = empirically validated; 0.5 = inferred from class; 0.2 = fallback default |
+| `physx_compliance` | float | PhysX soft-limit compliance, e.g., 0.01 |
+| `mujoco_solimp` | list[float] | MuJoCo impedance, e.g., `[0.9, 0.95, 0.001]` |
+| `mujoco_solref` | list[float] | MuJoCo time constant, e.g., `[0.01, 0.99]` |
+
+The `provenance_stack` + `confidence` columns let the classifier emit an explicit uncertainty trail — downstream auditors can gate on confidence thresholds.
+
+<!-- source: bundle1/KB §2 + bundle4/section_file/4_physical_parameter_identification + bundle6/research_parameters_physx_and_gpu_tradeoffs.csv, confidence: HIGH -->
+
 ## Material Density Reference
 
 | Material | Density (kg/m3) | Common Objects |
@@ -116,6 +139,78 @@ description: >-
 | Teflon-Steel | 0.04 | 0.04 |
 | Plastic-Metal | 0.35 | 0.30 |
 | GripMaterial (SimReady) | 1.00 | 0.90 |
+
+## Rabinowicz Tribological Friction Reference
+
+Empirical static (μ_s) and kinetic (μ_k) friction coefficients from Rabinowicz (1995) and Bhushan (2013) tribology references. Use for `friction_source` column.
+
+| Contact pair | μ_s (static) | μ_k (kinetic) | Notes |
+|--------------|-------------:|-------------:|-------|
+| Steel on steel (dry) | 0.74 | 0.57 | Default for unlubricated metal mechanisms |
+| Steel on steel (lubricated) | 0.16 | 0.09 | Use for bearings, lubricated joints |
+| Aluminum on steel | 0.61 | 0.47 | Common for aluminum extrusion drawer slides |
+| Copper on steel | 0.53 | 0.36 | |
+| Brass on steel | 0.51 | 0.44 | |
+| Teflon on Teflon | 0.04 | 0.04 | Lowest μ of common engineered surfaces — slider guides |
+| Rubber (elastomer) on concrete (dry) | 1.00 | 0.80 | Caster tires on floors |
+| Rubber on linoleum | 0.80 | 0.70 | Hospital/OR trolley wheels |
+| Wood on wood | 0.50 | 0.25 | |
+| Glass on glass | 0.94 | 0.40 | |
+
+**Stribeck friction model (velocity-dependent):** real materials show μ as a function of sliding velocity. Regime transitions: static → boundary lubrication → mixed → hydrodynamic. For robotics authenticity (self-closing doors, gripper slip):
+- Below breakaway velocity: μ ≈ μ_s (static)
+- Just above breakaway: Stribeck dip (lowest friction)
+- Higher velocities: rises back to a hydrodynamic value
+
+Use velocity-dependent friction curve in PhysX or MuJoCo, OR apply domain randomization around Rabinowicz values for sim-to-real robustness. Cross-ref K08 failure mode.
+
+<!-- source: bundle4/section_file/4_physical_parameter_identification (Rabinowicz 1995, Bhushan 2013) + bundle2/corrected_brief (Stribeck), confidence: HIGH -->
+
+## Standards-Compliance Cyclic Loads
+
+For assets subject to industrial/medical standards. Use as hard constraints during generation and as fatigue-life validation targets.
+
+### BIFMA X5.1 — Office Chairs
+
+| Test | Functional Load (N) | Proof Load (N) | Cycles | Implication |
+|------|---------:|-----------:|--------:|-------------|
+| Backrest static | 667 | 1001 | — | Material selection, cross-section design |
+| Drop dynamic | 1001 | 1334 | — | Base / caster structural integrity |
+| Swivel cyclic | 1201 | — | 120,000 @ 13 cpm | Bearing/swivel-joint fatigue design |
+| Tilt cyclic | 1068 | — | 300,000 @ 19–20 cpm | **Most critical articulated component** |
+
+### IEC 60601-2-52 — Medical Beds (Hard Geometric Constraints)
+
+| Feature | Constraint | Rationale |
+|---------|-----------|-----------|
+| Internal rail gaps | < 120 mm | Head entrapment avoidance |
+| Frame component gaps | < 60 mm | Neck-entrapment prevention |
+| Pinch-point clearance | > 25 mm | Finger-injury prevention |
+| Side rail height | > 220 mm | Fall prevention |
+
+**Automated gap audit:** detect any gap in the forbidden range 4.9–11.8 cm; flag for redesign. Cross-ref K06 failure.
+
+### ASME B30.20 / BTH-1 — Below-the-Hook Lifting Devices
+
+- **Design Category A** (normal use) vs **B** (severe/unusual).
+- **Service Class 0–5** (load cycles × severity).
+- Determines safety factors + fatigue-analysis requirements. Inputs directly to FEA stress simulation during design phase.
+
+<!-- source: bundle4/section_file(4)/1_industrial_design_standards_report, confidence: HIGH -->
+
+## Inertial Authoring Precedence
+
+When assigning inertia tensors to rigid bodies:
+
+1. **CAD-derived** (best): compute from meshes + density via volumetric integral. Use Blow's tetrahedral inertia algorithm — see `simready-math`.
+2. **Proxy geometry**: fit inertia to bounding primitives when full mesh is unavailable.
+3. **Auto-generated**: fallback only; PhysX default inertia is often wrong for off-axis assets.
+
+**Rule:** never adjust COM without recomputing inertia. Use parallel-axis theorem: `I_O = I_C + m((d²)I − dd^T)` where `d` is the shift vector and `I_C` is the tensor at the centroid. See `simready-math §parallel_axis_shift`.
+
+Cross-ref F59 (principal-axes misalignment), F60 (armature-masking-bad-inertia anti-pattern).
+
+<!-- source: bundle1/KB §3 + bundle4/part1 + section_file/4, confidence: HIGH -->
 
 ## Axis Convention
 

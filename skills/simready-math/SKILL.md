@@ -5,6 +5,8 @@ description: >-
   calculating positions, quaternions, unit conversions, bounding boxes,
   hinge positions, spawn positions, mass estimates, layout grids, or any
   numerical value. Never do mental arithmetic — always call these functions.
+  Includes Blow's tetrahedral inertia decomposition and parallel-axis-theorem
+  helpers for SimReady asset inertial authoring.
 ---
 
 # SimReady Math Skill
@@ -91,6 +93,66 @@ from scripts.tools.simready_assets.math_skill.units import estimate_mass_from_bb
 print(estimate_mass_from_bbox((-60,-67,0), (60,0,152), density_kg_m3=200, mpu=0.01))
 "
 ```
+
+## Inertia Helpers (for SimReady asset authoring)
+
+Deterministic inertia computations — use these instead of the PhysX auto-generated inertia when accuracy matters.
+
+### Blow's Tetrahedral Inertia Decomposition
+
+Compute a body-space inertia tensor from a triangle mesh by tetrahedralizing (signed-volume tets from the origin to each face) and accumulating per-tet contributions. Exact for closed meshes; works for non-convex.
+
+```python
+def tetrahedral_inertia_tensor(mesh_points, mesh_faces, density=1.0):
+    """Body-space inertia tensor from triangle mesh via Blow's algorithm.
+
+    Args:
+        mesh_points: (N, 3) array of mesh vertex positions (world or local body frame)
+        mesh_faces: (M, 3) array of triangle vertex indices
+        density: kg / m³
+
+    Returns:
+        dict with 'mass' (kg), 'com' (3,), 'inertia_tensor' (3, 3) about the COM
+    """
+    # Reference: Jonathan Blow, "How to find the inertia tensor of a polyhedron"
+    # For each triangle face (a, b, c), form a tet with the origin and accumulate
+    # signed-volume-weighted contributions to mass, first moments, and second moments.
+    # ... (full implementation in simready_assets/math_skill/inertia.py)
+```
+
+**When to use:**
+- Asset requires accurate inertia (tall or thin parts — wheels, drawers, doors where PhysX auto-inertia is unreliable).
+- Any time F59 (principal-axes misalignment) or F60 (armature-as-stabilizer) is suspected.
+- Cross-ref `simready-joint-params §Inertial Authoring Precedence`.
+
+### Parallel-Axis Shift
+
+Move an inertia tensor from the centroid to an arbitrary reference point.
+
+```python
+def parallel_axis_shift(I_C, mass, d):
+    """Shift inertia tensor by vector d (from centroid to new origin).
+
+    I_O = I_C + m * ((d² I) - (d outer d))
+
+    Args:
+        I_C: (3, 3) inertia at centroid
+        mass: scalar (kg)
+        d: (3,) shift vector from centroid to new reference point
+
+    Returns:
+        I_O: (3, 3) inertia at new reference point
+    """
+    import numpy as np
+    d = np.asarray(d, dtype=float)
+    d_sq = d @ d  # ||d||²
+    I_3 = np.eye(3)
+    return I_C + mass * (d_sq * I_3 - np.outer(d, d))
+```
+
+**Rule:** never adjust COM without re-running this shift. Ignoring the shift invalidates the tensor (F59 / F60).
+
+<!-- source: bundle4/section_file/4_physical_parameter_identification (Blow algorithm + parallel-axis theorem), confidence: HIGH -->
 
 ## For USD-specific transforms
 

@@ -5,7 +5,11 @@ description: >-
   articulated assets. Covers joint estimation algorithms, contact interface extraction,
   physics-constrained optimization, part segmentation, and physical limit correction.
   Use when designing or improving the SimReady pipeline, or when debugging articulation
-  failures. Derived from 15 research papers (2024-2026).
+  failures. Derived from 15 research papers (2024-2026). Also covers the graph-IR
+  compiler-pipeline architecture (topology as source-of-truth, formats as compiled
+  output), Asset Structure 3.0 layering, CoACD collision decomposition with GPU hull
+  budgets, closed-loop tree-plus-closure decision, and mechanism synthesis context
+  (Freudenstein / GA / GNN).
 ---
 
 # Articulation Pipelines Skill
@@ -15,6 +19,53 @@ description: >-
 - Choosing joint estimation algorithms
 - Understanding why articulation fails (inter-penetration, kinematic hallucinations, axis errors)
 - Evaluating new approaches against the state of the art
+- Architecting the pipeline (internal IR, format lowering, tier routing)
+
+## §0: System Architecture (Graph-IR Compiler Pipeline)
+
+Before any stage: decide that the pipeline's **source of truth is an internal graph IR, not a file format**. URDF, MJCF, and USD are *compiled output*, not source-of-record.
+
+### Internal Graph IR
+
+The authoring IR is an **attributed multigraph**:
+
+- **Nodes:** rigid parts + virtual frames (no mass, used for joint placement)
+- **Edges:** joints (type / axis / transform), couplings, actuators
+- **Attributes per node:** mass, inertia, collision geometry, provenance
+- **Attributes per edge:** drive params, limits, friction, solver hints
+- **Contact exclusions:** explicit list, not derived from hierarchy
+
+Lower the IR to engine-specific output:
+- PhysX (Isaac Sim) via USD + physics extensions
+- Newton via USD (base schemas) — see `newton-physx-compat-matrix`
+- MuJoCo via MJCF (lossy — flag closed loops, tendon semantics)
+- URDF for legacy consumers (lossy — no closed loops, no mimic native)
+
+### Asset Structure 3.0 (Layer Split)
+
+Separate concerns into distinct USD layers so dual-output + format lowering are tractable:
+
+```
+asset_root/
+├── geometry.usdz      # Mesh data, materials bindings (visual only)
+├── physics.usda       # PURE USD Physics APIs (cross-engine)
+├── physx.usda         # PhysX-specific overrides (optional layer)
+├── newton.usda        # Newton-specific overrides (optional layer)
+└── metadata.usda      # Provenance, classification, audit history
+```
+
+Rule: `physics.usda` is pure OpenUSD Physics — no PhysX or Newton extension APIs. Engine-specific parameters go in side layers, composed at runtime per target engine.
+
+### Two-Tier Routing Policy
+
+Classify every asset at generation time (see `simready-criteria §C10`):
+
+- **GPU-batchable tier:** tree articulation, low DOF, ≤K closure joints, convex collision, regular memory layout. Routes to Isaac Lab (PhysX GPU).
+- **CPU/offline high-fidelity tier:** loops, screw/gear transmissions, hydraulic compliance. Routes to offline Newton (Featherstone or custom backend).
+
+Never force a mismatched mechanism into GPU tier — soft fail is worse than explicit routing.
+
+<!-- source: bundle1/KB §5 + bundle6/final_report §Architecture + research_notes_phase3_browser_findings, confidence: HIGH -->
 
 ## The 3-Stage Pipeline Pattern
 
@@ -116,6 +167,111 @@ Before correction: self-collisions during articulation. After: smooth, collision
 | Under-segmentation | Irregular shapes merged by VLM | Fine-grained 3D primitive extraction first |
 
 For dataset selection and comparison, see **sim-ready-datasets** skill.
+
+---
+
+## Extended Pipeline Rules (2026 Production Hardening)
+
+Additional rules layered on top of the 3-stage pipeline. Apply these to every asset. Cross-reference `failure-modes` F50–F62 for corresponding audit checks.
+
+### Stage 1 Additions — Collision Decomposition & Offsets
+
+- **CoACD preferred over V-HACD** for every new pipeline. Parameters: real-metric mode, threshold 0.002–0.01 m, ≤64 verts/hull, 16–32 hulls max. V-HACD remains legacy-only fallback.
+- **90/10 collider distribution rule:** ~90% of articulated links should use primitives or a single convex hull; only ~10% should escalate to decomposition or SDF. Escalation is expensive — budget and audit.
+- **GPU convex hull budget: ≤64 verts total, ≤32 verts/face.** Exceeding forces silent CPU fallback per-pair → kills batch throughput. Audit every cooked hull post-decomposition (cross-ref F58).
+- **Scale-aware contact offset:** 0.5–2% of the smallest contact-relevant feature. Mm-scale gripper: 0.001–0.003 m. Meter-scale furniture: 0.005–0.02 m. Don't copy a single value globally.
+- **Pre-cooked collision is mandatory.** Runtime cooking is a content pipeline failure. Version-pin cooked data.
+- **Negative scale is unsupported** on convex meshes — bake orientation in DCC (cross-ref F56).
+
+<!-- source: bundle1/KB §1 + research_notes_section1 + bundle6/CSV3, confidence: HIGH -->
+
+### Stage 2 Additions — Frame Placement, Body Ordering
+
+- **Joint frames MUST sit on the physical kinematic interface** (hinge pin, slider centerline, contact reference). Body origins are not acceptable. Implicit-in-existing-skill; now explicit.
+- **Body 0 = parent, Body 1 = child** for articulation joints. Preserves tree semantics and consistent force propagation.
+- **Fixed-base flag vs external fixed joint:** for a fixed root, use the articulation fixed-base flag at creation time, NOT an external fixed joint (which is a soft constraint and accumulates drift).
+- **Overconstrained detection:** Grübler-Kutzbach count is insufficient for special geometries (scissor linkages, parallel structures). Add a screw-theoretic rank check; flag overconstrained mechanisms before physics instantiation (cross-ref K01).
+- **Mimic-joint stability quantitative target:** tune so stiffness × dt² ≈ 0.5–1.0. Products >> 1 oscillate (F51).
+
+<!-- source: bundle1/KB §2 + bundle4/section_file/0 mechanism_synthesis + part3, confidence: HIGH -->
+
+### §2.5: Closed-Loop Mechanism Decision Tree
+
+Closed-loop mechanisms (four-bar linkages, scissor jacks, parallelograms, gear trains with multiple rigid-body constraints) cannot be represented as a pure tree.
+
+**Decision procedure:**
+1. **Detect loops** via cycle detection on the joint graph.
+2. **Extract spanning tree** — choose which edges are tree edges vs closure edges. Prefer tree edges that carry the primary motion; closure edges absorb geometric constraints.
+3. **Identify loop-break joint** — the closure edge. Select the edge whose elimination has the smallest functional impact (e.g., in a four-bar linkage, make the opposite-link connection the closure).
+4. **Apply external maximal-coordinate closure:**
+   - PhysX: `excludeFromArticulation` + external D6 or distance joint on the closure edge.
+   - MuJoCo: `equality/connect` constraint.
+   - Newton Featherstone: explicit loop-closure constraint API.
+5. **Reduce closure stiffness** relative to tree joints — closures are soft constraints and benefit from lower stiffness to avoid chattering.
+6. **Baumgarte stabilization** — tune constraint stabilization parameters for the closure joint; too little = drift, too much = artificial stiffness.
+
+**Closure residual thresholds (pass gate for K03):** position < 1e-6 m, angle < 1e-4 rad after 10 s gravity drop.
+
+<!-- source: bundle1/KB §4 + bundle4/part3 + bundle4/section_file/1_multibody_dynamics_report, confidence: HIGH -->
+
+### Stage 3 Additions — Full-Sweep Overlap, Inertials
+
+- **Full joint-sweep overlap test** — sample the joint range at 10% increments; rest-pose clear ≠ swept clear. Any overlap at non-rest pose = regenerate collision (cross-ref F50).
+- **Inertial authoring hierarchy:** CAD > proxy > auto-generated. Never touch the COM without recomputing inertia (parallel-axis theorem; see `simready-math`).
+- **Principal-axes alignment:** author `physics:principalAxes` explicitly after re-diagonalizing inertia. Misalignment = jitter at rest (F59).
+- **Reject "armature-as-stabilizer" anti-pattern:** if an asset is only stable with high armature, that's a bug masking bad inertials. Recompute inertials properly; lower stiffness/damping instead (F60).
+- **Condition number of inertia matrix > 10⁶** = instability risk (K12). Redistribute mass or regularize solver.
+- **Depenetration velocity capping at load** surfaces visible overlaps instead of catapulting the asset (F61). Remove cap once overlaps resolved.
+
+<!-- source: bundle1/KB §3 + §8 + bundle4/failure_catalog, confidence: HIGH -->
+
+## Mechanism Synthesis Context
+
+Before joint estimation, reframe generation as a synthesis problem. This determines the algorithm to use and sets the stage for validation.
+
+### Classification-First, Not Joint-First
+
+Follow the descent from function to topology:
+
+1. **Function** — serial / parallel / hybrid chain?
+2. **Pair type** — lower pairs (R, P, H, C, S, F) or higher pairs (gear, cam, point)?
+3. **Chain structure** — open or closed?
+4. **Topology graph** — nodes (links) + edges (joints)?
+
+Only after this descent should joint type selection occur. See `simready-mechanism-lookup §Classification Path`.
+
+### Synthesis Method by Class
+
+| Mechanism Class | Type Synthesis | Dimensional Synthesis |
+|-----------------|----------------|------------------------|
+| Simple hinge, slider | Enumeration (trivial) | Direct from geometry |
+| Four-bar linkage | Freudenstein equation (closed-form) | Gradient optimization |
+| Multi-link parallel | Enumeration + isomorphism rejection (≤8 links production-proven) | GA or gradient w/ singularity avoidance |
+| Compliant flexure | Howell PRBM (see `simready-behaviors`) | Analytical + FEM validation |
+| Novel topology | GNN proposal (research-stage) | Differentiable simulator (research) |
+
+### Hybrid Synthesis Architecture (Production Pattern)
+
+Not end-to-end black box. Pipeline:
+
+1. **Retrieval** — find nearest existing mechanism in library (100 mechanisms in `simready-mechanism-lookup`).
+2. **Proposal** — ML model proposes parameter adjustments or topology deltas.
+3. **Constrained optimization** — optimize under physical + manufacturability constraints.
+4. **Validation** — 4-stage gauntlet (static / dynamic / cross-simulator / performance; see `simready-criteria §C8`).
+
+### Cross-Simulator Parameter Mapping
+
+When lowering the IR to a specific engine, map parameters explicitly. Examples:
+
+| Semantic | PhysX | MuJoCo | Newton |
+|----------|-------|--------|--------|
+| Soft joint limit | `compliance = 0.01` | `solimp = [0.9, 0.95, 0.001]`, `solref = [0.01, 0.99]` | Featherstone native limits + damping |
+| Damping ratio 1.0 | `damping` (computed from stiffness) | `dampratio = 1.0` on actuator | Featherstone damping scalar |
+| Mimic (coupling ratio k) | PhysX Fixed tendon | MJCF `<equality/>` with joint1/joint2 + polycoef | Featherstone equality constraint |
+
+Document lossy semantics upfront (closed loops lost in URDF, tendon semantics format-specific in MJCF).
+
+<!-- source: bundle4/section_file/0_mechanism_synthesis_report + part3 + part4 + bundle6/final_report §2, confidence: HIGH -->
 
 ---
 

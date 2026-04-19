@@ -6,7 +6,9 @@ description: >-
   PhysX-Mobility, BEHAVIOR-1K, Objaverse, and 10+ others. Use when selecting
   training data, comparing against benchmarks, or understanding what exists in
   the ecosystem. Includes asset counts, categories, formats, quality notes, and
-  download sources.
+  download sources. Also includes musculoskeletal benchmarks (OpenSim full-body,
+  MyoSuite hand), cloth calibration sources (CLO 3D / Browzwear / Optitex), and
+  sim-to-real Pearson-r metrics.
 ---
 
 # Sim-Ready Datasets Skill
@@ -119,6 +121,54 @@ description: >-
 - **Chamfer Distance (CD)**: Symmetric distance between point clouds (lower = better)
 - **CD_static**: For static base parts
 - **CD_movable**: For movable parts (harder, more informative)
+
+## Extended Benchmarks & Calibration Sources
+
+### Sim-to-Real Empirical Numbers
+
+| Benchmark | Sim-to-Real Metric | Value | Context |
+|-----------|--------------------|------:|---------|
+| **ArtVIP** | Pearson r | **0.99** | Contact-rich task success correlation; 81% ACT success sim+real vs 34% real-only |
+| PartNet-Mobility | Contact accuracy | 0.5 | Not sim-to-real validated |
+| RoboCasa / BEHAVIOR-1K | Task success | Variable | Scene-level, not asset-level metric |
+
+**Rule of thumb:** choose dataset by sim-to-real gap tolerance. ArtVIP for production-validated; PartNet-Mobility for scale + category diversity (tolerate the gap).
+
+<!-- source: bundle3/validation_report (ArtVIP citation), confidence: HIGH -->
+
+### Musculoskeletal Benchmarks
+
+For humanoid / medical / prosthetic assets. Not rigid-body interchange format — reference models for validation and training targets.
+
+| Benchmark | DOF | Muscles | Backend | Use Case |
+|-----------|----:|--------:|---------|----------|
+| **OpenSim full-body** (Rajagopal 2016) | 29 | 80 | Simbody | Gait analysis, rehabilitation, prosthetic design |
+| **MyoSuite hand** | 28 | 39 | MuJoCo | Dexterous RL, hand rehabilitation |
+| **Parametric Human Project** (Autodesk) | varies | — | — | Population-varying anatomical atlas for ergonomics |
+
+Cross-ref `simready-mechanism-lookup §Biomechanical Joint Equivalents` and `robot-model §OR Deployment`.
+
+<!-- source: bundle3/surgical_simulation_memo + bundle4/section_file(4)/0_biomechanics_and_anatomy, confidence: HIGH -->
+
+### Cloth / Textile Calibration Sources
+
+Commercial textile tools ship with proprietary but validated cloth physics. Treat as ground-truth for cloth material params.
+
+| Tool | Use Case | Access |
+|------|----------|--------|
+| **CLO 3D** | Fashion industry cloth sim | Commercial subscription |
+| **Browzwear** | Apparel industry | Commercial |
+| **Optitex** | Technical pattern fit | Commercial |
+
+**Strategy:** reverse-engineer material params from CLO/Browzwear/Optitex outputs, or partner for dataset access. Feeds `deformable-physics-robotics §9 Sim-to-Real Gaps`.
+
+<!-- source: bundle2/findings_file(2)_wide_research_unzipped/5_textile_and_apparel_industry_systems, confidence: MED -->
+
+### MobilityGen (Scale-Only, Not Topology-Generative)
+
+NVIDIA MobilityGen generates **large datasets from predefined asset templates** — useful for scale, but does NOT generate novel topology. Treat it as a data-expansion tool, not a generative system. Cross-ref `blender-3d-generation §Generative Front-End Architectures`.
+
+<!-- source: bundle6/research_generative_methods_and_validation.csv, confidence: HIGH -->
 
 ## Reference Papers
 Located at: `scripts/tools/simready_assets/reference_library/`

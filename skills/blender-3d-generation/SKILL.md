@@ -6,7 +6,11 @@ description: >-
   construction, visual feedback loops, procedural shape representations, and
   spatial skill libraries. Use when generating 3D geometry in Blender via code,
   designing agent-based 3D pipelines, or debugging Blender script generation.
-  Derived from 11 research papers (2024-2026).
+  Derived from 11 research papers (2024-2026). Also covers hierarchical kinematic
+  decomposition (topology before geometry), PRBM-aware compliant mechanism
+  generation, collision-aware post-processing (CoACD), generative front-end
+  architectures (ArtLLM / ArticFlow / NDGM / MobilityGen), and AKD video-diffusion
+  enrichment.
 ---
 
 # Blender 3D Generation Skill
@@ -860,6 +864,103 @@ def validate_blender_for_simready():
 ```
 
 **When to use:** As a pre-export check in your Blender generation scripts. Catches the most common issues that would cause `make_simready.py` to fail or produce broken physics.
+
+## Articulated-Asset Generation Patterns (2026 Extensions)
+
+For generating not just geometry but SimReady articulated assets. Hands off to `articulation-pipelines` for joint estimation, but shapes geometry to be amenable to it.
+
+### Pattern 6: Hierarchical Kinematic Decomposition
+
+Before generating any geometry, decompose the request into part graph + joint graph. Output the internal IR alongside the visual USD (feeds `articulation-pipelines §0`).
+
+```python
+# Prompt the LLM to output BOTH the part list AND the joint graph first
+# Example: "cabinet with two doors and two drawers"
+kinematic_spec = {
+    "parts": ["body", "door_left", "door_right", "drawer_1", "drawer_2"],
+    "joints": [
+        {"parent": "body", "child": "door_left", "type": "revolute", "axis": "Z"},
+        {"parent": "body", "child": "door_right", "type": "revolute", "axis": "Z"},
+        {"parent": "body", "child": "drawer_1", "type": "prismatic", "axis": "Y"},
+        {"parent": "body", "child": "drawer_2", "type": "prismatic", "axis": "Y"},
+    ],
+}
+# Validate topology (reach, workspace, Grübler-Kutzbach) BEFORE geometry
+# Then generate Blender geometry per-part with pivots aligned to joint anchors
+```
+
+**Validation pre-physics:** reach + workspace analysis; flag unreachable mechanisms before committing to geometry.
+
+<!-- source: bundle4/section_file(1)/0_section_6_procedural_generation + bundle6/final_report §9, confidence: HIGH -->
+
+### Pattern 7: PRBM-Aware Generation
+
+When a part is flagged as flexure-based (`spring-loaded`, `leaf-spring`, `flexure`, `compliant`), embed PRBM stiffness parameters in the USD output, not just visual mesh. Cross-ref `simready-behaviors §Compliant Mechanism Behaviors`.
+
+```python
+if part_name_matches_flexure(part):
+    # Generate both visual mesh AND PRBM stiffness
+    prbm_params = compute_prbm_from_geometry(
+        length, width, thickness,
+        material="spring_steel", E=200e9  # Young's modulus
+    )
+    usd_prim.CreateAttribute("physxJoint:jointSpringStiffness", ...).Set(prbm_params.torsional_stiffness)
+```
+
+Warning: if flexure geometry exceeds PRBM validity (large deformation, distributed compliance), escalate to full FEM via `deformable-physics-robotics`.
+
+<!-- source: bundle4/section_file(1)/2_compliant_mechanisms_report (Howell PRBM), confidence: HIGH -->
+
+### Pattern 8: Collision-Aware Generation
+
+After Blender script produces geometry, run CoACD on each part and check against GPU hull budgets before finalizing the USD.
+
+```python
+import coacd
+for part_obj in bpy.context.scene.objects:
+    mesh_verts, mesh_faces = export_mesh(part_obj)
+    result = coacd.run_coacd(
+        mesh=(mesh_verts, mesh_faces),
+        threshold=0.01,   # CoACD real-metric threshold
+        max_convex_hulls=16,
+        preprocess_mode="auto",
+    )
+    # Audit GPU hull budget
+    for hull_verts, hull_faces in result:
+        assert len(hull_verts) <= 64, f"Part {part_obj.name}: hull exceeds 64 verts GPU limit"
+    # Warn if budget exceeded
+    if len(result) > 5:
+        print(f"WARN: {part_obj.name} has {len(result)} hulls (budget 5). Simplify geometry.")
+```
+
+Cross-ref `articulation-pipelines §Stage 1 Additions` and `usd-physx-schemas §Collision Geometry Restrictions`.
+
+<!-- source: bundle1/KB §1 + bundle6/research_dynamics_formats_and_collision.csv, confidence: HIGH -->
+
+## Generative Front-End Architectures
+
+Production-stage vs research-stage systems for generating articulated mechanism topology from text/images. Use to pick a proposal engine.
+
+| System | Approach | Production Readiness | Strengths | Limitations |
+|--------|---------|--------------------|-----------|-------------|
+| **ArtLLM** | Explicit token-structured output: part BBoxes → joint type / connectivity / axis / origin / limits | **Production-adjacent** | Structured output (not prose); direct mapping to USD | Category diversity limited; physical properties not jointly modeled; limit predictions can cause self-collision |
+| **ArticFlow** | Implicit validation — learns manifold of correct mechanisms from curated dataset | Production-stage | No explicit repair needed; manifold-learned | Black-box failure modes; requires curated dataset |
+| **NDGM (Negative-Data Generative Models)** | Train on both valid + invalid examples; explicit constraint learning | **Research** | Explicit constraint violation signal | Emerging; not production |
+| **MobilityGen** | Scales dataset via predefined asset templates | Production-stage | Large-scale data generation | **NOT topology-generative** — uses predefined assets; limit |
+
+**Selector rule:** production uses implicit validation (ArticFlow + audit). Research explores explicit (NDGM).
+
+<!-- source: bundle6/research_generative_methods_and_validation.csv + bundle4/part5, confidence: MED-HIGH -->
+
+## AKD Video-Diffusion Enrichment (Optional, Forward-Looking)
+
+NVIDIA 2025: **Articulated Kinematics Distillation (AKD)** — distill video diffusion models (Cosmos, Sora, Genie 3, V-JEPA) to generate joint animations on existing assets. Not a topology-generative path; an *enrichment* path for assets that already have joint structure.
+
+**Use case:** you have an existing articulated USD asset (e.g., a door with a revolute joint) and want to generate realistic opening animation from a text prompt or video clip — without re-authoring the geometry.
+
+**Status:** 5-year opportunity, not a production path today. Monitor; don't commit roadmap to this.
+
+<!-- source: bundle6/research_generative_methods_and_validation.csv (AKD 2025), confidence: MED -->
 
 ## Reference Papers
 Located at: `scripts/tools/simready_assets/reference_library/papers_blender_generation/`

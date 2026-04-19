@@ -4,6 +4,10 @@ description: >-
   34 failure modes for SimReady articulated USD assets, organized by 8 physics
   pillars. Use as a checklist when classifying parts, reviewing physics, or
   diagnosing audit failures. Each failure has: symptom, root cause, and fix.
+  Extended with F50-F62 (continuation of classical F-series), D-series
+  (deformables), K-series (kinematic/synthesis/format/standards), and S-series
+  (solver/engine-specific Newton MPM + MuJoCo + MJX + Isaac Sim). All tiers
+  provide symptom / root cause / fix / confidence.
 ---
 
 # SimReady Failure Modes
@@ -11,8 +15,10 @@ description: >-
 ## How to Use
 
 - **Classifier agent**: Check F04–F10 before outputting classify.json
-- **Physics reviewer**: Check F11–F34 before approving classification
-- **Auditor agent**: When audit fails, match the failure to an F-code and propose fix
+- **Physics reviewer**: Check F11–F39 and F50–F62 before approving classification
+- **Auditor agent**: When audit fails, match the failure to a code (F / D / K / S) and propose fix
+- **Deformable asset path**: also check Tier 4 (D01–D18) — cross-ref `deformable-physics-robotics`
+- **Newton dual-output path**: also check Tier 6 S01 (MPM coupling) — cross-ref `newton-physx-compat-matrix`
 
 ## Tier 1: Foundation
 
@@ -37,8 +43,6 @@ description: >-
 | F12 | Hierarchy | Reparent crashes (SdfBatchNamespaceEdit) | Wrong reparent order | Process deepest prims first |
 | F13 | Hierarchy | Parts at wrong position after reparent | Mesh xformOps not cleared | Clear all xformOps, rewrite single world matrix |
 | F14 | Position | Both joint anchors at (0,0,0), part pinned to origin | Anchors read AFTER reparent (pivots cleared) | Save anchors BEFORE reparent |
-| F14b | Audit (false-pos) | C5 flags symmetric-pivot instruments (scissors/clamps/pliers/forceps) as zero-anchor | Both arms legitimately share origin AT the pivot; local (0,0,0) on both maps to the same world point | Resolve anchors in world-space; only fail when `anchor_miss_m > 0.01m`. See `make_simready.py:282`. |
-| F14c | Classification | URDF/MuJoCo export fails "more than one to-neighbor" on revolute joint (AUDIT 7/7 but MUJOCO 0/1) | For symmetric-pivot instruments (scissors/clamps/pliers/forceps), classifier picked an arm as body instead of the default prim — leaves the other arm as a sibling with no joint chaining to the URDF root | Classifier MUST set `body = <default_prim_name>` for symmetric-pivot instruments; both arms become `movable:revolute`. See `simready-mechanism-lookup` → Symmetric-Pivot Instruments. Seen on Clamps_A01_01 (2026-04-18). |
 | F15 | Position | Wheel clips through bracket (~15mm off) | DCC pivot marks caster swivel, not tire center | Use tire bbox center AFTER structural split |
 | F16 | Position | Hinge on wrong side of door | min_x vs max_x detection error | Measure anchor distance to both bbox edges |
 | F17 | Position | Drawer opens into body instead of outward | Pull direction inverted | Compare drawer center vs body center on movement axis |
@@ -69,20 +73,100 @@ description: >-
 | F37 | Limits | Slider part only reaches half its range | Pipeline forced one-directional drawer limits on a bidirectional slider | Detect slider (part spans >90% of body on slide axis) → bidirectional limits |
 | F38 | Hierarchy | Reparented child breaks DCC alignment (trigger exits slot, teeth misalign) | Assembly sub-component reparented as sibling + joint can't replicate parent-child precision | Don't reparent triggers/latches/handles — keep as children of their parent body |
 | F39 | Position | Structural mesh in movable travel zone (wheels where drawer opens) | DCC model placed decorative parts in movable path | B8 detects overlap, auto-hides relocatable parts (wheels/bolts/clips) |
-| F40 | Limits | Prismatic button travel absurdly large (60cm on a 15cm tool) | bbox-derived travel inflates for deeply-nested parts; `gemini_articulation.range_meters` was extracted but never consulted inside `apply_physics` | Override bbox travel with Gemini `range_meters` when bbox travel > 3× Gemini value; audit FAIL when prismatic travel > 50% of asset bbox. Seen on HoldingDevice_A01_01 valvebutton (2026-04-18). |
-| F41 | Mass | Small articulated handheld tool stays kinematic, robot can't pick it up | Auto-dynamic rule gated on `not has_movables` — articulated tools <3kg (holding devices, working scissors, syringes with plunger) never qualified | Drop the `not has_movables` guard; any body with Gemini mass <3kg becomes dynamic. Seen on HoldingDevice_A01_01 (2026-04-18). |
-| F42 | Hierarchy | Wheel bracket/cover rotates with the tire under a continuous joint, breaking visual fidelity and risking detachment under drag | `split_wheel_structural_parts()` keyword list missed naming conventions outside the original `fixer/bolt/body/mount/stopper/frame/caps/bracket/fork/brake` set. Source USD called the caster parts `wheel1_base_01` / `wheel1_trim_01` — `base` and `trim` weren't matched, so both stayed inside the rotating wheel Xform. The C5 `wheel_split_leaks` audit uses the SAME keyword list, so it was blind to the leak too. | Extend `WHEEL_STRUCTURAL_KEYWORDS` whenever a new asset introduces different naming. Current list as of 2026-04-18: `fixer, bolt, body, mount, stopper, frame, caps, bracket, fork, brake, base, trim`. Scope is safe — the split function only inspects DIRECT children of continuous-joint wheels. Seen on Mobilecartsandtables_C01_01 (2026-04-18). |
-| F43 | Transform | Asset appears to float above the ground in Isaac Lab teleop even though USD bbox says wheels touch Z=0 | Raw USD had `xformOp:scale=(100,100,100)` (or similar non-unit uniform scale) on an inner Xform, plus nested compensating scales. Isaac Lab's ArticulationCfg + PhysX interpret inner xformOp:scale inconsistently with the USD renderer (some pipelines ignore it, others apply it twice). `normalize_to_meters` only scaled metersPerUnit, leaving residual scale ops untouched. | `bake_xform_scales(stage)` added to the normalize step. Single-pass algorithm: snapshot every prim's (cum_scale, own_scale), then apply: mesh points scale by cum × own, translate ops scale by cum, all scale ops reset to (1,1,1). Two-pass snapshot prevents the ancestor-reset-during-traversal bug. Seen on MedicalutilityCart_A03_01 (2026-04-18). |
-| F44 | Collision | Drawers (or stacked movables) physically merge / pass through each other because a concave internal mesh on one drawer gets hulled into a huge box that overlaps adjacent drawers' slots | `apply_collision_*` on movables applies `convexHull` to every mesh. Internal organizers (`holders`, `cage`, `rack`, `grid`, `lattice`, `divider`, `organizer`) are deeply concave — their hulls bloat to the full mesh bbox. On MedicalutilityCart_A03_01 drawer3, the `holders_01` mesh spanned 47cm vertically and hulled into a box that swallowed drawers 1+2 above it. | Skip CollisionAPI on movable-part descendant meshes whose name matches `SKIP_COLLISION_KEYWORDS` (holders/holder/cage/rack/lattice/grid/divider/organizer). Visual mesh preserved, just non-colliding. Body (chassis) meshes are unaffected because is_body path is separate. Seen on MedicalutilityCart_A03_01 (2026-04-18). |
-| F45 | Articulation | Links joined to the same body via separate joints pass through each other — a drawer slides through an adjacent drawer, even though neither is connected to the other | PhysX articulations default `EnabledSelfCollisions = False`, which disables collision between ALL links of the articulation regardless of joint topology. The adjacency-skip rule (directly jointed links don't collide) is a separate mechanism and kicks in even when self-collisions ARE enabled — so turning the flag on is safe. | In `apply_physics` ARTICULATION step, apply `PhysxArticulationAPI` alongside `PhysicsArticulationRootAPI` on the default prim, and set `physxArticulation:enabledSelfCollisions = True`. Adjacent links still skip collision (drawer↔chassis), non-adjacent pairs now collide (drawer↔drawer). Seen on MedicalutilityCart_A03_01 (2026-04-18). |
-| F46 | Limits | Prismatic drawer opens in the wrong direction — comes out the back or side of the cabinet instead of the front | Direction-select compared drawer-bbox center vs body-bbox center on the prismatic axis; fails when the drawer bbox is symmetric about the body center (e.g. a top-wide drawer spanning full chassis width). | Prefer handle/lock/knob/rotor sub-mesh center over drawer-bbox center when available — the handle sits on the opening face, so opening direction = drawer-center → handle-center. Applied in both apply_physics prismatic branch and the C5 backward_drawers audit. Seen on MedicalutilityCart_A03_01 drawer1 (2026-04-18). |
-| F46b | Limits | Classifier geometry heuristic picks the wrong drawer direction for irregular layouts (e.g. a top lid that opens toward the BACK while other drawers open toward the FRONT) | F46 handle-heuristic still guesses wrong when the handle/lock is a locking mechanism that ENGAGES from a non-opening face. No geometric signal can reliably disambiguate this case. | `classify.json` accepts signed axis strings `"+X"` / `"-X"` / `"+Y"` etc. When present, pipeline honors the sign verbatim and the C5 backward_drawers audit skips the direction check for that joint (user intent is authoritative). Seen on MedicalutilityCart_A03_01 drawer1 (2026-04-18). |
+| F50 | Collision | Parent-child overlap during joint motion (rest-pose clean) | Swept overlap untested | Sample joint range at 10% increments; regenerate collision where sweep conflicts |
+| F51 | Limits/Drive | Mimic joint chatter / oscillation | stiffness × dt² >> 1 | Tune so stiffness × dt² ≈ 0.5–1.0; use compliant drive (dampingRatio > 1) |
+| F52 | Limits/Drive | Joint floppy after PGS→TGS switch | TGS default spring interpretation ignores stiffness | Enable `eACCELERATION_SPRING` flag on D6 joints under TGS |
+| F53 | Hierarchy | URDF-imported robot defies gravity, "Prim is not Articulation" error | URDF importer fails to auto-apply ArticulationRootAPI | Manually apply ArticulationRootAPI to root prim |
+| F54 | Authoring | Asset spawns at (0,0,0) after ArticulationCfg wrap | Spawn doesn't inherit authored transform | Re-specify USD path in `spawn` config of ArticulationCfg |
+| F55 | Geometry/Units | Scaled mesh makes robot move wrong speed or fly off | Visual scale ≠ physical scale (mass/inertia/gravity not updated) | Scale mass ∝ s³, inertia ∝ s⁵; preserve gravity |
+| F56 | Authoring | Transform/axis gizmo jumps at simulation start | PhysX disables pivots at runtime | Bake orientation in source DCC; never rely on pivots for physics objects |
+| F57 | Limits/Drive | Stiff drive + mimic joint: solver fails to converge | Competing hard constraints | Use compliant drives OR relax hard limits; never combine |
+| F58 | Clean/Hardware | Sim stable at 4 envs, NaN at 32+ envs | Error accumulation at scale with under-tuned solver | Tune `solver_position_iteration_count`, dt, collision meshes at small N first; scale gradually |
+| F59 | Inertial | Asset jitters at rest or rotates unintentionally | Principal inertia axes misaligned with geometry | Author `physics:principalAxes` explicitly; re-diagonalize inertia tensor; inspect in Physics Debugger |
+| F60 | Inertial | Instability "fixed" by adding armature | Armature masking bad inertials (opaque fix) | Reject unexplained armature; recompute inertials properly; lower stiffness or damping instead |
+| F61 | Clean/Hardware | Frame-1 explosion on load (asset flies apart immediately) | Uncapped depenetration velocity on initial penetrations | Limit max depenetration velocity during debug loading to surface visible overlaps |
+| F62 | Collision | False-clean diagnosis (no overlaps reported but asset misbehaves) | Self-collision flag OFF at articulation root | Toggle self-collision ON before running overlap detection; absence of pairs ≠ clean geometry |
+
+<!-- source: bundle1/articulated_asset_generation_operational_kb.md §1-8 + bundle5/simulation_failure_rules_consolidated.md, confidence: HIGH -->
+
+## Tier 4: Deformables (D01–D18)
+
+For deformable/non-rigid assets (cloth, ropes, cables, soft tissue). Cross-reference `deformable-physics-robotics`. Classifier should check these only when asset has deformable parts.
+
+| ID | Pillar | Failure | Root Cause | Fix | Conf |
+|----|--------|---------|-----------|-----|------|
+| D01 | Element | Hourglassing in FEM | Zero-energy modes in linear tetrahedra | Reduced-integration or stabilization; monitor Jacobian | HIGH |
+| D02 | Element | Over-stiff bending (shear locking) | Linear hex/tet lock | Higher-order elements OR XPBD reformulation | HIGH |
+| D03 | Mesh | Inverted tetrahedra | Negative Jacobian from poor tet mesh | fTetWild with stricter quality thresholds; inspect input for self-intersections | HIGH |
+| D04 | Mesh | Aspect ratio > 3 blows up sim | Elements stretched/crushed | Remesh with `--improve-quality`; target AR 1–3 | HIGH |
+| D05 | Solver | Energy drift over long sim | Explicit integration accumulation | Implicit integrator; reduce dt or increase iterations | HIGH |
+| D06 | Contact | Cloth/rope tunneling | CCD disabled | Enable CCD OR use constraint-stabilized capsule chains | HIGH |
+| D07 | Contact | Gripper passes through deformable (Isaac Sim PhysX 5) | Known gap, forum #318907 | Validate in MuJoCo flex first; increase contact iterations | HIGH |
+| D08 | Coupling | Deformable-rigid instability | Two-way coupling poorly damped | Explicit attachment API; keep deformable mass << rigid; tune damping | HIGH |
+| D09 | Coupling | Multi-layer cloth jitter | PhysX soft-soft heuristics fail | Merge multi-layer into single self-colliding mesh; or Houdini Vellum offline | HIGH |
+| D10 | Clean/HW | Warp GPU divergence on deformables | Irregular mesh connectivity causes thread divergence | Precompute adjacency; uniform particle layouts where possible | HIGH |
+| D11 | Material | Sim material ≠ real object | Parameter mismatch | Differentiable-sim calibration from video/haptics; maintain cited material library | MED |
+| D12 | Sim-to-Real | Gripper slip on deformable | Contact model too smooth / friction too low | Increase friction μ; real-gripper validation; domain randomization | HIGH |
+| D13 | Mesh | Higher sim-mesh resolution → MORE deformation (not less) | Non-convergence with finer mesh | Co-tune solver iterations + dt when raising resolution; don't treat res as stiffness lever | HIGH |
+| D14 | Authoring | Python-created rope unravels; UI rope stable | UI sets hidden solver/joint params scripted path misses | Reverse-engineer UI rope; replicate all hidden props | HIGH |
+| D15 | Solver | Gradual drift over long sim | FP32 accumulation error | FP64 for critical calcs; symplectic integrator | MED |
+| D16 | Contact | Stretched/torn deformable at contact | Solver under-iterating to satisfy all constraints | Increase solver iterations; robust nonlinear solver | MED |
+| D17 | Contact | Missed collision in concave/tight geometry | Discrete collision detection edge case | Enable CCD; tighter geometry tolerance | MED |
+| D18 | Material | Oscillation when over-damped | C-damping vs Rayleigh damping confusion | Expose damping model selection (C-damping preferred for robotics) | LOW |
+
+<!-- source: bundle2/findings_file(1)_wide_research_unzipped/4_failure_catalog_final + bundle5 CI-0033/0034/0035, confidence: HIGH (D01-D14) / MED (D15-D17) / LOW (D18) -->
+
+## Tier 5: Kinematic & Synthesis (K01–K18)
+
+For assets generated or validated through synthesis pipelines. Orthogonal axis to F-series (synthesis-stage vs post-hoc physics). Cross-reference `articulation-pipelines §0` and `simready-mechanism-lookup`.
+
+| ID | Pillar | Failure | Root Cause | Fix | Conf |
+|----|--------|---------|-----------|-----|------|
+| K01 | Synthesis | Kinematic chain cannot reach task goal | Topology invalidity (wrong linkage function space) | Validate topology pre-physics (reach + workspace analysis) | HIGH |
+| K02 | Dynamic | Closed-loop constraint drift under actuation | Constraint softness mismatch between engines | Engine-specific: PhysX compliance vs MuJoCo `solimp`/`solref`; document tolerances | HIGH |
+| K03 | Validation | Asset fragile under ±10% perturbations | Over-fit to one simulator | Cross-simulator consistency + sensitivity sweep | HIGH |
+| K04 | Format | URDF closed-loop collapse on conversion | URDF tree-only limitation | Detect loops before URDF export; warn or use cut-joint formulation | HIGH |
+| K05 | Format | MJCF actuator semantics dropped on USD round-trip | Format-specific semantic loss | Preserve as USD custom attrs; warn on lossy export | HIGH |
+| K06 | Standards | Adjustable hospital bed has entrapment risk | IEC 60601-2-52 gap violation (rail gap < 120mm, frame < 60mm) | Automated gap audit; flag violators | HIGH |
+| K07 | Standards | Office chair exceeds BIFMA cycle rating | Swivel 120k @ 13cpm or tilt 300k @ 19cpm limit exceeded | Reference BIFMA X5.1; design fatigue margins | HIGH |
+| K08 | Sim-to-Real | Friction stiction mismatch | Constant μ in sim vs real Stribeck (velocity-dependent) curve | Velocity-dependent friction curve OR domain randomization | HIGH |
+| K09 | Collision | Tunneling (fast-moving pass-through) | Discrete collision detection | Enable CCD; reduce dt | HIGH |
+| K10 | Collision | Ghost collisions (adjacent-link false positives) | Missing collision filter pairs | Collision filters; geometry simplification | HIGH |
+| K11 | Kinematic | Jacobian singularity in IK | Task configuration at singular manifold | Damped-least-squares IK fallback; trajectory avoidance; design constraints | HIGH |
+| K12 | Dynamic | Ill-conditioned inertia matrix (cond > 10⁶) | Extreme mass ratio or bad mass distribution | Mass redistribution; solver regularization | HIGH |
+| K13 | Performance | GPU-incompatible topology | Exotic joints / many loops | Simplify; use GPU-tailored solvers (Kamino pattern) | HIGH |
+| K14 | Performance | Batch memory bottleneck at scale | AoS (Array-of-Structs) layout | Structure-of-Arrays (SoA) layout for batched dynamics | HIGH |
+| K15 | Performance | Excessive substeps required for stability | Stiff dynamics | Implicit integrators; stiffness reduction | HIGH |
+| K16 | Semantic | Joint axis misdefined | Frame-convention drift between tools | Automated axis sanity checks on classifier output | HIGH |
+| K17 | Semantic | Inertial parameters physically implausible | No validation against reality | CAD-based or empirical database validation (MatWeb, CES Selector) | HIGH |
+| K18 | Semantic | Friction model mismatch across engines | Engine-dependent parameterization | Rabinowicz/Bhushan-grounded defaults + per-engine tuning tables | HIGH |
+
+<!-- source: bundle4/section_file(2)/0_failure_catalog + bundle4/part3 + bundle4/section_file(4)/1_industrial_design_standards_report, confidence: HIGH -->
+
+## Tier 6: Solver & Engine-Specific (S01–S10)
+
+Engine-level rules that manifest on specific physics backends. Different from asset-level F-series in that the asset may be correct but the engine configuration breaks it. Cross-reference `newton-physx-compat-matrix`.
+
+| ID | Engine | Failure | Root Cause | Fix | Conf |
+|----|--------|---------|-----------|-----|------|
+| S01 | Newton | Articulated body on granular (MPM) terrain explodes or sinks | MPM solver sees only local part mass, not full body inertia | Manually add robot total mass to MPM-colliding parts in scene config; pipe forces back (Newton GitHub #1251) | HIGH |
+| S02 | MuJoCo | `mjData.contact` forces show million-N spikes in control callback | `mjcb_control` fires between `mj_step1` (kinematics) and `mj_step2` (dynamics); forces uninitialized | Read forces AFTER `mj_step2()` OR use `mjSENS_CONTACTFORCE` sensor | HIGH |
+| S03 | MuJoCo | Setting contact regularization R=0 allows MORE penetration over time | Iterative PGS solver doesn't fully enforce non-penetration without Baumgarte | Keep regularization > 0; use CG solver or Baumgarte stabilization via `solimp` | HIGH |
+| S04 | MuJoCo | Object on flat hfield bounces continuously | Positive margin on hfield unsupported | Set margin = 0 on all hfield geometries | HIGH |
+| S05 | MuJoCo/MJX | Training gradients noisy when contact is stiff | Stiff springs produce large noisy contact force gradients | Soften contacts for learning; use CFD (Contacts From Distance) technique. **Different domain from F18** — F18 is authoring-time drive stiffness; S05 is training-time contact stiffness | HIGH |
+| S06 | MJX/JAX | Non-deterministic despite `TF_DETERMINISTIC_OPS=1` | XLA GPU reductions non-deterministic | `XLA_FLAGS="--xla_gpu_deterministic_ops=true"` (performance cost) | HIGH |
+| S07 | Isaac Sim | Cannot simulate granular (sand/soil) | No DEM solver in Isaac Sim scope | Use Newton + Warp for granular | HIGH |
+| S08 | Isaac Sim | Cloth multi-layer / tearing unsupported | Feature incomplete as of 2026 | Merge layers into single mesh OR Houdini Vellum offline | HIGH |
+| S09 | Sim-to-Real | Save/resume mid-contact produces different results | Solver internal state not fully serialized | Always restart from beginning; never resume in-contact | HIGH |
+| S10 | Havok | Cannot query hinge angle (API limitation); Coriolis ignored | Gaming-first design omits robotics features | Use 6D joint or different engine; manual Coriolis calculation. **Out-of-scope for V13 (we don't ship Havok) — flag only if imported asset comes from Havok source** | HIGH |
+
+<!-- source: bundle5/simulation_failure_rules_consolidated.md + nested engine memos, confidence: HIGH -->
 
 ## Wheel Compound Failures
 
 | ID | Combines | Symptom | Fix |
 |----|----------|---------|-----|
-| W01 | F06+F11+F42 | Bracket/cover/trim tears off wheel under drag OR rotates with tire | split_wheel_structural_parts() moves every direct-child Xform matching `fixer/bolt/body/mount/stopper/frame/caps/bracket/fork/brake/base/trim` to body. Extend the list when a new asset introduces different naming (see F42). |
+| W01 | F06+F11 | Bracket tears off wheel under drag | split_wheel_structural_parts() moves fixer/bolt/mount to body |
 | W02 | F09+F15+F27 | Wheel completely broken (won't roll, clips, blobs) | Correct axis from tire bbox + tire center anchor + decomposition |
 | W03 | F09+F15 | Wheel detaches from trolley under force | Correct axis + correct anchor |
 
@@ -110,6 +194,18 @@ When C1-C7 audit fails, trace to failure mode:
 | C5 (Joints) | F14–F17 (anchors, axis), F09 (wrong axis) |
 | C6 (Drives) | F18 (stiffness), missing DriveAPI |
 | C7 (Clean) | F33 (PhysicsScene), F34 (contactOffset), F01 (units) |
+| C8 (Validation, new) | K03 (sensitivity), S09 (save-resume), D11 (material calibration) |
+| C9 (Scale, new) | F58 (batch instability), D10 (Warp divergence), K14 (SoA layout) |
+| C10 (Tier, new) | K13 (GPU-incompat topology), S07 (no DEM in Isaac Sim), S08 (cloth gaps) |
+
+### Quantitative Diagnostic Thresholds
+- **Condition number of inertia matrix > 10⁶** → instability risk (K12). Redistribute mass or regularize.
+- **Closure residual for closed-loop mechanisms: position < 1e-6 m, angle < 1e-4 rad** → pass gate (K03).
+- **Cross-solver state-trajectory MSE over 10s gravity drop: < 1e-4** → pass gate for C8.
+- **Depenetration velocity uncapped at load** → frame-1 explosion (F61). Cap for debug.
+- **Self-collision flag OFF** → absence of overlap reports is false-clean (F62). Toggle ON before audit.
+
+<!-- source: bundle4/failure_catalog + bundle1/KB §8, confidence: HIGH -->
 
 ## Mass Clamp Reference
 

@@ -6,7 +6,11 @@ description: >-
   systems, gearboxes, valves, pumps, motors, clutches, brakes, transmissions,
   linkages, casters, hinges, locks, tools, and more. Use when encountering an
   unknown mechanism or industrial object that needs articulation parameters.
-  Derived from industrial_assets_part1-4 in the reference library.
+  Derived from industrial_assets_part1-4 in the reference library. Also includes
+  Reuleaux kinematic-pair primitives (R/P/H/C/S/F lower pairs), biomechanical
+  joint equivalents (ball-socket 3-DOF, saddle 2-DOF, knee 6-DOF), musculoskeletal
+  benchmarks (OpenSim, MyoSuite), bio-inspired actuator advisory (hydrogel/SMA/
+  EAP/TCP), and classification-path metadata (function → pair → chain → topology).
 ---
 
 # SimReady Mechanism Lookup Skill
@@ -102,42 +106,88 @@ Most mechanical assemblies follow this parent-child pattern:
 
 **Key rule**: Only direct children of main_body get joints. Sub-components stay as children of their parent (F38).
 
-## Symmetric-Pivot Instruments (scissors, clamps, pliers, forceps, bipolar tools)
+## Reuleaux Kinematic-Pair Primitives
 
-Hierarchy signature: two symmetric arm Xforms (often named `*_dx_*`/`*_sx_*`, `*_left_*`/`*_right_*`, or `*_a_*`/`*_b_*`) pivoting around a shared pin. There is ONE correct articulation pattern:
+Formal taxonomy for classifying any joint. Backends prefer lower pairs; higher pairs are only used when lower pairs cannot capture the motion.
 
-**CANONICAL — dual-revolute around default prim (F14c):**
-```json
-{"body": "<default_prim_name>", "parts": {
-  "<arm_left>":  {"class": "movable:revolute", "axis": "Z", "parent": "body"},
-  "<arm_right>": {"class": "movable:revolute", "axis": "Z", "parent": "body"}
-}}
-```
-The default prim (the outer root Xform, same name as the asset file) is the body. Both arms become revolute movables pivoting around the shared pin. Examples: `BipolardissectingScissors_A01_01`, `Scissors_A01_01`, `SelfretainingRetractor_A01_01`.
+### Lower Pairs (6 canonical)
 
-**Why not "one arm as body":** If the classifier picks `body = arm_left` and `arm_right = movable:revolute`, the URDF tree has no edge connecting `arm_left` to the root, so USD→URDF conversion fails with "more than one to-neighbor" on the revolute joint — even though PhysX accepts the joint. Phase 7 MuJoCo validation fails even at AUDIT 7/7.
+| Symbol | Name | DOF | USD Joint Type | Example |
+|--------|------|-----|----------------|---------|
+| R | Revolute | 1 rot | `PhysicsRevoluteJoint` | Door hinge, knob |
+| P | Prismatic | 1 trans | `PhysicsPrismaticJoint` | Drawer, slider |
+| H | Helical (screw) | 1 coupled rot+trans | `PhysicsJoint` w/ coupling | Ball-screw actuator, lead screw |
+| C | Cylindrical | 2 (rot + trans same axis) | Decomposed R + P OR D6 | Piston with rotation |
+| S | Spherical | 3 rot | `PhysicsSphericalJoint` (PhysX uses pyramidal limits) | Ball-and-socket, wrist |
+| F | Flat / Planar | 3 (2 trans + 1 rot in plane) | D6 w/ 3 locked axes | Planar slider |
 
-**Central pivot prim (when present):** If the raw USD has a separate `*_screw_*` / `*_pin_*` / `*_pivot_*` Xform between the arms, classify it as `structural` so it merges into the body as static geometry. If no such prim exists (e.g. Clamps has only two arm Xforms under the root), the canonical pattern still applies — the body just has no distinct central geometry of its own, only the arms' aggregated mesh.
+### Higher Pairs (use sparingly)
 
-**Zero-anchor exception (F14b):** Both arms share the pivot pin as their Xform origin, so `localPos0 = localPos1 = (0,0,0)` is physically correct for these instruments. Audit must resolve anchors in world-space; only fail when `anchor_miss_m > 0.01m`.
+| Pair | When | PhysX/MuJoCo representation |
+|------|------|------------------------------|
+| Gear | Coupled rotation with ratio | Fixed tendon OR equality constraint OR compliant contact |
+| Cam | Nonlinear position mapping | Equality with polycoef (MuJoCo) OR custom drive |
+| Point contact | Rolling without constraint | Dynamic contact only (no joint) |
 
-## Handheld Articulated Tools (F41 — dynamic-base rule)
+**Rule:** descend the classification tree function → pair type → chain → topology. Decide the pair type FIRST, not the joint name. Cross-ref `articulation-pipelines §Mechanism Synthesis Context`.
 
-Handheld tools with on-body controls (buttons, levers, triggers) — e.g. holding devices, syringes with plungers, staplers, working scissors — must have a **dynamic base** so the robot can pick them up, AND articulated controls so the robot can actuate them after pickup.
+<!-- source: bundle4/section_file(4)/3_topic_19 + bundle6/research_mechanism_taxonomy_and_synthesis.csv + KMODDL Cornell Reuleaux Collection, confidence: HIGH -->
 
-**Auto-dynamic rule:** any asset where Gemini reports `estimated_mass_kg < 3.0` gets `dynamic_body = True` regardless of whether it has movable parts. The old rule gated this on `not has_movables`, which prevented articulated handheld tools from being graspable. V13 implements this in `apply_physics` RIGID BODIES step.
+## Classification Path (Metadata Columns)
 
-**Small-part travel rule (F40):** For buttons and other small prismatic controls, the bbox of a deeply-nested part includes ancestor transforms and produces an inflated travel distance. The `gemini_articulation[part].range_meters` value (from `object_understanding`) takes precedence when bbox travel exceeds Gemini's range by >3×.
+Augment the 100-mechanism DOF table with these classification columns:
 
-Canonical classification for a handheld articulated tool:
-```json
-{"body": "<default_prim_name>", "parts": {
-  "<hinge_arm_left>":  {"class": "movable:revolute",  "axis": "Z", "parent": "body"},
-  "<hinge_arm_right>": {"class": "movable:revolute",  "axis": "Z", "parent": "body"},
-  "<button>":          {"class": "movable:prismatic", "axis": "Y", "parent": "body"}
-}}
-```
-No `--dynamic` flag is needed — the pipeline auto-detects the handheld category from Gemini mass.
+| Column | Values | Purpose |
+|--------|--------|---------|
+| `function_class` | serial, parallel, hybrid | Mechanism function topology |
+| `pair_type` | lower (R/P/H/C/S/F), higher (gear/cam/point) | Kinematic pair classification |
+| `chain_structure` | open, closed, mixed | Graph closure |
+| `classification_path` | e.g., `serial → R → open → tree` | Full descent string |
+| `type_synthesis_method` | Freudenstein, GA, enumeration, GNN (research) | Recommended synthesis approach |
+| `number_synthesis_method` | enumeration, optimization | Parameter count search |
+| `is_overconstrained` | bool | Flag for screw-theoretic rank check |
+| `gpu_batchable_safe` | bool | Tier-routing input (C10) |
+| `patent_references` | list of patent numbers | Prior-art for design derivation |
+
+Rule: populate these columns on every new mechanism added to the 100-entry table. Cross-ref `simready-criteria §C10`.
+
+<!-- source: bundle6/recover_missing_taxonomy_and_synthesis_research.csv + bundle4/section_file(1)/4_patent_landscape_report, confidence: HIGH -->
+
+## Biomechanical Joint Equivalents
+
+For humanoid / medical / prosthetic assets that must match human anatomy:
+
+| Joint | DOF | Approximation | Real Complexity |
+|-------|-----|---------------|-----------------|
+| Hip | 3 rot (ball-socket) | `PhysicsSphericalJoint` | Capsule limits approximate but miss femoral-head-specific ROM |
+| Shoulder | 3 rot (ball-socket) | `PhysicsSphericalJoint` | Scapula motion adds effective 2 DOF — often omitted |
+| Elbow | 1 rot (hinge) | `PhysicsRevoluteJoint` | Coupled rotation (pronation/supination) requires second revolute |
+| Wrist | 2 rot (saddle) | D6 with 2 axes locked | Ulnar/radial deviation + flexion/extension independent |
+| Knee | nominally 1 rot | `PhysicsRevoluteJoint` | **Actually 6 DOF** — translation + rotation coupling during flexion; full model requires 6-DOF joint with constraints |
+| Ankle | 1 rot | `PhysicsRevoluteJoint` | Subtalar joint adds second rotation axis |
+| Thumb | 2 rot (saddle) | D6 | Flexion/extension + abduction/adduction |
+| Finger (per joint) | 1 rot | `PhysicsRevoluteJoint` | Coupled between DIP/PIP in natural grasp |
+| Spine (per vertebra) | 3 rot (ball-socket) | `PhysicsSphericalJoint` × N | Simplified — real spine has bend/twist/translation |
+
+**Production reference models:**
+- **OpenSim full-body**: 22 bodies / 29 DOF / 80 muscles (Rajagopal 2016). Simbody backend. Gait analysis, rehabilitation.
+- **MyoSuite hand**: 28 DOF / 39 muscles. MuJoCo backend. RL-ready for dexterous manipulation.
+- **Parametric Human Project** (Autodesk): population-varying anatomical atlas for ergonomic studies.
+
+<!-- source: bundle4/section_file(4)/0_biomechanics_and_anatomy + bundle3/surgical_simulation_memo, confidence: HIGH -->
+
+## Bio-Inspired Actuators (Advisory)
+
+Non-traditional actuator classes that may appear in medical/prosthetic assets. Currently out-of-scope for V13 first-pass physics (use rigid-body proxy), but flag for future compliant-mechanism extension:
+
+| Actuator | Typical Use | Sim Strategy |
+|----------|-------------|--------------|
+| Hydrogel | Slow, soft, biocompatible — medical implants | Rigid proxy; future: deformable |
+| Shape-memory alloy (SMA) | High force/weight; hysteresis — aerospace/robotics | Rigid proxy + custom drive curve |
+| Electroactive polymer (EAP) | Fast, lightweight — haptics, medical | Compliant drive (PhysX 5.1+) |
+| Twisted-coiled polymer (TCP) | Cheap, high force/strain, thermal-cycling — prosthetics, exoskeletons | Tendon approximation (MuJoCo) |
+
+<!-- source: bundle4/section_file(4)/0_biomechanics_and_anatomy, confidence: MED (advisory — not production now) -->
 
 ## Reference
 Full mechanism descriptions (100 objects with assembly sequences, component lists, and behavioral descriptions):
