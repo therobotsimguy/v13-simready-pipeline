@@ -254,6 +254,48 @@ rather than silent.
 classified as `"wheel"` were dropped; the 139kg bed acted as a static
 block.
 
+### Fixture anchoring: FixedJoint-to-world, not kinematicEnabled (F49)
+
+**Rule**: for non-`--dynamic` assets (fridges, cabinets, wall-mounted
+fixtures), the main body MUST be authored as `kinematicEnabled=False`
+(or omit the attr) and anchored to world with an explicit
+`PhysicsFixedJoint` whose `body0Rel` is empty (= world) and `body1Rel`
+points to the main body.
+
+**Why**: `kinematicEnabled=True` is the PhysX-idiomatic way to pin
+furniture, and Isaac Sim honors it. But Newton's articulation parser
+treats kinematic bodies as outside-any-articulation and drops every
+joint rooted on them — the standard warning is:
+
+    N joints were not included in any articulation and were parsed as
+    orphan joints
+
+Doors then become free-floating bodies connected by pairwise
+constraints, not proper articulated children, and visual placement
+breaks when a world transform is applied. PhysX treats a fixed joint
+to world as infinitely stiff, so the two encodings are **equivalent
+under PhysX/Isaac Sim** — there is no simulation-side regression from
+the switch, only a compatibility win.
+
+**Teleop implications**: Isaac Sim's
+`teleop_se3_agent_cinematic.py` detects dynamic root by reading
+`physics:kinematicEnabled` on the default prim's first rigid-body
+child. With F49 encoding it is always `False`, so every asset routes
+through the `ArticulationCfg` spawn path (same path used for dynamic
+trolleys). The `ImplicitActuatorCfg(joint_names_expr=[".*"],
+stiffness=0, damping=2)` actuator regex also matches the world-anchor
+fixed joint, but PhysX ignores drives on 0-DOF joints — no behavioral
+change.
+
+**Audit note**: a `PhysicsFixedJoint` with empty `body0Rel` and
+`(0,0,0)` anchors is the legitimate world-anchor pattern. The C5
+zero-anchor check skips joints flagged `is_world_anchor=True`; the
+drive-count check (C6) already excludes all `PhysicsFixedJoint`.
+
+**First shipped**: `DrugCabinet_A03_01` (2026-04-18) as the Option-A
+port for Newton compatibility. Isaac Sim teleop must be validated on
+the rebuilt asset before the encoding is applied to other fixtures.
+
 ## Articulation Rules
 
 ### When to Use ArticulationRootAPI

@@ -73,9 +73,13 @@ def audit(stage, classification=None):
     has_physics_scene = False
     has_contact_offset = False
     nested_rigid = False
+    art_root_paths = []
 
     for prim in stage.Traverse():
         apis = [str(s) for s in prim.GetAppliedSchemas()]
+
+        if "PhysicsArticulationRootAPI" in apis:
+            art_root_paths.append(str(prim.GetPath()))
 
         if "PhysicsRigidBodyAPI" in apis:
             mass_attr = prim.GetAttribute("physics:mass")
@@ -165,11 +169,20 @@ def audit(stage, classification=None):
                 pris_lo = float(lo.Get()) if lo and lo.HasValue() else None
                 pris_hi = float(hi.Get()) if hi and hi.HasValue() else None
                 axis_str = ax.Get() if ax and ax.HasValue() else None
+            # F49: a world-anchor FixedJoint has body0 empty (= world) and
+            # anchors at (0,0,0) by design. Mark it so downstream checks
+            # (zero-anchor, chain-collapse) can exclude it.
+            is_world_anchor = (
+                prim.GetTypeName() == "PhysicsFixedJoint"
+                and not (prim.GetRelationship("physics:body0").GetTargets()
+                         if prim.GetRelationship("physics:body0") else [])
+            )
             joints.append({
                 "name": prim.GetName(),
                 "type": prim.GetTypeName(),
                 "both_anchors_zero": lp0_zero and lp1_zero,
                 "anchor_miss_m": anchor_miss_m,
+                "is_world_anchor": is_world_anchor,
                 "body0_path": str(t0[0]) if t0 else None,
                 "body1_path": str(t1[0]) if t1 else None,
                 "is_continuous": is_continuous,
@@ -300,6 +313,24 @@ def audit(stage, classification=None):
             else f"{len(movable_nested)} movable parts nested under another rigid body"
         )
         c4_na = False
+    # ArticulationRootAPI placement discipline (requested by Newton feedback,
+    # 2026-04-18). V13 rule: applied to the default-prim Xform that contains
+    # all rigid bodies, and nowhere else. Misplaced roots on a child prim
+    # break Newton's articulation parser and confuse Isaac Sim's reduced-
+    # coordinate solver.
+    dp_str = str(dp_path)
+    dp_has_root = dp_str in art_root_paths
+    misplaced_roots = [p for p in art_root_paths if p != dp_str]
+    if not dp_has_root:
+        c4_pass = False
+        c4_detail += (" — MISSING ArticulationRootAPI on default prim "
+                      f"({dp_str}); fix in apply_physics (search for "
+                      f"PhysicsArticulationRootAPI).")
+    if misplaced_roots:
+        c4_pass = False
+        c4_detail += (f" — {len(misplaced_roots)} MISPLACED "
+                      f"ArticulationRootAPI(s) (e.g. {misplaced_roots[0]}); "
+                      f"V13 rule is default-prim-only.")
     results["C4 Flat Hierarchy"] = {"pass": c4_pass, "detail": c4_detail, "na": c4_na if len(rigid_bodies) <= 1 else False}
 
     # C5: Joints (existence + anchor validity + wheel split + wheel-in-footprint)
@@ -314,6 +345,7 @@ def audit(stage, classification=None):
         zero_anchor_joints = [
             j for j in joints
             if j.get("both_anchors_zero", False) and j.get("anchor_miss_m") is None
+            and not j.get("is_world_anchor", False)
         ]
         # Joints where localPos0 and localPos1 don't map to the same world
         # point — parts will spring/detach at physics init.
@@ -1484,6 +1516,34 @@ def apply_mass(stage, path, mass_kg):
 
 # --- Joints ---
 
+def make_world_anchor_joint(stage, joint_path, body_path):
+    """F49: portable world-anchor for fixture bodies.
+
+    Creates a PhysicsFixedJoint with body0Rel empty (= world) and
+    body1Rel pointing to the main body. Replaces the PhysX-specific
+    `kinematicEnabled=True` idiom for pinning furniture: the body stays
+    dynamic (kinematicEnabled=False) so Newton's articulation parser
+    treats it as a normal articulated link, while PhysX still anchors
+    it rigidly via the fixed joint.
+
+    PhysX treats a fixed joint to world as infinitely stiff (same
+    simulation semantics as the kinematic flag). Isaac Sim teleop's
+    ArticulationCfg detection reads the body's kinematicEnabled = False
+    and routes through the ArticulationCfg path — same path already
+    used for dynamic bodies. The zero-stiffness ".*" actuator regex
+    matches this fixed joint but PhysX ignores drives on 0-DOF joints,
+    so no behavior change.
+    """
+    joint = UsdPhysics.FixedJoint.Define(stage, joint_path)
+    joint.CreateBody0Rel().SetTargets([])  # empty = world
+    joint.CreateBody1Rel().SetTargets([body_path])
+    joint.CreateLocalPos0Attr(Gf.Vec3f(0, 0, 0))
+    joint.CreateLocalPos1Attr(Gf.Vec3f(0, 0, 0))
+    joint.CreateLocalRot0Attr(Gf.Quatf(1, 0, 0, 0))
+    joint.CreateLocalRot1Attr(Gf.Quatf(1, 0, 0, 0))
+    return joint
+
+
 def make_revolute_joint(stage, joint_path, body0, body1, local_pos0, local_pos1,
                         axis="Z", hinge_edge="min_x", lower_deg=-120, upper_deg=120):
     joint = UsdPhysics.RevoluteJoint.Define(stage, joint_path)
@@ -2077,7 +2137,12 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                       else f"{len(movables)} movable part(s) — handheld articulated tool")
             print(f"    (small object {est_mass:.2f}kg, {reason} — auto-dynamic for grasping)")
     body_kinematic = not dynamic_body
-    apply_rigid_body(stage, body_path, kinematic=body_kinematic, dynamic_body=dynamic_body)
+    # F49: portable encoding — the body is ALWAYS dynamic
+    # (kinematicEnabled=False). Fixtures are anchored via an explicit
+    # PhysicsFixedJoint to world rather than the PhysX-specific kinematic
+    # flag. Equivalent in Isaac Sim / PhysX, but Newton's articulation
+    # parser now sees a full articulation instead of orphan joints.
+    apply_rigid_body(stage, body_path, kinematic=False, dynamic_body=dynamic_body)
     body_bbox = mesh_world_bbox(stage, body_path)
 
     # Mass estimation: Gemini total → skill-based part masses → body gets remainder.
@@ -2183,6 +2248,13 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     joints_scope = Sdf.Path(f"{dp_path}/joints")
     if not stage.GetPrimAtPath(joints_scope).IsValid():
         UsdGeom.Scope.Define(stage, joints_scope)
+
+    # F49: fixtures get a PhysicsFixedJoint to world instead of
+    # kinematicEnabled=True. See make_world_anchor_joint docstring.
+    if body_kinematic:
+        anchor_path = joints_scope.AppendChild("world_anchor")
+        make_world_anchor_joint(stage, anchor_path, body_path)
+        print(f"    FixedJoint world_anchor → {body_path.name}  (F49)")
 
     for name, info in movables.items():
         path = info["path"]
