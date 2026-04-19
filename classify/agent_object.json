@@ -1,113 +1,63 @@
 {
-  "object_name": "hospital resuscitation bed",
+  "object_name": "five-door medical supply cabinet",
   "object_type": "furniture",
-  "material": "steel_frame_with_plastic_panels_and_foam_mattress",
-  "material_density_kg_m3": 7850,
-  "estimated_mass_kg": 200,
+  "material": "stainless_steel",
+  "material_density_kg_m3": 7800,
+  "estimated_mass_kg": 180,
   "is_articulated": true,
   "movable_parts": [
     {
-      "name": "sm_resuscitationbed_a01_wheel1_01",
-      "behavior": "wheel",
-      "motion": "Rolls along the ground. This is one of four identical wheels.",
-      "range_description": "Spins continuously.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Y",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_resuscitationbed_a01_wheel1_01",
-      "behavior": "wheel",
-      "motion": "Swivels around a vertical axis for steering. This is one of four identical wheels.",
-      "range_description": "Swivels 360 degrees.",
-      "range_meters": null,
-      "joint_type": "continuous",
+      "name": "sm_drugcabinet_a03_door1_01",
+      "behavior": "door",
+      "motion": "rotates on external hinges along its vertical edge",
+      "range_description": "0-120 degrees",
+      "range_meters": 2.09,
+      "joint_type": "revolute",
       "axis": "Z",
       "limits_bidirectional": true
     },
     {
-      "name": "sm_resuscitationbed_a01_bedbase_01",
-      "behavior": "slider",
-      "motion": "The entire upper bed assembly moves vertically to adjust height.",
-      "range_description": "Adjusts from a low position (~40cm) to a high position (~80cm).",
-      "range_meters": 0.4,
-      "joint_type": "prismatic",
+      "name": "sm_drugcabinet_a03_door2_01",
+      "behavior": "door",
+      "motion": "rotates on external hinges along its vertical edge",
+      "range_description": "0-120 degrees",
+      "range_meters": 2.09,
+      "joint_type": "revolute",
       "axis": "Z",
-      "limits_bidirectional": false
+      "limits_bidirectional": true
     },
     {
-      "name": "sm_resuscitationbed_a01_panelsection3_01",
-      "behavior": "lever",
-      "motion": "The backrest panel pivots upwards to raise the patient's head and torso.",
-      "range_description": "Pivots from flat (0 degrees) to a raised position (approx. 75 degrees).",
-      "range_degrees": 75,
+      "name": "sm_drugcabinet_a03_door3_01",
+      "behavior": "door",
+      "motion": "rotates on external hinges along its vertical edge",
+      "range_description": "0-120 degrees",
+      "range_meters": 2.09,
       "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_resuscitationbed_a01_panelsection1_01",
-      "behavior": "lever",
-      "motion": "The thigh-rest panel pivots upwards to raise the patient's knees.",
-      "range_description": "Pivots from flat (0 degrees) to a raised position (approx. 30 degrees).",
-      "range_degrees": 30,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_resuscitationbed_a01_panelsection2_01",
-      "behavior": "lever",
-      "motion": "The calf-rest panel pivots downwards from the raised knee position.",
-      "range_description": "Pivots from a neutral position (0 degrees) downwards (approx. -20 degrees).",
-      "range_degrees": 20,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_resuscitationbed_a01_rail1_01",
-      "behavior": "lever",
-      "motion": "The side rail pivots downwards to allow access to the patient. There are two such rails (rail1 and rail2).",
-      "range_description": "Pivots from vertical (up) to horizontal (down), approx. 90 degrees.",
-      "range_degrees": 90,
-      "joint_type": "revolute",
-      "axis": "Y",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_resuscitationbed_a01_pedal1_01",
-      "behavior": "lever",
-      "motion": "Foot pedal pivots when pressed to activate functions like height adjustment or wheel locks. There are seven pedals.",
-      "range_description": "Pivots down by a small amount, approx. 20-30 degrees.",
-      "range_degrees": 25,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "sm_resuscitationbed_a01_ivpole_pipe2_01",
-      "behavior": "slider",
-      "motion": "The inner pipe of the IV pole slides vertically to adjust its height.",
-      "range_description": "Telescopes upwards by about 60 cm.",
-      "range_meters": 0.6,
-      "joint_type": "prismatic",
       "axis": "Z",
-      "limits_bidirectional": false
+      "limits_bidirectional": true
     },
     {
-      "name": "sm_resuscitationbed_a01_bedtop_button1_01",
-      "behavior": "button",
-      "motion": "Control button that can be pressed. There are two buttons.",
-      "range_description": "Depresses by a few millimeters.",
-      "range_meters": 0.005,
-      "joint_type": "prismatic",
+      "name": "sm_drugcabinet_a03_door4_01",
+      "behavior": "door",
+      "motion": "rotates on external hinges along its vertical edge",
+      "range_description": "0-120 degrees",
+      "range_meters": 2.09,
+      "joint_type": "revolute",
       "axis": "Z",
-      "limits_bidirectional": false
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_drugcabinet_a03_door5_01",
+      "behavior": "door",
+      "motion": "rotates on external hinges along its vertical edge",
+      "range_description": "0-120 degrees",
+      "range_meters": 2.09,
+      "joint_type": "revolute",
+      "axis": "Z",
+      "limits_bidirectional": true
     }
   ],
-  "special_notes": "Caster wheels require both swivel (Z-axis revolute) and roll (axle-axis revolute) joints. The complex hydraulic lift mechanism for height adjustment can be simplified to a single prismatic joint on the main bed base. The side rails should have a locking mechanism to hold them in the upright position.",
+  "special_notes": "The cabinet is a heavy, static fixture. The five doors open independently. The USD hierarchy includes 'magnet' meshes for each door, suggesting a magnetic catch mechanism could be simulated.",
   "is_graspable": false,
   "grip_location": "N/A"
 }
