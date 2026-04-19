@@ -118,13 +118,26 @@ def fingerprint(stage):
         stage_info["total_vertex_count"] = n_verts
 
     # Walk the default prim subtree and emit one record per Xform.
+    # Cache each Xform's own bbox so parent-bbox lookups don't re-walk the
+    # parent's entire descendant mesh set (O(N) per part → O(N²) overall on
+    # shallow trees with many parts; 10+ min on a 242k-vert bed mesh).
+    bb_cache = {}  # path str -> (bmin, bmax, n_verts) or None
+
+    def cached_bbox(p):
+        key = str(p.GetPath())
+        if key in bb_cache:
+            return bb_cache[key]
+        bb = _mesh_world_bbox(p)
+        bb_cache[key] = bb
+        return bb
+
     parts = []
     for prim in Usd.PrimRange(dp):
         if not prim.IsA(UsdGeom.Xform):
             continue
         if prim == dp:
             continue
-        bb = _mesh_world_bbox(prim)
+        bb = cached_bbox(prim)
         if bb is None:
             continue
         bmin, bmax, n_verts = bb
@@ -132,7 +145,7 @@ def fingerprint(stage):
         center = [round(float((bmax[i] + bmin[i]) / 2), 4) for i in range(3)]
         parent = prim.GetParent()
         parent_name = parent.GetName() if parent and parent.IsValid() else None
-        parent_bb = _mesh_world_bbox(parent) if parent else None
+        parent_bb = cached_bbox(parent) if parent else None
         rec = {
             "name": prim.GetName(),
             "path": str(prim.GetPath()),
