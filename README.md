@@ -277,3 +277,49 @@ When you find and fix a pipeline bug, apply the **3-step fix rule**:
 
 Validated by rebuilding a known-good asset (e.g. `InstrumentTrolley_B01_01`)
 and confirming the audit catches the regression when the fix is reverted.
+
+---
+
+## Roadmap — pending code work (2026-04-19 skill integration follow-up)
+
+The 2026-04-19 skill-library expansion completed **step 2 (SKILL) only** of
+the 3-step fix rule for ~44 new failure modes and 4 new audit criteria.
+Steps 1 (CODE) and 3 (AUDIT) are pending. The 15 skills *describe* pipeline
+expectations; `make_simready.py` does not yet *enforce* them.
+
+Full follow-up list is in `.research_delta/INTEGRATION_REPORT_PHASE3.md §8`
+(local-only). Summary:
+
+### Tier 1 — Low-risk, code-only (next session, ~1 session of work)
+- **Implement Blow's tetrahedral inertia** in `scripts/tools/simready_assets/math_skill/inertia.py` (skill declares it; code is missing)
+- **Add warning-level checks** for low-risk failure modes that won't break current builds:
+  - F50 full joint-sweep overlap test (extends existing rest-pose check)
+  - F59 principal axes alignment
+  - F61 depenetration velocity cap at load
+  - F62 self-collision flag audit
+  - K12 condition-number-of-inertia > 10⁶ warning
+  - K16 axis-sanity check on classifier output
+- **C10 tier certification** as warning (GPU-batchable vs CPU-only, heuristic)
+- Regression-test against `InstrumentTrolley_B01_01` + `Refrigerator_A` before committing
+
+### Tier 2 — Requires infrastructure (4–8 weeks)
+- **`validate_simready.py` module** — 4-stage gauntlet (static → dynamic → cross-simulator → performance) for C8
+- **C11 test battery** — concrete PhysX/Newton parity scripts for Refrigerator_A + InstrumentTrolley_B
+- **MatWeb / tribology integration** — Rabinowicz/Bhushan friction defaults per `simready-joint-params §Rabinowicz Table`
+- **fTetWild tetrahedralization** — prerequisite for deformable asset builds
+- **PRBM detection path** — classifier hook for `flexure` / `spring-loaded` parts → compliant_hinge/compliant_slider behaviors
+
+### Tier 3 — Deformable asset pilot (Q3 2026)
+- **First deformable asset** — surgical drape on Refrigerator_A, end-to-end via `deformable-physics-robotics`
+- **Newton VBD + MuJoCo Warp path** — production wiring for cloth + Franka coupling
+- **Cross-simulator consistency harness** — automated PhysX + MuJoCo + Newton comparison
+
+### Tier 4 — Research-stage, do not commit roadmap (18+ months)
+- GNN topology synthesis (ArtLLM / ArticFlow / NDGM) — monitor, don't build
+- AKD video-diffusion enrichment for existing assets — monitor, don't build
+- World-models-to-asset (Cosmos / Genie 3 / V-JEPA) — 5-year opportunity
+
+**Skip list** (research content explicitly rejected, do NOT revisit):
+aerospace/civil/climate/molecular/game-engine memos, Havok/Bullet/ODE/Flex
+engine rules, Warp ML-plumbing internals (tile_matmul, autograd). See
+Phase 3 report §5 for the full skip inventory with reasons.
