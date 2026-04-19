@@ -217,6 +217,26 @@ async def run_pipeline(input_usd: str, dynamic: bool = False, max_retries: int =
     dbg.end_stage(decisions={"prims": hierarchy_text.count("Xform")})
     print()
 
+    # ── Phase 1a+: Geometric fingerprint (per-part ground truth from USD) ──
+    # Gives the classifier exact bbox sizes, aspect class, thin/long axes,
+    # parent offsets, and pivot coords — so wheel-axle and slider-direction
+    # decisions are grounded in geometry instead of inferred from names.
+    # A/B tested 2026-04-19 on ResuscitationBed: axis correctness went
+    # 8/12 → 12/12 when fingerprint was added to the classifier prompt.
+    dbg.start_stage("geometric_fingerprint")
+    fingerprint_text = ""
+    try:
+        from geometric_fingerprint import fingerprint as build_fingerprint, to_prompt_text
+        fp = build_fingerprint(Usd.Stage.Open(str(input_path)))
+        fingerprint_text = to_prompt_text(fp)
+        print(f"[Phase 1a+] Geometric fingerprint: {len(fp['parts'])} parts "
+              f"(~{len(fingerprint_text)//4} tokens)")
+        dbg.end_stage(decisions={"parts": len(fp["parts"]),
+                                 "chars": len(fingerprint_text)})
+    except Exception as e:
+        print(f"[Phase 1a+] Fingerprint skipped: {e}")
+        dbg.end_stage(decisions={"skipped": str(e)})
+
     # ── Phase 1b: Visual analysis (V3 — Blender + Gemini) ──
     dbg.start_stage("visual_analysis")
     vision_report = ""
@@ -362,20 +382,39 @@ Given a USD hierarchy, classify each part so physics can be applied by make_simr
 
 ## Your Task
 
+If a GEOMETRIC FINGERPRINT block is present in the user message, it is
+**ground truth** extracted directly from the USD — exact per-part bbox,
+aspect label (disk_AXIS/elongated_AXIS/flat_AXIS/blocky), thin_axis, long_axis,
+parent offsets, and pivot coords. Trust these numbers over name-based guesses,
+but apply them CORRECTLY per joint type:
+
+- `aspect=disk_<axis>` → wheel/caster/puck. Joint axis = `thin_axis` (the axle).
+- `aspect=elongated_<axis>` + **PRISMATIC** joint (slider/telescoping tube) →
+  joint axis = `long_axis` (the travel direction).
+- `aspect=elongated_<axis>` + **REVOLUTE** joint (lever/pedal/door/arm) → joint
+  axis is **PERPENDICULAR** to `long_axis`. Use Gemini's hinge analysis and
+  pivot coords to decide which perpendicular axis (e.g. a pedal elongated along
+  X that tips up/down typically rotates about Y, not X). NEVER use `long_axis`
+  as the rotation axis for a revolute joint — that would be the arm's own
+  length, not its swing direction.
+- `aspect=flat_<axis>` → panel/plate/shelf; the `thin_axis` is the surface
+  normal. Usually structural unless name suggests a lid/flap.
+
 If a Gemini visual analysis report is provided alongside the hierarchy,
-use it to cross-check your classification — especially for parts with
-ambiguous names. Gemini can see handles, hinges, and materials you can't
-infer from prim names alone.
+use it to cross-check — especially for parts with ambiguous names. Gemini
+sees handles, hinges, and materials you can't infer from prim names alone.
 
 1. Identify the BODY — the main structural Xform (largest, most meshes/vertices).
 2. For each Xform in the hierarchy, classify:
    - Door/lid/flap (hinged): "movable:revolute" + axis (Z=vertical hinge, X=horizontal)
-   - Drawer/slider: "movable:prismatic" + axis (Y=depth, X=lateral)
-   - Wheel/caster: "movable:continuous" + axis (thin bbox dimension = axle)
+   - Drawer/slider: "movable:prismatic" + axis (Y=depth, X=lateral) — prefer fingerprint long_axis
+   - Wheel/caster: "movable:continuous" + axis — **always** thin_axis from fingerprint if available
+   - Lever/pedal/handle/foot-pedal (hinged arm): "movable:revolute" — axis is PERPENDICULAR
+     to the arm's long_axis (typically Y if arm runs along X); do NOT use long_axis as rotation axis
    - Kinematic-chain link (boom arm, robot arm segment): "movable:revolute" or "movable:prismatic" + parent
    - Shelf/divider/interior: "structural"
    - Bolts/clips/LEDs/logos: "decorative"
-3. Use name AND geometry (bbox, mesh count, pivot ops) to decide.
+3. Use name AND fingerprint (bbox, aspect, thin_axis, long_axis) AND Gemini visual cues together.
 4. Declare a "parent" for every movable:
    - Flat topology (wheels on trolley, doors on fridge): parent = body.
    - Serial chain (arm segments, nested pivots): parent = the movable it hinges to. Walk the pivot chain Gemini identified.
@@ -510,6 +549,7 @@ The USD hierarchy has already been extracted:
 ```
 {hierarchy_text}
 ```
+{('## Geometric Fingerprint (ground truth from USD)' + chr(10) + chr(10) + '```' + chr(10) + fingerprint_text + chr(10) + '```' + chr(10) + chr(10) + 'Use thin_axis for wheel axle direction and flat-panel normal; use long_axis for slider travel direction and arm orientation. Values are exact — do NOT guess from part name when fingerprint disagrees.' + chr(10)) if fingerprint_text else ''}
 {('## Gemini Visual Analysis' + chr(10) + chr(10) + vision_report + chr(10)) if vision_report else ''}
 {('## Object Understanding (V10)' + chr(10) + chr(10) + object_description + chr(10)) if object_description else ''}
 ## Tools Available
@@ -522,11 +562,21 @@ The USD hierarchy has already been extracted:
 ## Steps — Execute in Order
 
 ### STEP 1: CLASSIFY
-Use the "classifier" agent. Send it the full hierarchy text above.
+Use the "classifier" agent. Send it:
+- The full USD hierarchy text above.
+- The Geometric Fingerprint block above, IF present — per-part bbox, aspect
+  (disk/elongated/flat/blocky), thin_axis (wheel-axle candidate), long_axis
+  (slider direction candidate), parent offsets, pivots.
+- Gemini Visual Analysis, IF present.
+- Object Understanding data, IF present.
 IMPORTANT: If Object Understanding data is available above, the classifier MUST use it:
 - Use the object's identified behavior ("slider" vs "drawer") for joint classification
 - Use the object's range_meters for travel limits if available
 - If the object is identified as non-articulated, classify all parts as structural
+IMPORTANT: When the fingerprint is available, the classifier MUST prefer its
+thin_axis for continuous-joint wheel axles (aspect=disk_*) and its long_axis
+for prismatic sliders/telescoping tubes (aspect=elongated_*). Name-based guesses
+are only a fallback when fingerprint data is missing.
 Tell the classifier to return JSON in this exact format:
 {{"body": "name", "parts": {{"part": {{"class": "movable:revolute", "axis": "Z"}}}}}}
 

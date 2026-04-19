@@ -89,6 +89,44 @@ All modern pipelines follow the same 3-stage architecture (MotionAnymesh, ArtLLM
 
 ### Stage 2: Joint Estimation
 
+#### Geometric Fingerprint for the Classifier LLM
+
+Before the LLM classifier sees an asset, emit a per-part "geometric fingerprint"
+that gives it exact ground truth from the USD: per-Xform bbox size, aspect
+label (disk_AXIS / elongated_AXIS / flat_AXIS / blocky), `thin_axis` (smallest
+dim direction), `long_axis` (largest dim direction), offset from parent center,
+relative size vs parent, and authored pivot coords. Rendered images are
+*inference*; USD geometry is *ground truth*, and letting the LLM reason over
+both together is empirically more accurate than either alone.
+
+**Joint-type ↔ axis mapping** (use in the classifier prompt):
+
+| Aspect | Joint type | Axis rule | Example |
+|---|---|---|---|
+| `disk_<AXIS>` | continuous | axis = `thin_axis` | wheel/caster/puck — thin axis is the axle |
+| `elongated_<AXIS>` | prismatic | axis = `long_axis` | telescoping tube, drawer slider |
+| `elongated_<AXIS>` | revolute | axis **PERPENDICULAR** to `long_axis` | lever, pedal, arm — never use long_axis itself |
+| `flat_<AXIS>` | (usually structural) | thin_axis = surface normal | panel, shelf, plate |
+| `blocky` | (name-driven) | fall back to name + Gemini hinge info | cube-like parts |
+
+**Measured impact** (ResuscitationBed_A01_01, 2026-04-19 A/B):
+- Baseline (hierarchy + Gemini only): 4 wheel axes wrong (classifier guessed from name).
+- + Fingerprint: 4 wheel axes correct (classifier used `thin_axis`).
+- The prior pipeline's `apply_physics` geometry-override line (`axis override:
+  X -> Y ...`) silently rescued this — the fingerprint moves the correctness
+  upstream, so the override fires only on genuine edge cases.
+
+**Prompt pitfall to avoid**: do NOT tell the classifier "long_axis IS the
+rotation direction" — that's true for prismatic, wrong for revolute. For
+revolute levers the rotation axis is perpendicular to long_axis; which
+perpendicular requires pivot coords or Gemini hinge analysis to disambiguate.
+
+Implemented in `scripts/tools/simready_assets/geometric_fingerprint.py`; wired
+into `simready_agent.py` Phase 1a+, injected into the orchestrator prompt
+alongside hierarchy_text and Gemini output.
+
+<!-- source: 2026-04-19 A/B experiment (EmergencyTrolley + ResuscitationBed), confidence: HIGH -->
+
 #### Contact Interface Extraction
 For any joint type, first extract the contact surface between child part K_i and parent K_P(i):
 
