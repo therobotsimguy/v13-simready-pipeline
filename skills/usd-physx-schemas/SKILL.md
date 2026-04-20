@@ -182,6 +182,32 @@ Properties extracted from Isaac Sim's PhysxSchema module. These EXTEND the base 
 | PhysicsScene | Inside asset USD | **BAD PRACTICE** | Host app provides PhysicsScene. Asset-embedded scene conflicts with host. F33 in failure-modes. |
 | DriveAPI | stiffness > 0 | **CAUTION** | Creates spring-return behavior. For free-moving doors/drawers, stiffness MUST be 0. F18 in failure-modes. |
 
+### Multi-Collider Under a Single Rigid Body
+
+Pattern: **`RigidBodyAPI` on one Xform + `CollisionAPI` on every Mesh
+descendant** the body should collide as. PhysX unions every descendant
+collider into one rigid body — no per-mesh RigidBodyAPI required, no
+FixedJoint welding. Use this to "weld" structural sub-parts (cylinder
+sections, handle covers, drillbits, decorative shells) into the body
+without authoring extra joints.
+
+The opposite failure mode is F63: a raw USD authors the body as N sibling
+Xforms, the classifier picks ONE as the body root and applies RigidBodyAPI
+to it, and the remaining siblings get no physics APIs at all. They render
+at author transform as static visuals while the body moves — looks like
+the body "detached" from the rest of the asset. Fix: reparent sibling
+structural Xforms into the body Xform before collision authoring (see
+`make_simready.py: weld_structural_siblings_into_body`). Collision
+authoring then walks body descendants and applies CollisionAPI to every
+mesh, giving the body one rigid body + N colliders — the correct PhysX
+pattern.
+
+Keep in mind: decorative meshes inside a welded sibling (decals, stickers,
+labels) still get CollisionAPI on the body path, but `_is_degenerate_mesh`
+skips zero-thickness decal quads so they don't crash qhull (F47). Any
+truly visual-only keyword ("decal"/"sticker"/"label") should stay on
+`SKIP_COLLISION_KEYWORDS` exclusions as it grows.
+
 ### Kinematic vs Dynamic: Decision Matrix
 
 | Property | Dynamic Body | Kinematic Body | Static Collider |

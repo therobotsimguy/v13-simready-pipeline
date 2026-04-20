@@ -235,7 +235,7 @@ as usual.
 | 16 | SurgicalChair_A01_01 | chair | **partial** (2026-04-19 — drove 2-DOF swivel-caster support, caster-bracket centroid-origin fix, `--dynamic` auto-inference from continuous joints, F49 authored-pose anchor, wheel-keyword gating on swivel seats, `_is_degenerate_mesh` eps raise 1e-6 → 3mm to catch thin trim, caster bracket mass override (wheel-class, not revolute-class). AUDIT 7/7; chair still spawns with PhysX broadphase error on some geometry combinations — investigation ongoing) |
 | 17 | SurgicalChair_B01_01 | chair | pending |
 | 18 | SurgicalMicroScope_A01_01 | system | pending |
-| 19 | SurgicalpowerTool_B01_01 | surgical tool | **built** (2026-04-19 — drill bit + 4 buttons, 5 parallel sibling joints off main body. Classifier auto-retried 5/7 → 7/7 (drillbit→structural via 3mm degenerate-threshold, button axes signed per Gemini). AUDIT 7/7, MUJOCO 0/1 (URDF tree-only limitation on parallel-sibling joints — not a physics fault), teleop PASS. 545s) |
+| 19 | SurgicalpowerTool_B01_01 | surgical tool | **built** (2026-04-19 — drove F63 orphan-structural-siblings fix: raw USD authored tool body as 10 sibling Xforms (main_01 + cylinderpart1-4 + handlebase + handle + drillbit + decals), classifier marked 1 as body root, other 9 had no RigidBodyAPI → dragged main detached from rest. Added `weld_structural_siblings_into_body` to make_simready.py, F63 audit check, skill docs. Post-fix body: 1 → 11 colliders; AUDIT 7/7; 0 orphans; teleop PASS with all parts moving together. Regression-tested clean on InstrumentTrolley_B / Refrigerator_A / EmergencyTrolley / DrugCabinet / BipolardissectingScissors) |
 | 20 | SurgicalTable_A01_01 | table | pending |
 
 Score: **14 / 20 built + 1 partial** (MedicalutilityCart: physics correct,

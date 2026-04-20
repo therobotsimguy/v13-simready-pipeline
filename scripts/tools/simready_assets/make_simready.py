@@ -254,6 +254,47 @@ def audit(stage, classification=None):
     if bodies_without_colliders:
         c2_pass = False
         c2_detail += f" — {len(bodies_without_colliders)} rigid body(s) have NO colliders: {bodies_without_colliders}"
+    # F63: orphan structural sibling Xforms. A Mesh prim whose entire
+    # ancestor chain has NO RigidBodyAPI renders as static visual geometry
+    # in Isaac Sim — it stays pinned at author transform while the body
+    # body moves. Surfaced on SurgicalpowerTool_B01_01 (2026-04-19): raw USD
+    # authored tool body as 10 sibling Xforms, classifier marked 1 as the
+    # body root, other 9 were orphans. Fix in make_simready.py:
+    # weld_structural_siblings_into_body reparents siblings into the body.
+    orphan_parents = set()
+    for prim in stage.Traverse():
+        if not prim.IsA(UsdGeom.Mesh):
+            continue
+        has_rb = False
+        a = prim
+        while a and a.GetPath() != Sdf.Path.absoluteRootPath:
+            if a.HasAPI(UsdPhysics.RigidBodyAPI):
+                has_rb = True
+                break
+            a = a.GetParent()
+        if has_rb:
+            continue
+        # Skip meshes under Looks/Materials/joints scopes (shader previews etc.)
+        ap = prim.GetPath().pathString
+        if any(f"/{s}/" in ap or ap.endswith(f"/{s}") for s in ("Looks", "Materials", "joints")):
+            continue
+        # Report the topmost orphan Xform ancestor (not the mesh itself)
+        top = prim
+        while top.GetParent() and top.GetParent().GetTypeName() == "Xform":
+            p = top.GetParent()
+            # Stop at an ancestor that itself has RigidBodyAPI (impossible
+            # here since has_rb=False, but guard anyway)
+            if p.HasAPI(UsdPhysics.RigidBodyAPI):
+                break
+            top = p
+        orphan_parents.add(str(top.GetPath()))
+    if orphan_parents:
+        c2_pass = False
+        example = sorted(orphan_parents)[0]
+        c2_detail += (f" — F63: {len(orphan_parents)} orphan sibling Xform(s) "
+                      f"have mesh geometry but NO rigid body ancestor "
+                      f"(e.g. {example}); fix in make_simready.py:"
+                      f"weld_structural_siblings_into_body")
     # F47: zero-thickness collision meshes (flat decals, stickers, labels)
     # crash qhull at physics init. PhysX reports "Illegal BroadPhaseUpdateData"
     # and every rigid body's transform becomes "Invalid". Asset disappears
@@ -2188,6 +2229,55 @@ def regroup_body_meshes_by_movable(stage, movables, body_path):
     return moved
 
 
+def weld_structural_siblings_into_body(stage, movables, body_path):
+    """Reparent body-sibling structural Xforms INTO the body so they share
+    its rigid body.
+
+    F63 — orphan structural siblings. Some raw USDs split the tool body into
+    many sibling Xforms (main_01, cylinderpart1_01..cylinderpart4_01,
+    handlebase_01, handle_01, drillbit_01, decals...). The classifier routes
+    ONE sibling as the structural root (main_01) and the movables (buttons,
+    drill bit when articulated) as articulated children. The remaining
+    sibling Xforms get no classifier entry → no RigidBodyAPI, no
+    CollisionAPI. They render at author transform as static visuals while
+    main_01 moves alone — dragging main detaches it from the rest.
+
+    Fix: walk body's siblings under the same parent; reparent any Xform
+    that (a) is not body itself, (b) is not a declared movable, (c) is not
+    a scope container (joints/Looks/Materials), (d) has mesh descendants,
+    into body. World transform is preserved, so welded parts stay visually
+    in place. PhysX treats all descendant meshes under a single RigidBodyAPI
+    as one body (multi-collider under one rigid body — standard pattern).
+
+    Surfaced on SurgicalpowerTool_B01_01 (2026-04-19): 10-Xform tool body
+    had 1 rigid body + 9 orphan visual-only siblings.
+    """
+    body_prim = stage.GetPrimAtPath(body_path)
+    if not body_prim or not body_prim.IsValid():
+        return {}
+    parent = body_prim.GetParent()
+    if not parent or not parent.IsValid():
+        return {}
+    movable_paths = {str(info["path"]) for info in movables.values()}
+    to_weld = []
+    for child in parent.GetChildren():
+        if child.GetTypeName() != "Xform":
+            continue
+        cp = child.GetPath()
+        if cp == body_path:
+            continue
+        if str(cp) in movable_paths:
+            continue
+        if child.GetName() in ("joints", "Looks", "Materials"):
+            continue
+        if not _get_all_descendant_meshes(child):
+            continue
+        to_weld.append(cp)
+    if not to_weld:
+        return {}
+    return reparent_prims_preserve_world_xform(stage, to_weld, body_path)
+
+
 def split_wheel_structural_parts(stage, movables, body_path):
     """Split each continuous-joint wheel into the right physics topology.
 
@@ -2754,6 +2844,20 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     if body_regroup_moved:
         print(f"\n  BODY REGROUP: {len(body_regroup_moved)} body meshes → owning movable")
         for old, new in body_regroup_moved.items():
+            print(f"    {old} -> {new}")
+
+    # --- F63: weld orphan structural siblings into body ---
+    # When a tool/asset body was authored as N sibling Xforms and only one
+    # was classified as the body root (e.g. SurgicalpowerTool: main_01 plus
+    # cylinderpart1..4, handlebase, handle, drillbit), the unclassified
+    # siblings end up with no rigid body and no collision — they render at
+    # author pose and don't move with the body. Weld them into body now,
+    # before collision and joint authoring, so they share the body's rigid
+    # body via descendant CollisionAPI.
+    welded_siblings = weld_structural_siblings_into_body(stage, movables, body_path)
+    if welded_siblings:
+        print(f"\n  WELD SIBLINGS: {len(welded_siblings)} orphan sibling Xform(s) → body  (F63)")
+        for old, new in welded_siblings.items():
             print(f"    {old} -> {new}")
 
     # --- Wheel structural split (fixed wheels → chassis; casters → bracket body) ---

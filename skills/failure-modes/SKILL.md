@@ -4,7 +4,7 @@ description: >-
   34 failure modes for SimReady articulated USD assets, organized by 8 physics
   pillars. Use as a checklist when classifying parts, reviewing physics, or
   diagnosing audit failures. Each failure has: symptom, root cause, and fix.
-  Extended with F50-F62 (continuation of classical F-series), D-series
+  Extended with F50-F63 (continuation of classical F-series), D-series
   (deformables), K-series (kinematic/synthesis/format/standards), and S-series
   (solver/engine-specific Newton MPM + MuJoCo + MJX + Isaac Sim). All tiers
   provide symptom / root cause / fix / confidence.
@@ -86,8 +86,9 @@ description: >-
 | F60 | Inertial | Instability "fixed" by adding armature | Armature masking bad inertials (opaque fix) | Reject unexplained armature; recompute inertials properly; lower stiffness or damping instead |
 | F61 | Clean/Hardware | Frame-1 explosion on load (asset flies apart immediately) | Uncapped depenetration velocity on initial penetrations | Limit max depenetration velocity during debug loading to surface visible overlaps |
 | F62 | Collision | False-clean diagnosis (no overlaps reported but asset misbehaves) | Self-collision flag OFF at articulation root | Toggle self-collision ON before running overlap detection; absence of pairs ≠ clean geometry |
+| F63 | Hierarchy/Collision | Main body drags, rest of tool stays visually pinned at author pose | Raw USD splits tool body into N sibling Xforms; classifier routes ONE as body root, others get no RigidBodyAPI and no CollisionAPI → render as static visuals | `weld_structural_siblings_into_body` in make_simready.py reparents body-sibling Xforms into the body before collision authoring. PhysX applies all descendant CollisionAPI meshes to the single body RigidBodyAPI. Surfaced on SurgicalpowerTool_B01_01 (10-Xform tool body, 9 orphans) |
 
-<!-- source: bundle1/articulated_asset_generation_operational_kb.md §1-8 + bundle5/simulation_failure_rules_consolidated.md, confidence: HIGH -->
+<!-- source: bundle1/articulated_asset_generation_operational_kb.md §1-8 + bundle5/simulation_failure_rules_consolidated.md + SurgicalpowerTool_B01_01 field observation 2026-04-19, confidence: HIGH -->
 
 ## Tier 4: Deformables (D01–D18)
 
