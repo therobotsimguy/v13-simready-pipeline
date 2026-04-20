@@ -1865,6 +1865,16 @@ def make_world_anchor_joint(stage, joint_path, body_path):
     treats it as a normal articulated link, while PhysX still anchors
     it rigidly via the fixed joint.
 
+    `localPos0` / `localRot0` are set to the body's current authored
+    world transform so PhysX anchors the body where the DCC artist placed
+    it. A naive (0,0,0) anchor would *teleport* any body whose authored
+    world origin isn't at the origin — first surfaced on
+    SurgicalChair_A01_01_physics.usd (2026-04-19): body origin authored
+    at (0, 0.027, 0.244) was teleported to (0,0,0) at physics init, so
+    the chair spawned with its top half above the floor and wheels 20cm
+    below. DrugCabinet and Fridge (F49-verified 2026-04-18) only worked
+    because their body origins happened to be at world (0,0,0).
+
     PhysX treats a fixed joint to world as infinitely stiff (same
     simulation semantics as the kinematic flag). Isaac Sim teleop's
     ArticulationCfg detection reads the body's kinematicEnabled = False
@@ -1873,12 +1883,32 @@ def make_world_anchor_joint(stage, joint_path, body_path):
     matches this fixed joint but PhysX ignores drives on 0-DOF joints,
     so no behavior change.
     """
+    body_prim = stage.GetPrimAtPath(body_path)
+    if body_prim and body_prim.IsValid():
+        l2w = UsdGeom.Xformable(body_prim).ComputeLocalToWorldTransform(
+            Usd.TimeCode.Default())
+        t = l2w.ExtractTranslation()
+        # Extract rotation as a quaternion; Gf returns (w, x, y, z) via .GetReal()
+        # and .GetImaginary(). Keep identity fallback on degenerate transforms.
+        try:
+            rot = l2w.ExtractRotationQuat().GetNormalized()
+            qw = float(rot.GetReal())
+            im = rot.GetImaginary()
+            qx, qy, qz = float(im[0]), float(im[1]), float(im[2])
+        except Exception:
+            qw, qx, qy, qz = 1.0, 0.0, 0.0, 0.0
+        anchor_pos = Gf.Vec3f(float(t[0]), float(t[1]), float(t[2]))
+        anchor_rot = Gf.Quatf(qw, qx, qy, qz)
+    else:
+        anchor_pos = Gf.Vec3f(0, 0, 0)
+        anchor_rot = Gf.Quatf(1, 0, 0, 0)
+
     joint = UsdPhysics.FixedJoint.Define(stage, joint_path)
     joint.CreateBody0Rel().SetTargets([])  # empty = world
     joint.CreateBody1Rel().SetTargets([body_path])
-    joint.CreateLocalPos0Attr(Gf.Vec3f(0, 0, 0))
+    joint.CreateLocalPos0Attr(anchor_pos)
     joint.CreateLocalPos1Attr(Gf.Vec3f(0, 0, 0))
-    joint.CreateLocalRot0Attr(Gf.Quatf(1, 0, 0, 0))
+    joint.CreateLocalRot0Attr(anchor_rot)
     joint.CreateLocalRot1Attr(Gf.Quatf(1, 0, 0, 0))
     return joint
 
@@ -2498,6 +2528,19 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     # hinge arms, working scissors, syringes with plunger). Large furniture
     # and fixtures stay kinematic.
     has_movables = len(movables) > 0
+    # Auto-dynamic if the asset has continuous joints (wheels/casters). A wheel
+    # that rolls on the ground can only produce translation if its parent body
+    # is free to move; anchoring the body with F49 pins it and wheels spin in
+    # place. Matches the cross-pipeline rule documented in README §"--dynamic
+    # decision tree": wheels → whole-thing-pushable → dynamic_body.
+    # Surfaced on SurgicalChair_A01_01 (2026-04-19): chair classified with
+    # 6 continuous joints but shipped world-anchored, so shift-drag did
+    # nothing and the chair rotated on its seat axis instead of rolling.
+    has_continuous = any(info.get("joint") == "continuous" for info in movables.values())
+    if not dynamic_body and has_continuous:
+        dynamic_body = True
+        n_cont = sum(1 for info in movables.values() if info.get("joint") == "continuous")
+        print(f"    (auto-dynamic: {n_cont} continuous joint(s) imply wheeled/mobile asset)")
     if not dynamic_body:
         est_mass = gemini_mass  # Use Gemini mass if available
         if not est_mass:
