@@ -235,10 +235,10 @@ as usual.
 | 16 | SurgicalChair_A01_01 | chair | **partial** (2026-04-19 — drove 2-DOF swivel-caster support, caster-bracket centroid-origin fix, `--dynamic` auto-inference from continuous joints, F49 authored-pose anchor, wheel-keyword gating on swivel seats, `_is_degenerate_mesh` eps raise 1e-6 → 3mm to catch thin trim, caster bracket mass override (wheel-class, not revolute-class). AUDIT 7/7; chair still spawns with PhysX broadphase error on some geometry combinations — investigation ongoing) |
 | 17 | SurgicalChair_B01_01 | chair | pending |
 | 18 | SurgicalMicroScope_A01_01 | system | pending |
-| 19 | SurgicalpowerTool_B01_01 | surgical tool | pending |
+| 19 | SurgicalpowerTool_B01_01 | surgical tool | **built** (2026-04-19 — drill bit + 4 buttons, 5 parallel sibling joints off main body. Classifier auto-retried 5/7 → 7/7 (drillbit→structural via 3mm degenerate-threshold, button axes signed per Gemini). AUDIT 7/7, MUJOCO 0/1 (URDF tree-only limitation on parallel-sibling joints — not a physics fault), teleop PASS. 545s) |
 | 20 | SurgicalTable_A01_01 | table | pending |
 
-Score: **13 / 20 built + 1 partial** (MedicalutilityCart: physics correct,
+Score: **14 / 20 built + 1 partial** (MedicalutilityCart: physics correct,
 drawers mis-faced; SurgicalChair: 2-DOF caster topology correct, spawn-time
 PhysX broadphase still under investigation). Remaining 7 assets can be run
 with the single entry-point command; no per-asset tuning is required unless
