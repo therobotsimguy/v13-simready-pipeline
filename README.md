@@ -321,6 +321,78 @@ and confirming the audit catches the regression when the fix is reverted.
 
 ---
 
+## Next session — Learning Propagator (architectural priority)
+
+The 3-step fix rule (CODE + SKILL + AUDIT) is currently applied manually —
+each new learning (F63 weld orphans, F64 cube-wheel cylinders, F64b/F64c
+chassis blockers) requires editing make_simready.py, a skill file, and
+the audit function by hand. This scales badly as rule count grows and
+drift between the three artifacts becomes a risk.
+
+**The plan: an LLM-driven `propagate_learning.py` subagent** that takes a
+diagnosed learning as input and automatically lands it in the right
+places across the pipeline:
+
+```
+propagate_learning.py \
+  --observation "wheels skid on cube-shape casters when dragged" \
+  --asset /path/to/failing/asset.usd \
+  --diagnosis "wheel Xform has no tire sub-mesh, bbox aspect 1.06, convex-decomp produces non-rolling collider" \
+  --proposed-fix "synthesize primitive cylinder sized to wheel bbox"
+```
+
+**What the propagator does:**
+
+1. **Reads** the pipeline structure (phases of `apply_physics`, existing
+   fix functions, skill file layouts, audit criterion blocks).
+2. **Decides** which phase the fix belongs in — collision-apply for wheel
+   geometry, pre-classify for topology, joint-apply for drive params, etc.
+3. **Writes** the Python fix function in the right location with the
+   right call site inside `apply_physics`.
+4. **Updates** the matching skill file with an F-number entry
+   (symptom / root cause / fix) in the correct tier.
+5. **Adds** an audit check in the right criterion block, citing the fix
+   function by name in the FAIL message.
+6. **Runs** the rebuilt pipeline against a baseline asset
+   (`InstrumentTrolley_B01_01`) to confirm no regression.
+7. **Emits a diff** for human review — does NOT auto-commit.
+
+**Why this is the next move:**
+
+- Every learning propagates to the right place automatically — no manual
+  distribution across three files, no drift possible by construction.
+- The LLM is already the tool we use to write each fix; formalizing it
+  as a pipeline step removes the human copy-paste between locations.
+- Learnings stay in the pipeline code where they belong for runtime
+  determinism (no registry, no DSL, no new abstraction layer — just
+  functions in the right phases).
+- Each new asset that surfaces a bug becomes training signal for
+  self-improvement: observation → propagator drafts fix → human approves
+  → pipeline is smarter for the next asset.
+
+**Guardrails (non-negotiable):**
+
+- Propagator NEVER auto-commits. Always emits a diff + regression report
+  for human review.
+- Must pass post-patch audit against the full goldens corpus before the
+  diff is surfaced.
+- If the proposed fix fails audit on any existing built asset, propagator
+  re-drafts or flags "needs human design input."
+
+**Estimate:** ~1 day to prototype the propagator prompt + validation
+harness. Payoff: every future learning lands correctly without the human
+editing three files and risking drift. The current 3-step fix rule
+becomes "describe what you learned; the propagator distributes it."
+
+**Why not a rule registry / DSL / idempotent-fixer abstraction instead?**
+Those were considered and rejected in the same session this section was
+written. The pipeline IS the registry — fixes already live in it. The
+remaining problem is the mechanical work of editing three files in sync,
+which is exactly the kind of work LLMs do well. No new abstraction
+layer is needed; just automate the distribution.
+
+---
+
 ## Roadmap — pending code work (2026-04-19 skill integration follow-up)
 
 The 2026-04-19 skill-library expansion completed **step 2 (SKILL) only** of
