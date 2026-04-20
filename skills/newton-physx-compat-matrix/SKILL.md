@@ -172,7 +172,39 @@ Items documented in research but not yet hardened:
 - **SDF collision support** is a known gap relative to PhysX — use convex decomposition for Newton-targeted assets.
 - **Save/resume mid-contact nondeterminism** — same rule as PhysX (S09): always restart from beginning, never resume mid-contact.
 
-<!-- source: bundle2/newton_vbd_verification_notes.md + bundle5/research_file_wide_research_unzipped/9_newton_research_report + 12_sim_to_real_gaps, confidence: HIGH -->
+### Newton USD-Import Crash Signatures (observed 2026-04-19)
+
+`newton.ModelBuilder.add_usd()` **segfaults / double-free / tcache-chunk-unaligned**
+on SimReady USDs that pass Isaac Sim's PhysX importer cleanly. Cause is mesh-
+authoring, not physics hierarchy. Four empirically-discriminating signals,
+audited in V13 as the S-series below. All four fire on the crashing bed; at
+most two fire mildly on the known-good trolley.
+
+| Signal | Threshold | Rationale |
+|---|---|---|
+| **S-verts** | any Mesh > 5000 verts | Newton silently CPU-falls-back on >64-vert convex hulls (GPU budget per C9). Extreme cases (`bedtop_bolts_01` at 38,592 verts) trip parser limits. Decimate or set `approximation="none"` on decorative meshes. |
+| **S-weld** | faceVertexIndices / points < 4.5 | Unwelded (face-soup) geometry. Trolley ≈5.4, bed ≈3.88. Enable "weld vertices on export" in DCC before re-exporting. |
+| **S-depth** | Xform nested > 5 levels from default prim | Newton traverses every organizational Xform and gains no physics from it. Flatten the physics-layer hierarchy; keep visual layering separate. |
+| **S-wheel-split** | continuous-joint wheel body has <2 Mesh children | Single merged tire mesh (pre-decomposition) is a known crash trigger. Proper wheel = tire + hub + detail as separate Mesh siblings, each with its own CollisionAPI + convexDecomposition. |
+
+**Case study** — `ResuscitationBed_A01_01_physics.usd`:
+- 17 meshes > 5000 verts (worst: 38,592)
+- 111 meshes unwelded (worst ratio 2.84)
+- 27 Xforms at depth > 5 (worst: 8 levels; IV-pole chained inside hydraulic cylinders)
+- 4/4 wheels with a single merged tire mesh
+
+Segfaults 100% on `add_usd()` even with all joints / DriveAPIs / CollisionAPIs
+stripped. Crash survives down to "main body + one wheel, no collision,
+no joint" — the wheel prim **alone** is sufficient. Upstream bug filed.
+
+Trolley (known-good in Newton) shows 5 meshes >5000 verts (worst 6406) and
+4 mild welding warnings but loads cleanly — signals are proportional to
+severity.
+
+**V13 audit behavior**: these are advisory warnings in WARNINGS block,
+never fail C1-C7. They point DCC re-export work, not physics logic.
+
+<!-- source: bundle2/newton_vbd_verification_notes.md + bundle5/research_file_wide_research_unzipped/9_newton_research_report + 12_sim_to_real_gaps + 2026-04-19 ResuscitationBed crash report (scripts/tools/view_simready_scene.py), confidence: HIGH -->
 
 ## 9. Decision Guide — When to Use Newton vs PhysX
 

@@ -877,6 +877,97 @@ def _tier1_warnings(stage, rigid_bodies, joints, art_root_paths, colliders,
                     + "than Isaac Lab GPU batches"),
         })
 
+    # Newton-compat authoring signatures (S-series from
+    # `newton-physx-compat-matrix`). None of these are fatal in PhysX/Isaac
+    # Sim, but they are the known-crashing authoring patterns for
+    # Newton's USD importer. Discovered 2026-04-19 when
+    # ResuscitationBed_A01_01_physics.usd segfaulted Newton 1.0.0's
+    # `ModelBuilder.add_usd()` while the topologically-similar
+    # InstrumentTrolley_B01_01 loaded cleanly; see skill §Known rough edges.
+    OVERSIZED_VERTS = 5000
+    DEEP_XFORM_DEPTH = 5  # number of "/" segments beyond the default prim
+    UNWELDED_RATIO = 4.5  # indices-per-vertex; trolley ≈5.4, bed ≈3.88
+    WHEEL_SPLIT_MIN_MESHES = 2  # a wheel body should be ≥2 siblings (tire+hub/detail)
+
+    oversized = []
+    unwelded = []
+    deep_xforms = []
+    dp_path = stage.GetDefaultPrim().GetPath() if stage.GetDefaultPrim() else None
+    dp_depth = str(dp_path).count("/") if dp_path else 0
+    for prim in stage.Traverse():
+        if prim.IsA(UsdGeom.Mesh):
+            pts = prim.GetAttribute("points")
+            idx = prim.GetAttribute("faceVertexIndices")
+            if pts and pts.HasValue():
+                pts_v = pts.Get()
+                if pts_v is not None and len(pts_v) > OVERSIZED_VERTS:
+                    oversized.append((prim.GetName(), len(pts_v)))
+                if (pts_v is not None and idx and idx.HasValue()
+                        and idx.Get() is not None and len(pts_v) > 0):
+                    ratio = len(idx.Get()) / len(pts_v)
+                    if ratio < UNWELDED_RATIO and len(pts_v) > 500:
+                        unwelded.append((prim.GetName(), round(ratio, 2)))
+        elif prim.IsA(UsdGeom.Xform):
+            depth = str(prim.GetPath()).count("/") - dp_depth
+            if depth > DEEP_XFORM_DEPTH:
+                deep_xforms.append((str(prim.GetPath()), depth))
+
+    # Wheel-split sanity: any continuous-joint body1 whose descendants include
+    # just one Mesh (the tire itself) trips Newton on pure-quad meshes
+    # (per the ResuscitationBed report). A proper wheel has tire+disc+detail
+    # as siblings.
+    unsplit_wheels = []
+    for j in joints:
+        if not j.get("is_continuous"):
+            continue
+        b1 = j.get("body1_path")
+        if not b1:
+            continue
+        b1p = stage.GetPrimAtPath(b1)
+        if not b1p:
+            continue
+        mesh_children = [c for c in b1p.GetChildren() if c.IsA(UsdGeom.Mesh)]
+        if len(mesh_children) < WHEEL_SPLIT_MIN_MESHES:
+            unsplit_wheels.append((j.get("name"), len(mesh_children)))
+
+    if oversized:
+        name, n = max(oversized, key=lambda x: x[1])
+        w.append({
+            "code": "S-verts",
+            "msg": (f"{len(oversized)} mesh(es) >{OVERSIZED_VERTS} verts "
+                    f"(worst: {name} at {n} verts) — Newton CPU fallback "
+                    f"likely on convex hull (>64 vert GPU budget); decimate "
+                    f"or set approximation=none if purely decorative"),
+        })
+    if unwelded:
+        name, r = min(unwelded, key=lambda x: x[1])
+        w.append({
+            "code": "S-weld",
+            "msg": (f"{len(unwelded)} mesh(es) look unwelded (indices/verts "
+                    f"< {UNWELDED_RATIO}; worst: {name} ratio={r}) — enable "
+                    f"'weld vertices on export' in your DCC; Newton's USD "
+                    f"importer can crash on disconnected face-soup geometry"),
+        })
+    if deep_xforms:
+        path, d = max(deep_xforms, key=lambda x: x[1])
+        w.append({
+            "code": "S-depth",
+            "msg": (f"{len(deep_xforms)} Xform(s) nested >{DEEP_XFORM_DEPTH} "
+                    f"levels (worst: {path} at depth {d}) — flatten the "
+                    f"physics-layer hierarchy; Newton's importer traverses "
+                    f"every organizational Xform and gains no physics from it"),
+        })
+    if unsplit_wheels:
+        name, n = unsplit_wheels[0]
+        w.append({
+            "code": "S-wheel-split",
+            "msg": (f"{len(unsplit_wheels)} continuous-joint wheel(s) have "
+                    f"only {n} mesh child (expected ≥{WHEEL_SPLIT_MIN_MESHES} "
+                    f"— e.g. tire+hub+detail) — pre-merged tire geometry is "
+                    f"a known Newton crash trigger (ResuscitationBed pattern); "
+                    f"split in DCC before re-export"),
+        })
+
     return w
 
 
