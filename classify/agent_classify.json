@@ -1,95 +1,45 @@
 {
-  "body": "sm_surgicaltable_a01_01",
+  "body": "sm_surgicalchair_a01_leg_01",
   "parts": {
-    "sm_surgicaltable_a01_wheel1_01": {
-      "class": "movable:continuous",
-      "axis": "Y",
-      "parent": "body",
-      "rationale": ["F07:name-contains-wheel", "F09:thin-axis-Y-from-fingerprint", "MEC:swivel-caster-2DOF"]
-    },
-    "sm_surgicaltable_a01_wheel2_01": {
-      "class": "movable:continuous",
-      "axis": "Y",
-      "parent": "body",
-      "rationale": ["F07:name-contains-wheel", "F09:thin-axis-Y-from-fingerprint", "MEC:swivel-caster-2DOF"]
-    },
-    "sm_surgicaltable_a01_wheel3_01": {
-      "class": "movable:continuous",
-      "axis": "Y",
-      "parent": "body",
-      "rationale": ["F07:name-contains-wheel", "F09:thin-axis-Y-from-fingerprint", "MEC:swivel-caster-2DOF"]
-    },
-    "sm_surgicaltable_a01_wheel4_01": {
-      "class": "movable:continuous",
-      "axis": "Y",
-      "parent": "body",
-      "rationale": ["F07:name-contains-wheel", "F09:thin-axis-Y-from-fingerprint", "MEC:swivel-caster-2DOF"]
-    },
-    "sm_surgicaltable_a01_lader1_01": {
+    "sm_surgicalchair_a01_01": {
       "class": "structural",
-      "rationale": ["F06:intermediate-telescope-stage", "BEH:LINEAR-TRANSLATIONAL-simplified-to-single-joint"]
+      "rationale": ["F07:structural-grouping-xform", "F03:intermediate-hierarchy-node"]
     },
-    "sm_surgicaltable_a01_lader2_01": {
-      "class": "structural",
-      "rationale": ["F06:intermediate-telescope-stage", "BEH:LINEAR-TRANSLATIONAL-simplified-to-single-joint"]
-    },
-    "sm_surgicaltable_a01_lader3_01": {
-      "class": "structural",
-      "rationale": ["F06:intermediate-telescope-stage", "BEH:LINEAR-TRANSLATIONAL-simplified-to-single-joint"]
-    },
-    "sm_surgicaltable_a01_lader4_01": {
-      "class": "movable:prismatic",
+    "sm_surgicalchair_a01_seat_01": {
+      "class": "movable:continuous",
       "axis": "Z",
       "parent": "body",
-      "rationale": ["BEH:LINEAR-TRANSLATIONAL-telescope-lift", "F09:Gemini-confirms-prismatic-Z", "F11:parent-chain-simplified-from-4-stage-to-1"]
+      "rationale": ["BEH:ROLLING-continuous-Z", "F06:object-understanding-swivel-360", "F05:gemini-confirms-continuous-Z", "MEC:swivel-chair-base-1DOF"]
     },
-    "sm_surgicaltable_a01_table_01": {
-      "class": "movable:revolute",
-      "axis": "Y",
-      "parent": "sm_surgicaltable_a01_lader4_01",
-      "rationale": ["BEH:ROTATIONAL-tilt-section", "F09:thin-axis-Z-perpendicular-rotation-about-Y", "F11:Gemini-confirms-revolute-Y"]
+    "sm_surgicalchair_a01_wheel5_01": {
+      "class": "movable:continuous",
+      "axis": "Z",
+      "parent": "body",
+      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
     },
-    "sm_surgicaltable_a01_frame1_01": {
-      "class": "movable:revolute",
-      "axis": "Y",
-      "parent": "sm_surgicaltable_a01_table_01",
-      "rationale": ["BEH:ROTATIONAL-tilt-section", "F09:thin-axis-Z-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-table"]
+    "sm_surgicalchair_a01_wheel4_01": {
+      "class": "movable:continuous",
+      "axis": "Z",
+      "parent": "body",
+      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
     },
-    "sm_surgicaltable_a01_headrest_01": {
-      "class": "movable:revolute",
-      "axis": "Y",
-      "parent": "sm_surgicaltable_a01_frame1_01",
-      "rationale": ["BEH:ROTATIONAL-headrest-tilt", "F09:thin-axis-Z-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-frame1"]
+    "sm_surgicalchair_a01_wheel3_01": {
+      "class": "movable:continuous",
+      "axis": "Z",
+      "parent": "body",
+      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
     },
-    "sm_surgicaltable_a01_frame2_01": {
-      "class": "movable:revolute",
-      "axis": "Y",
-      "parent": "sm_surgicaltable_a01_table_01",
-      "rationale": ["BEH:ROTATIONAL-leg-section-tilt", "F09:flat-Z-panel-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-table"]
+    "sm_surgicalchair_a01_wheel2_01": {
+      "class": "movable:continuous",
+      "axis": "Z",
+      "parent": "body",
+      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
     },
-    "sm_surgicaltable_a01_joint1_01": {
-      "class": "movable:revolute",
-      "axis": "Y",
-      "parent": "sm_surgicaltable_a01_frame2_01",
-      "rationale": ["BEH:ROTATIONAL-leg-rest-hip-joint", "F09:thin-axis-Z-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-frame2"]
-    },
-    "sm_surgicaltable_a01_joint2_01": {
-      "class": "movable:revolute",
-      "axis": "Y",
-      "parent": "sm_surgicaltable_a01_joint1_01",
-      "rationale": ["BEH:ROTATIONAL-leg-rest-knee-joint", "F09:flat-Z-panel-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-joint1"]
-    },
-    "sm_surgicaltable_a01_joint3_01": {
-      "class": "movable:revolute",
-      "axis": "Y",
-      "parent": "sm_surgicaltable_a01_frame2_01",
-      "rationale": ["BEH:ROTATIONAL-leg-rest-hip-joint", "F09:thin-axis-Z-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-frame2"]
-    },
-    "sm_surgicaltable_a01_joint4_01": {
-      "class": "movable:revolute",
-      "axis": "Y",
-      "parent": "sm_surgicaltable_a01_joint3_01",
-      "rationale": ["BEH:ROTATIONAL-leg-rest-knee-joint", "F09:flat-Z-panel-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-joint3"]
+    "sm_surgicalchair_a01_wheel1_01": {
+      "class": "movable:continuous",
+      "axis": "Z",
+      "parent": "body",
+      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
     }
   }
 }

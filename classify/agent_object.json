@@ -1,73 +1,133 @@
 {
-  "object_name": "Articulated surgical operating table",
+  "object_name": "Surgical stool with caster wheels",
   "object_type": "furniture",
   "material": "stainless_steel",
   "material_density_kg_m3": 7800,
-  "estimated_mass_kg": 250,
+  "estimated_mass_kg": 15.0,
   "is_articulated": true,
   "movable_parts": [
     {
-      "name": "sm_surgicaltable_a01_wheel[1-4]_01",
-      "behavior": "wheel",
-      "motion": "Four caster wheels that both roll along the floor for movement and swivel 360 degrees for steering.",
+      "name": "sm_surgicalchair_a01_seat_01",
+      "behavior": "swivel",
+      "motion": "The entire seat assembly rotates around the central vertical axis.",
       "range_description": "360 degrees",
       "range_meters": null,
       "joint_type": "continuous",
-      "axis": "Y for roll, Z for swivel",
+      "axis": "Z",
       "limits_bidirectional": true
     },
     {
-      "name": "sm_surgicaltable_a01_lader4_01",
+      "name": "height_adjustment",
       "behavior": "slider",
-      "motion": "The entire tabletop assembly moves vertically for height adjustment via a telescoping column.",
-      "range_description": "approx. 50 cm of travel",
-      "range_meters": 0.5,
+      "motion": "The seat assembly slides vertically along the central column to adjust height.",
+      "range_description": "approx. 20 cm",
+      "range_meters": 0.2,
       "joint_type": "prismatic",
       "axis": "Z",
       "limits_bidirectional": true
     },
     {
-      "name": "sm_surgicaltable_a01_table_01",
-      "behavior": "slider",
-      "motion": "The entire tabletop can tilt forward/backward (Trendelenburg, approx. +/- 30 degrees) and tilt laterally side-to-side (approx. +/- 20 degrees).",
-      "range_description": "+/- 30 degrees (longitudinal), +/- 20 degrees (lateral)",
+      "name": "sm_surgicalchair_a01_wheel1_01",
+      "behavior": "swivel",
+      "motion": "The wheel assembly swivels around its vertical mount.",
+      "range_description": "360 degrees",
       "range_meters": null,
-      "joint_type": "revolute",
-      "axis": "X for lateral, Y for longitudinal",
+      "joint_type": "continuous",
+      "axis": "Z",
       "limits_bidirectional": true
     },
     {
-      "name": "sm_surgicaltable_a01_frame1_01",
-      "behavior": "slider",
-      "motion": "The backrest section pivots up and down, from a declined position to a seated position.",
-      "range_description": "approx. -30 to +70 degrees",
-      "range_meters": 1.74,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_surgicaltable_a01_headrest_01",
-      "behavior": "slider",
-      "motion": "The headrest section, attached to the backrest, pivots up and down to position the patient's head.",
-      "range_description": "approx. +/- 45 degrees",
-      "range_meters": 1.57,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_surgicaltable_a01_frame2_01",
-      "behavior": "slider",
-      "motion": "The leg rest assembly, which is split into two independent left and right sections. Each section can pivot down from the main table and also has a second pivot point for a 'knee' bend.",
-      "range_description": "approx. -90 to +15 degrees for main joint; -90 to +30 for 'knee' joint",
+      "name": "sm_surgicalchair_a01_wheel1_tires_01",
+      "behavior": "wheel",
+      "motion": "The wheel rolls around its axle.",
+      "range_description": "Continuous rolling",
       "range_meters": null,
-      "joint_type": "revolute",
-      "axis": "X",
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel2_01",
+      "behavior": "swivel",
+      "motion": "The wheel assembly swivels around its vertical mount.",
+      "range_description": "360 degrees",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel2_tires_01",
+      "behavior": "wheel",
+      "motion": "The wheel rolls around its axle.",
+      "range_description": "Continuous rolling",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel3_01",
+      "behavior": "swivel",
+      "motion": "The wheel assembly swivels around its vertical mount.",
+      "range_description": "360 degrees",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel3_tires_01",
+      "behavior": "wheel",
+      "motion": "The wheel rolls around its axle.",
+      "range_description": "Continuous rolling",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel4_01",
+      "behavior": "swivel",
+      "motion": "The wheel assembly swivels around its vertical mount.",
+      "range_description": "360 degrees",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel4_tires_01",
+      "behavior": "wheel",
+      "motion": "The wheel rolls around its axle.",
+      "range_description": "Continuous rolling",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel5_01",
+      "behavior": "swivel",
+      "motion": "The wheel assembly swivels around its vertical mount.",
+      "range_description": "360 degrees",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel5_tires_01",
+      "behavior": "wheel",
+      "motion": "The wheel rolls around its axle.",
+      "range_description": "Continuous rolling",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Y",
       "limits_bidirectional": true
     }
   ],
-  "special_notes": "This is a complex, multi-articulated surgical table. The main structure is stainless steel with padded foam cushions on the top surfaces. The telescoping lift mechanism (lader1-4) can be simplified to a single prismatic joint. Caster wheels require both roll and swivel joints. The leg rests are split and have two articulation points each (hip and knee).",
+  "special_notes": "This is a mobile stool with multiple articulations. It has five caster wheels, each with independent swivel (Z-axis) and roll (local Y-axis) motion. The seat height is adjustable via a prismatic joint along the Z-axis. The seat also swivels freely around the Z-axis.",
   "is_graspable": false,
-  "grip_location": "N/A"
+  "grip_location": null
 }
