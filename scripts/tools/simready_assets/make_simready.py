@@ -2512,12 +2512,40 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                     (bbox[0][1] + bbox[1][1]) / 2,
                     (bbox[0][2] + bbox[1][2]) / 2)
                 saved_anchors[name] = tire_center
-                size_x = abs(bbox[1][0] - bbox[0][0])
-                size_y = abs(bbox[1][1] - bbox[0][1])
-                detected_axis = "Y" if size_y < size_x else "X"
-                if detected_axis != info["axis"]:
-                    print(f"    axis override {name}: {info['axis']} -> {detected_axis} (tire X={size_x:.4f} Y={size_y:.4f})")
-                    info["axis"] = detected_axis
+                # Thin bbox dimension is the wheel's axle. Extended 2026-04-19
+                # to consider all three axes (was X-vs-Y only), and gated by a
+                # name-keyword check — casters are near-cube assemblies
+                # (tire + bracket), so bbox-thinness alone can't discriminate
+                # them from swivel seats. The override is a wheel-specific
+                # heuristic; applying it to a chair seat picks the wrong
+                # rotation axis.
+                sizes = [abs(bbox[1][i] - bbox[0][i]) for i in range(3)]
+                nm_lower = name.lower()
+                looks_like_wheel = any(kw in nm_lower for kw in
+                                        ("wheel", "caster", "roller", "tire"))
+                if looks_like_wheel:
+                    # For casters (near-cube), prefer a HORIZONTAL axis (X or Y)
+                    # over Z — a Z axis on a caster would swivel, not roll;
+                    # only one DOF per wheel in V13, so roll wins.
+                    if max(sizes[0], sizes[1]) > 1e-6:
+                        detected_axis = "X" if sizes[0] <= sizes[1] else "Y"
+                    else:
+                        detected_axis = "X"
+                    # If one horizontal dim is clearly thinnest across all three,
+                    # use it; else fall back to min(X,Y).
+                    if sizes[2] < min(sizes[0], sizes[1]) * 0.6:
+                        # Legitimately Z-thin (unusual wheel orientation) —
+                        # keep only if classifier also picked Z.
+                        if info["axis"] == "Z":
+                            detected_axis = "Z"
+                    if detected_axis != info["axis"]:
+                        print(f"    axis override {name}: {info['axis']} -> {detected_axis} "
+                              f"(wheel X={sizes[0]:.4f} Y={sizes[1]:.4f} Z={sizes[2]:.4f})")
+                        info["axis"] = detected_axis
+                else:
+                    print(f"    axis keep {name}: {info['axis']} "
+                          f"(X={sizes[0]:.4f} Y={sizes[1]:.4f} Z={sizes[2]:.4f} "
+                          f"— not wheel-named, trust classifier)")
                 print(f"    anchor {name} (tire center): ({tire_center[0]:.4f}, {tire_center[1]:.4f}, {tire_center[2]:.4f})")
 
     # --- C1: Rigid Bodies + Mass ---
