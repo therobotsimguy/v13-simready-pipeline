@@ -1,123 +1,53 @@
 {
-  "object_name": "hospital resuscitation bed",
+  "object_name": "Surgical stool with caster wheels",
   "object_type": "furniture",
-  "material": "powder_coated_steel_and_medical_grade_plastic",
-  "material_density_kg_m3": 7850,
-  "estimated_mass_kg": 200,
+  "material": "stainless_steel",
+  "material_density_kg_m3": 7800,
+  "estimated_mass_kg": 15,
   "is_articulated": true,
   "movable_parts": [
     {
-      "name": "caster_wheel_roll",
-      "behavior": "wheel",
-      "motion": "Spins around its axle to allow the bed to roll forwards and backwards. There are four wheels (wheel1_01 to wheel4_01).",
-      "range_description": "Continuous rotation",
+      "name": "sm_surgicalchair_a01_seat_01",
+      "behavior": "swivel",
+      "motion": "The entire seat assembly swivels freely around the central column.",
+      "range_description": "360 degrees",
+      "range_meters": 6.283,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_seat_01",
+      "behavior": "slider",
+      "motion": "The seat slides up and down the central column for height adjustment.",
+      "range_description": "0-20 cm",
+      "range_meters": 0.2,
+      "joint_type": "prismatic",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel1_01",
+      "behavior": "wheel_swivel",
+      "motion": "The caster wheel assembly swivels around its vertical mounting post. This applies to all five wheels (wheel1 through wheel5).",
+      "range_description": "360 degrees",
+      "range_meters": 6.283,
+      "joint_type": "continuous",
+      "axis": "Z",
+      "limits_bidirectional": true
+    },
+    {
+      "name": "sm_surgicalchair_a01_wheel1_tires_01",
+      "behavior": "wheel_roll",
+      "motion": "The wheel rolls around its horizontal axle. This applies to all five wheels (wheel1 through wheel5).",
+      "range_description": "Continuous rolling",
       "range_meters": null,
       "joint_type": "continuous",
       "axis": "Y",
       "limits_bidirectional": true
-    },
-    {
-      "name": "caster_wheel_swivel",
-      "behavior": "wheel",
-      "motion": "The entire wheel assembly rotates around a vertical axis to allow steering. There are four wheels (wheel1_01 to wheel4_01).",
-      "range_description": "Continuous 360-degree rotation",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "bed_height_adjustment",
-      "behavior": "slider",
-      "motion": "The entire upper bed surface (bedtop_01) moves vertically to adjust the bed's height.",
-      "range_description": "Vertical travel of approximately 40 cm.",
-      "range_meters": 0.4,
-      "joint_type": "prismatic",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "backrest_panel",
-      "behavior": "lever",
-      "motion": "The backrest section (panelsection3_01) pivots upwards to raise the patient's torso.",
-      "range_description": "Pivots from 0 (flat) to approximately 75 degrees.",
-      "range_degrees": 75,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "knee_gatch_panel",
-      "behavior": "lever",
-      "motion": "The panel under the patient's thighs (panelsection1_01) pivots upwards to bend the knees.",
-      "range_description": "Pivots from 0 (flat) to approximately 40 degrees.",
-      "range_degrees": 40,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "foot_panel",
-      "behavior": "lever",
-      "motion": "The panel under the patient's calves (panelsection2_01) pivots to adjust the leg position.",
-      "range_description": "Pivots from 0 (flat) to approximately 30 degrees.",
-      "range_degrees": 30,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "side_rail",
-      "behavior": "lever",
-      "motion": "The side rails (e.g., railelbow1_01, railelbow12_01) pivot downwards to allow access to the patient.",
-      "range_description": "Pivots approximately 90 degrees from a vertical (up) to a horizontal (down) position.",
-      "range_degrees": 90,
-      "joint_type": "revolute",
-      "axis": "Y",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "foot_pedal",
-      "behavior": "lever",
-      "motion": "Foot pedals (pedal1_01 to pedal7_01) are pressed to activate functions like braking or height adjustment.",
-      "range_description": "Pivots down by 15-20 degrees when pressed.",
-      "range_degrees": 20,
-      "joint_type": "revolute",
-      "axis": "X",
-      "limits_bidirectional": false
-    },
-    {
-      "name": "iv_pole_telescope",
-      "behavior": "slider",
-      "motion": "The inner pole (ivpole_pipe2_01) slides vertically to adjust the height of the IV hooks.",
-      "range_description": "Extends vertically by approximately 60 cm.",
-      "range_meters": 0.6,
-      "joint_type": "prismatic",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "iv_pole_swivel",
-      "behavior": "slider",
-      "motion": "The entire IV pole assembly (ivpole_01) can rotate at its base.",
-      "range_description": "Continuous 360-degree rotation.",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "control_button",
-      "behavior": "button",
-      "motion": "Control buttons (bedtop_button1_01, bedtop_button2_01) depress slightly when pushed.",
-      "range_description": "Depresses by approximately 0.5 cm.",
-      "range_meters": 0.005,
-      "joint_type": "prismatic",
-      "axis": "Z",
-      "limits_bidirectional": false
     }
   ],
-  "special_notes": "Caster wheels have both swivel and roll axes. Bed articulation (height, backrest, leg sections) is driven by complex hydraulic mechanisms, which can be simplified as prismatic and revolute joints for simulation. The side rails have a multi-bar linkage but can be simplified to a single revolute joint.",
+  "special_notes": "This is a complex articulated object. The seat has two degrees of freedom relative to the base: continuous swivel and prismatic height adjustment, both along the Z-axis. Each of the five caster wheels has two degrees of freedom: swivel around a local Z-axis and roll around a local Y-axis.",
   "is_graspable": false,
   "grip_location": null
 }
