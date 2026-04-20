@@ -1,17 +1,95 @@
 {
-  "body": "sm_surgicalpowertool_b01_main_01",
+  "body": "sm_surgicaltable_a01_01",
   "parts": {
-    "sm_surgicalpowertool_b01_decalbottom_01": {"class": "structural"},
-    "sm_surgicalpowertool_b01_decalbody_01": {"class": "structural"},
-    "sm_surgicalpowertool_b01_button2_01": {"class": "movable:prismatic", "axis": "+Y", "parent": "body"},
-    "sm_surgicalpowertool_b01_button1_01": {"class": "movable:prismatic", "axis": "+Y", "parent": "body"},
-    "sm_surgicalpowertool_b01_smallbutton1_01": {"class": "movable:prismatic", "axis": "+Z", "parent": "body"},
-    "sm_surgicalpowertool_b01_handlebase_01": {"class": "structural"},
-    "sm_surgicalpowertool_b01_cylinderpart1_01": {"class": "structural"},
-    "sm_surgicalpowertool_b01_cylinderpart2_01": {"class": "structural"},
-    "sm_surgicalpowertool_b01_cylinderpart3_01": {"class": "structural"},
-    "sm_surgicalpowertool_b01_cylinderpart4_01": {"class": "structural"},
-    "sm_surgicalpowertool_b01_drillbit_01": {"class": "structural"},
-    "sm_surgicalpowertool_b01_smallbutton2_01": {"class": "movable:prismatic", "axis": "+X", "parent": "body"}
+    "sm_surgicaltable_a01_wheel1_01": {
+      "class": "movable:continuous",
+      "axis": "Y",
+      "parent": "body",
+      "rationale": ["F07:name-contains-wheel", "F09:thin-axis-Y-from-fingerprint", "MEC:swivel-caster-2DOF"]
+    },
+    "sm_surgicaltable_a01_wheel2_01": {
+      "class": "movable:continuous",
+      "axis": "Y",
+      "parent": "body",
+      "rationale": ["F07:name-contains-wheel", "F09:thin-axis-Y-from-fingerprint", "MEC:swivel-caster-2DOF"]
+    },
+    "sm_surgicaltable_a01_wheel3_01": {
+      "class": "movable:continuous",
+      "axis": "Y",
+      "parent": "body",
+      "rationale": ["F07:name-contains-wheel", "F09:thin-axis-Y-from-fingerprint", "MEC:swivel-caster-2DOF"]
+    },
+    "sm_surgicaltable_a01_wheel4_01": {
+      "class": "movable:continuous",
+      "axis": "Y",
+      "parent": "body",
+      "rationale": ["F07:name-contains-wheel", "F09:thin-axis-Y-from-fingerprint", "MEC:swivel-caster-2DOF"]
+    },
+    "sm_surgicaltable_a01_lader1_01": {
+      "class": "structural",
+      "rationale": ["F06:intermediate-telescope-stage", "BEH:LINEAR-TRANSLATIONAL-simplified-to-single-joint"]
+    },
+    "sm_surgicaltable_a01_lader2_01": {
+      "class": "structural",
+      "rationale": ["F06:intermediate-telescope-stage", "BEH:LINEAR-TRANSLATIONAL-simplified-to-single-joint"]
+    },
+    "sm_surgicaltable_a01_lader3_01": {
+      "class": "structural",
+      "rationale": ["F06:intermediate-telescope-stage", "BEH:LINEAR-TRANSLATIONAL-simplified-to-single-joint"]
+    },
+    "sm_surgicaltable_a01_lader4_01": {
+      "class": "movable:prismatic",
+      "axis": "Z",
+      "parent": "body",
+      "rationale": ["BEH:LINEAR-TRANSLATIONAL-telescope-lift", "F09:Gemini-confirms-prismatic-Z", "F11:parent-chain-simplified-from-4-stage-to-1"]
+    },
+    "sm_surgicaltable_a01_table_01": {
+      "class": "movable:revolute",
+      "axis": "Y",
+      "parent": "sm_surgicaltable_a01_lader4_01",
+      "rationale": ["BEH:ROTATIONAL-tilt-section", "F09:thin-axis-Z-perpendicular-rotation-about-Y", "F11:Gemini-confirms-revolute-Y"]
+    },
+    "sm_surgicaltable_a01_frame1_01": {
+      "class": "movable:revolute",
+      "axis": "Y",
+      "parent": "sm_surgicaltable_a01_table_01",
+      "rationale": ["BEH:ROTATIONAL-tilt-section", "F09:thin-axis-Z-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-table"]
+    },
+    "sm_surgicaltable_a01_headrest_01": {
+      "class": "movable:revolute",
+      "axis": "Y",
+      "parent": "sm_surgicaltable_a01_frame1_01",
+      "rationale": ["BEH:ROTATIONAL-headrest-tilt", "F09:thin-axis-Z-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-frame1"]
+    },
+    "sm_surgicaltable_a01_frame2_01": {
+      "class": "movable:revolute",
+      "axis": "Y",
+      "parent": "sm_surgicaltable_a01_table_01",
+      "rationale": ["BEH:ROTATIONAL-leg-section-tilt", "F09:flat-Z-panel-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-table"]
+    },
+    "sm_surgicaltable_a01_joint1_01": {
+      "class": "movable:revolute",
+      "axis": "Y",
+      "parent": "sm_surgicaltable_a01_frame2_01",
+      "rationale": ["BEH:ROTATIONAL-leg-rest-hip-joint", "F09:thin-axis-Z-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-frame2"]
+    },
+    "sm_surgicaltable_a01_joint2_01": {
+      "class": "movable:revolute",
+      "axis": "Y",
+      "parent": "sm_surgicaltable_a01_joint1_01",
+      "rationale": ["BEH:ROTATIONAL-leg-rest-knee-joint", "F09:flat-Z-panel-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-joint1"]
+    },
+    "sm_surgicaltable_a01_joint3_01": {
+      "class": "movable:revolute",
+      "axis": "Y",
+      "parent": "sm_surgicaltable_a01_frame2_01",
+      "rationale": ["BEH:ROTATIONAL-leg-rest-hip-joint", "F09:thin-axis-Z-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-frame2"]
+    },
+    "sm_surgicaltable_a01_joint4_01": {
+      "class": "movable:revolute",
+      "axis": "Y",
+      "parent": "sm_surgicaltable_a01_joint3_01",
+      "rationale": ["BEH:ROTATIONAL-leg-rest-knee-joint", "F09:flat-Z-panel-rotation-about-Y", "F11:Gemini-confirms-revolute-Y", "F20:hierarchy-parent-is-joint3"]
+    }
   }
 }
