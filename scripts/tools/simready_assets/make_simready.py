@@ -2239,7 +2239,56 @@ def split_wheel_structural_parts(stage, movables, body_path):
             wheel_parent = wheel_prim.GetPath().GetParentPath()
             bracket_name = f"{wheel_prim.GetName()}_bracket"
             bracket_path = wheel_parent.AppendChild(bracket_name)
+            # Author the bracket Xform's translate at the centroid of its
+            # mount meshes (world space) BEFORE reparenting. If we leave the
+            # bracket at identity, its Xform origin sits at world (0,0,0)
+            # while its colliders land ~30 cm away — a massive origin-to-COM
+            # moment arm that makes the rigid body unstable under gravity
+            # (wheels visibly "fall apart" from the leg pivot). Placing the
+            # bracket origin at the mount centroid means PhysX's auto-
+            # computed COM ends up near the origin, which is what the solver
+            # expects.
+            # Compute centroid by walking points of each bracket mesh directly
+            # (mesh_world_bbox walks only DESCENDANTS, so passing a Mesh path
+            # returns None — wouldn't help here since bracket_children are
+            # Mesh paths, not Xform paths).
+            bmin = Gf.Vec3d(1e30, 1e30, 1e30)
+            bmax = Gf.Vec3d(-1e30, -1e30, -1e30)
+            found_any = False
+            for mp in bracket_children:
+                mprim = stage.GetPrimAtPath(mp)
+                if not mprim or not mprim.IsValid():
+                    continue
+                meshes = []
+                if mprim.IsA(UsdGeom.Mesh):
+                    meshes.append(mprim)
+                meshes.extend(_get_all_descendant_meshes(mprim))
+                for m in meshes:
+                    pts = m.GetAttribute("points")
+                    if not pts or not pts.HasValue():
+                        continue
+                    ml2w = UsdGeom.Xformable(m).ComputeLocalToWorldTransform(
+                        Usd.TimeCode.Default())
+                    for pt in pts.Get():
+                        wp = ml2w.TransformAffine(Gf.Vec3d(
+                            float(pt[0]), float(pt[1]), float(pt[2])))
+                        bmin = Gf.Vec3d(min(bmin[0], wp[0]),
+                                        min(bmin[1], wp[1]),
+                                        min(bmin[2], wp[2]))
+                        bmax = Gf.Vec3d(max(bmax[0], wp[0]),
+                                        max(bmax[1], wp[1]),
+                                        max(bmax[2], wp[2]))
+                        found_any = True
             UsdGeom.Xform.Define(stage, bracket_path)
+            if found_any:
+                centroid = Gf.Vec3d(
+                    (bmin[0] + bmax[0]) / 2,
+                    (bmin[1] + bmax[1]) / 2,
+                    (bmin[2] + bmax[2]) / 2,
+                )
+                UsdGeom.Xformable(
+                    stage.GetPrimAtPath(bracket_path)
+                ).AddTranslateOp().Set(centroid)
             moved = reparent_prims_preserve_world_xform(
                 stage, bracket_children, bracket_path)
             all_moved.update(moved)
