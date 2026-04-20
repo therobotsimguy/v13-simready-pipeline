@@ -943,6 +943,11 @@ def _tier1_warnings(stage, rigid_bodies, joints, art_root_paths, colliders,
         b1 = j.get("body1_path")
         if not b1:
             continue
+        # Caster brackets are ±9999° revolute Z swivels — the is_continuous
+        # flag matches them by limit width, but they're not wheels and always
+        # carry exactly 1 mount mesh by design.
+        if "_bracket" in b1.lower() or "_bracket" in (j.get("name") or "").lower():
+            continue
         b1p = stage.GetPrimAtPath(b1)
         if not b1p:
             continue
@@ -1459,12 +1464,21 @@ def _mesh_vert_count(prim):
     return 0
 
 
-def _is_degenerate_mesh(prim, eps=1e-6):
-    """True if mesh has zero-thickness (any axis bbox < eps).
+def _is_degenerate_mesh(prim, eps=0.003):
+    """True if mesh is too thin (any axis bbox < eps) to build a convex
+    collider without crashing PhysX broadphase.
 
     Flat 2D decals/stickers/labels fail qhull (coplanar points produce
-    NaN bounds) and crash PhysX broadphase. Such meshes must NOT get
-    CollisionAPI. See usd-physx-schemas: Zero-thickness collision meshes.
+    NaN bounds) and crash PhysX broadphase. But thin-trim meshes (2-3 mm
+    rings, cups, badges) also trip `Illegal BroadPhaseUpdateData` even
+    though they technically have volume — qhull's coplanar tolerance is
+    generous relative to typical trim dimensions. Raised from 1e-6 to
+    3 mm on 2026-04-19 after SurgicalChair_A01_01's seat_cups_01 (2.4 mm
+    Y-thick) triggered a broadphase crash at spawn, making the whole
+    articulation root go to an Invalid transform and the asset vanish.
+    3 mm catches trim, decals, and badges while still keeping legitimate
+    thin-but-real collision shapes (e.g. shelf boards, drawer walls
+    typically 5 mm+).
     """
     pts_attr = prim.GetAttribute("points")
     if not pts_attr or not pts_attr.HasValue():
