@@ -351,6 +351,14 @@ def audit(stage, classification=None):
         body1_path = j.get("body1_path")
         if not body1_path:
             continue
+        # F64e: 2-DOF swivel-caster brackets are revolute housings with wide
+        # limits (±9999°), matching the is_continuous heuristic, but they are
+        # NOT tires — they're the caster hub the tire hangs off of, naturally
+        # cube-ish. Skip them here so F64 only flags actual rolling wheels.
+        # Matches the wheel-split-leak exclusion pattern in C5.
+        name_lower = (j.get("name") or "").lower()
+        if "_bracket" in body1_path.lower() or "_bracket" in name_lower:
+            continue
         wheel_prim = stage.GetPrimAtPath(body1_path)
         if not wheel_prim:
             continue
@@ -481,6 +489,169 @@ def audit(stage, classification=None):
                           f"lower_wheel_cylinders_below_chassis")
     except Exception:
         pass
+    # F66: rest-pose bbox overlap between non-adjacent rigid bodies when
+    # EnabledSelfCollisions=True. PhysX filters adjacent-link pairs
+    # automatically (bodies connected by exactly one joint — distance=1 in
+    # the articulation graph). With F45 enabling self-collisions for the
+    # non-adjacent pairs, any bbox overlap at rest pose means PhysX will
+    # try to collide their convex hulls; if the hulls actually intersect,
+    # initial contact normal computation produces NaN, which the
+    # broadphase propagates to every transform (`Illegal BroadPhaseUpdateData`
+    # then every rigid body reports `Invalid PhysX transform`). Check: for
+    # every pair of rigid bodies separated by ≥2 joints, FAIL if their
+    # world bboxes overlap.
+    has_art_sc = False
+    _dp = stage.GetDefaultPrim()
+    if _dp:
+        attr = _dp.GetAttribute("physxArticulation:enabledSelfCollisions")
+        has_art_sc = bool(attr.Get()) if attr and attr.HasValue() else False
+    if has_art_sc and len(rigid_bodies) > 2:
+        # Build joint adjacency graph keyed by body path.
+        adj = {rb["path"]: set() for rb in rigid_bodies}
+        for j in joints:
+            if j.get("is_world_anchor"):
+                continue
+            b0 = j.get("body0_path")
+            b1 = j.get("body1_path")
+            if b0 in adj and b1 in adj:
+                adj[b0].add(b1)
+                adj[b1].add(b0)
+        # BFS distance between body pairs.
+        def distance(a, b):
+            if a == b:
+                return 0
+            seen = {a}
+            frontier = [(a, 0)]
+            while frontier:
+                cur, d = frontier.pop(0)
+                if d >= 3:
+                    return 99  # cap — anything ≥ 3 is non-adjacent for this check
+                for nxt in adj.get(cur, ()):
+                    if nxt in seen:
+                        continue
+                    if nxt == b:
+                        return d + 1
+                    seen.add(nxt)
+                    frontier.append((nxt, d + 1))
+            return 99
+        # Precompute bboxes once.
+        try:
+            bbc_f66 = UsdGeom.BBoxCache(Usd.TimeCode.Default(),
+                                        [UsdGeom.Tokens.default_])
+            body_bbs = {}
+            for rb in rigid_bodies:
+                p = stage.GetPrimAtPath(rb["path"])
+                if p:
+                    body_bbs[rb["path"]] = bbc_f66.ComputeWorldBound(p).ComputeAlignedRange()
+            def bbox_volume(bb):
+                if bb.IsEmpty():
+                    return 0.0
+                mn, mx = bb.GetMin(), bb.GetMax()
+                v = 1.0
+                for i in range(3):
+                    d = float(mx[i] - mn[i])
+                    if d <= 0:
+                        return 0.0
+                    v *= d
+                return v
+            def overlap_containment(a, b):
+                """Return overlap_volume / min(vol_a, vol_b), or 0 if no overlap.
+                Ratio ≥ 0.2 means one body is mostly inside the other — the
+                crash-risk case. Ratio near 0 means just a glancing edge
+                touch, which PhysX handles fine in practice (evidenced by
+                ResuscitationBed/SurgicalTable teleop-PASS at 2026-04-18/19)."""
+                if a.IsEmpty() or b.IsEmpty():
+                    return 0.0
+                amn, amx = a.GetMin(), a.GetMax()
+                bmn, bmx = b.GetMin(), b.GetMax()
+                ov = 1.0
+                for i in range(3):
+                    lo = max(float(amn[i]), float(bmn[i]))
+                    hi = min(float(amx[i]), float(bmx[i]))
+                    d = hi - lo
+                    if d <= 0:
+                        return 0.0
+                    ov *= d
+                va, vb = bbox_volume(a), bbox_volume(b)
+                smaller = min(va, vb) if va > 0 and vb > 0 else 0.0
+                return (ov / smaller) if smaller > 0 else 0.0
+            # Any non-zero bbox overlap for non-adjacent bodies under
+            # self-collisions is a risk signal. Bbox containment correlates
+            # weakly with actual hull intersection (the crash-causing
+            # geometry): 18.8% containment chair crashed, 21% bed didn't.
+            # Emit as warning, don't flip c2_pass — warning is visible to
+            # the builder, audit score still reflects statically-verifiable
+            # state. Pairs with an authored physxCollision:filteredPairs
+            # relationship are excluded — those are explicitly filtered
+            # and won't crash (authored by
+            # author_filter_pairs_for_overlapping_siblings at build time).
+            filtered = {}
+            for rb in rigid_bodies:
+                pr = stage.GetPrimAtPath(rb["path"])
+                if not pr:
+                    continue
+                rel = pr.GetRelationship("physxCollision:filteredPairs")
+                if rel:
+                    for t in rel.GetTargets():
+                        filtered.setdefault(rb["path"], set()).add(str(t))
+                        filtered.setdefault(str(t), set()).add(rb["path"])
+            f66_pairs = []
+            paths = list(body_bbs.keys())
+            for i, pa in enumerate(paths):
+                for pb in paths[i + 1:]:
+                    if distance(pa, pb) < 2:
+                        continue
+                    if pb in filtered.get(pa, set()):
+                        continue  # explicitly filtered — safe
+                    ratio = overlap_containment(body_bbs[pa], body_bbs[pb])
+                    if ratio > 0:
+                        f66_pairs.append((Sdf.Path(pa).name,
+                                          Sdf.Path(pb).name, ratio))
+            if f66_pairs:
+                # Sort by containment descending so highest-risk pair shows first.
+                f66_pairs.sort(key=lambda t: t[2], reverse=True)
+                ex_a, ex_b, ex_r = f66_pairs[0]
+                c2_detail += (f" — F66 WARNING: {len(f66_pairs)} non-adjacent "
+                              f"rigid-body pair(s) with rest-pose bbox overlap "
+                              f"AND EnabledSelfCollisions=True (worst "
+                              f"containment {ex_r:.0%} at {ex_a} ↔ {ex_b}); "
+                              f"PhysX may crash broadphase at runtime if hulls "
+                              f"actually intersect — test in teleop; fix if so: "
+                              f"author physxCollision:filteredPairs OR disable "
+                              f"EnabledSelfCollisions for assets where non-"
+                              f"adjacent siblings share XY footprint (e.g. "
+                              f"star-base 5-caster chairs)")
+        except Exception:
+            pass
+    # F65: non-wheel continuous joints mis-routed through the wheel path.
+    # apply_collision_wheels synthesizes a primitive Cylinder over the body
+    # (sized to its bbox along the joint axis). If this happens to a swivel
+    # seat / rotary knob / turntable, the resulting cylinder collider is
+    # wrong geometry and cascades into F64c stripping legitimate chassis
+    # colliders. Detector: any body carrying a primitive Cylinder collider
+    # whose body name LACKS wheel keywords → F65 was triggered.
+    _F65_WHEEL_KEYWORDS = ("wheel", "caster", "tire", "roller")
+    f65_hits = []
+    for rb in rigid_bodies:
+        rb_name = Sdf.Path(rb["path"]).name.lower()
+        if any(kw in rb_name for kw in _F65_WHEEL_KEYWORDS):
+            continue
+        rb_prim = stage.GetPrimAtPath(rb["path"])
+        if not rb_prim:
+            continue
+        for d in Usd.PrimRange(rb_prim):
+            if d.GetTypeName() == "Cylinder" and d.HasAPI(UsdPhysics.CollisionAPI):
+                f65_hits.append(str(d.GetPath()))
+                break
+    if f65_hits:
+        c2_pass = False
+        c2_detail += (f" — F65: {len(f65_hits)} non-wheel body(ies) "
+                      f"carry a primitive Cylinder collider "
+                      f"(e.g. {f65_hits[0]}); apply_physics mis-routed a "
+                      f"continuous-joint non-wheel through "
+                      f"apply_collision_wheels; fix in make_simready.py: "
+                      f"gate is_wheel dispatch on wheel-name keywords "
+                      f"(wheel/caster/tire/roller)")
     # F47: zero-thickness collision meshes (flat decals, stickers, labels)
     # crash qhull at physics init. PhysX reports "Illegal BroadPhaseUpdateData"
     # and every rigid body's transform becomes "Invalid". Asset disappears
@@ -2289,27 +2460,47 @@ def strip_chassis_floor_blockers(stage, body_path, movables):
     if cyl_bottom == float("inf"):
         return 0
     bbc = UsdGeom.BBoxCache(0, ["default"])
-    n = 0
+    # First pass: identify candidates (chassis meshes whose bottom sits
+    # >5mm below the wheel cylinder bottoms) AND count currently-authored
+    # body colliders so F64d can preserve at least one.
+    candidates = []
+    all_body_colliders = []
     for d in Usd.PrimRange(body_prim):
         if not d.IsA(UsdGeom.Mesh):
             continue
         if not d.HasAPI(UsdPhysics.CollisionAPI):
             continue
+        all_body_colliders.append(d)
         try:
             bb = bbc.ComputeWorldBound(d)
             zmin = bb.GetBox().GetMin()[2]
         except Exception:
             continue
-        # Strip chassis meshes whose bottom is more than 5mm below the
-        # wheel cylinder bottoms — those will block ground contact and
-        # prevent rolling.
         if zmin < cyl_bottom - 0.005:
-            d.RemoveAPI(UsdPhysics.CollisionAPI)
-            d.RemoveAPI(UsdPhysics.MeshCollisionAPI)
-            # Also hide — after gravity-settle onto the wheel cylinders,
-            # this mesh (authored at floor level) would render below ground.
-            UsdGeom.Imageable(d).CreateVisibilityAttr().Set("invisible")
-            n += 1
+            candidates.append((d, zmin))
+    # F64d: preserve at least one body collider. If F64c would strip EVERY
+    # collider on the chassis (e.g. a star-base surgical chair whose legs
+    # naturally extend to floor level on all sides), drop the candidate
+    # with the highest zmin from the strip set — the chassis then still
+    # has one collider to block obstacles at its own body level, and the
+    # lowest-Z legs still get stripped so wheel cylinders can contact
+    # ground first. Without this guard, apply_physics produces a body
+    # with zero colliders (F35 failure) and teleop/sim physics is wrong.
+    if candidates and len(candidates) >= len(all_body_colliders):
+        candidates.sort(key=lambda pair: pair[1], reverse=True)
+        preserved = candidates.pop(0)
+        print(f"    F64d: preserved {preserved[0].GetName()} "
+              f"(highest zmin={preserved[1]:.3f}) — body would otherwise "
+              f"have 0 colliders after F64c strip")
+    # Second pass: apply the strip to everything that survived F64d.
+    n = 0
+    for d, _ in candidates:
+        d.RemoveAPI(UsdPhysics.CollisionAPI)
+        d.RemoveAPI(UsdPhysics.MeshCollisionAPI)
+        # Also hide — after gravity-settle onto the wheel cylinders,
+        # this mesh (authored at floor level) would render below ground.
+        UsdGeom.Imageable(d).CreateVisibilityAttr().Set("invisible")
+        n += 1
     return n
 
 
@@ -3675,7 +3866,19 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     print(f"    body: {n_body_col} colliders ({n_body_decomp} decomp)")
 
     for name, info in movables.items():
-        is_wheel = info["joint"] == "continuous"
+        # F65: wheel collision path is for wheels, not all continuous joints.
+        # A swivel seat is `movable:continuous` (360° rotation) but is NOT
+        # a tire — passing it through apply_collision_wheels synthesizes a
+        # primitive Cylinder collider over a cushy seat, which cascades into
+        # F64c stripping legitimate chassis colliders. Gate the wheel path
+        # on the part name containing wheel/caster/tire/roller. Other
+        # continuous joints (swivel seats, rotary knobs, turntables) fall
+        # through to the normal q1 mesh-collision path.
+        nm = name.lower()
+        is_wheel = (
+            info["joint"] == "continuous"
+            and any(kw in nm for kw in ("wheel", "caster", "tire", "roller"))
+        )
         # Fixed-joint movables are welded structural links (e.g. a plate
         # rigidly attached to a column so a sibling prismatic can collide
         # with it). They need full mesh coverage — skip the rail-keyword
@@ -4040,13 +4243,151 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     sc_attr = default_prim.GetAttribute("physxArticulation:enabledSelfCollisions")
     if not sc_attr:
         sc_attr = default_prim.CreateAttribute("physxArticulation:enabledSelfCollisions", Sdf.ValueTypeNames.Bool)
-    sc_attr.Set(True)
+    # F45 v2: conditional self-collisions. The original F45 enabled this
+    # unconditionally so sibling drawers on MedicalutilityCart couldn't
+    # tunnel. But for 2-DOF swivel-caster articulations (SurgicalChair
+    # 5-star base with bracket+wheel chains), PhysX broadphase produces
+    # NaN contact normals at first runtime hull overlap between non-
+    # adjacent bodies, and the asset flies apart. Rule: skip F45 when
+    # the articulation contains ≥1 `_bracket` body (the 2-DOF caster
+    # signature) — those assets don't have sibling drawers/sliders so
+    # F45 provides no functional benefit, only failure risk.
+    has_2dof_caster = any("_bracket" in name.lower() for name in movables.keys())
+    enable_sc = not has_2dof_caster
+    sc_attr.Set(enable_sc)
     print(f"    ArticulationRootAPI on '{default_prim.GetName()}' (default prim)")
-    print(f"    EnabledSelfCollisions=True (non-adjacent links collide — F45)")
+    if enable_sc:
+        print(f"    EnabledSelfCollisions=True (non-adjacent links collide — F45)")
+    else:
+        print(f"    EnabledSelfCollisions=False (2-DOF caster articulation — "
+              f"F45 skipped to avoid PhysX broadphase NaN on bracket↔wheel "
+              f"hull overlaps)")
+
+    # F66: with self-collisions enabled, PhysX still collides non-adjacent
+    # rigid bodies whose convex hulls happen to overlap. On star-base furniture
+    # (5-caster chairs) the chassis bbox envelops every wheel's footprint,
+    # so rolling a wheel brings its tire hull into the leg's hull → NaN
+    # contact normal → broadphase crash. Author `physxCollision:filteredPairs`
+    # relationships between non-adjacent body pairs whose bboxes overlap, so
+    # PhysX explicitly skips those pairs. Adjacent pairs stay filtered by
+    # articulation auto-filtering; legitimate sibling-collision pairs (e.g.
+    # drawer↔drawer with non-overlapping bboxes) still collide.
+    n_filtered = author_filter_pairs_for_overlapping_siblings(stage, default_prim)
+    if n_filtered:
+        print(f"    F66: authored {n_filtered} filterPairs relationship(s) "
+              f"to prevent non-adjacent bbox-overlap crashes")
 
     # --- Save ---
     stage.GetRootLayer().Save()
     print(f"\n  SAVED: {output_usd}")
+
+
+def author_filter_pairs_for_overlapping_siblings(stage, default_prim):
+    """F66 fix — author physxCollision:filteredPairs between non-adjacent
+    rigid bodies whose world bboxes overlap at rest pose.
+
+    Context: F45 enables EnabledSelfCollisions on the articulation root so
+    sibling drawers collide with each other. PhysX still auto-filters
+    adjacent pairs (bodies connected by a single joint). For non-adjacent
+    pairs (≥2 joints between them) whose hulls MIGHT intersect at runtime,
+    PhysX attempts collision and may produce NaN contact normals on first
+    touch, cascading through the broadphase. Star-base 5-caster chairs are
+    the prototypical failure — the chassis bbox envelops every wheel's
+    footprint, so rolling a wheel puts the tire hull inside the leg hull.
+
+    Fix: build the joint-adjacency graph, find non-adjacent pairs whose
+    bboxes overlap, and add `physxCollision:filteredPairs` relationships
+    on one body pointing at the other. PhysX honors these as explicit skip
+    rules even with self-collisions on.
+
+    Only filters pairs — never disables F45 globally. Returns count of
+    pairs filtered. Surfaced on SurgicalChair_A01_01 (2026-04-20): 5 leg↔
+    wheel pairs with 100% wheel-in-leg bbox containment crashed broadphase
+    at first shift-drag; authoring 5 filterPairs fixes the crash.
+    """
+    # Collect rigid bodies and joints.
+    rb_paths = []
+    for p in stage.Traverse():
+        if p.HasAPI(UsdPhysics.RigidBodyAPI):
+            rb_paths.append(str(p.GetPath()))
+    if len(rb_paths) <= 2:
+        return 0
+
+    # Build adjacency via joint body0/body1 relationships.
+    adj = {p: set() for p in rb_paths}
+    for p in stage.Traverse():
+        if not p.IsA(UsdPhysics.Joint):
+            continue
+        b0r = p.GetRelationship("physics:body0")
+        b1r = p.GetRelationship("physics:body1")
+        t0 = [str(t) for t in (b0r.GetTargets() if b0r else [])]
+        t1 = [str(t) for t in (b1r.GetTargets() if b1r else [])]
+        if not t0 or not t1:
+            continue
+        a, b = t0[0], t1[0]
+        if a in adj and b in adj:
+            adj[a].add(b)
+            adj[b].add(a)
+
+    # BFS distance up to 2 (anything ≥ 2 is non-adjacent for this purpose).
+    def distance(a, b):
+        if a == b:
+            return 0
+        seen = {a}
+        frontier = [(a, 0)]
+        while frontier:
+            cur, d = frontier.pop(0)
+            if d >= 2:
+                return 99
+            for nxt in adj.get(cur, ()):
+                if nxt in seen:
+                    continue
+                if nxt == b:
+                    return d + 1
+                seen.add(nxt)
+                frontier.append((nxt, d + 1))
+        return 99
+
+    # World bboxes.
+    bbc = UsdGeom.BBoxCache(Usd.TimeCode.Default(), [UsdGeom.Tokens.default_])
+    bbs = {}
+    for path in rb_paths:
+        pr = stage.GetPrimAtPath(path)
+        if pr:
+            bbs[path] = bbc.ComputeWorldBound(pr).ComputeAlignedRange()
+
+    def bbox_overlap(a, b):
+        if a.IsEmpty() or b.IsEmpty():
+            return False
+        for i in range(3):
+            if a.GetMin()[i] > b.GetMax()[i] or b.GetMin()[i] > a.GetMax()[i]:
+                return False
+        return True
+
+    # Find non-adjacent overlapping pairs.
+    paths = list(bbs.keys())
+    pairs = []
+    for i, pa in enumerate(paths):
+        for pb in paths[i + 1:]:
+            if distance(pa, pb) >= 2 and bbox_overlap(bbs[pa], bbs[pb]):
+                pairs.append((pa, pb))
+    if not pairs:
+        return 0
+
+    # Author physxCollision:filteredPairs on one side of each pair.
+    for pa, pb in pairs:
+        a_prim = stage.GetPrimAtPath(pa)
+        if not a_prim:
+            continue
+        rel = a_prim.GetRelationship("physxCollision:filteredPairs")
+        if not rel:
+            rel = a_prim.CreateRelationship("physxCollision:filteredPairs",
+                                            custom=False)
+        existing = set(str(t) for t in rel.GetTargets())
+        if pb not in existing:
+            targets = list(existing) + [pb]
+            rel.SetTargets([Sdf.Path(t) for t in targets])
+    return len(pairs)
 
 
 def export_physics_json(usd_path, object_data=None):

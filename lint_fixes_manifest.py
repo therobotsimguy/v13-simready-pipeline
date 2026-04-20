@@ -42,10 +42,13 @@ SKILL_FAILURES = V13 / "skills/failure-modes/SKILL.md"
 CODE = V13 / "scripts/tools/simready_assets/make_simready.py"
 MANIFEST = V13 / "fixes.json"
 
-# audit() + _tier1_warnings() together are the enforcement surface. Keep this
-# pair in sync with make_simready.py if either function moves.
-AUDIT_START_LINE = 57       # def audit(...)
-AUDIT_END_LINE = 1099       # end of _tier1_warnings()
+# audit() + _tier1_warnings() together are the enforcement surface. These
+# bounds are discovered dynamically via grep at scan time, so they stay in
+# sync when audit() grows new checks (e.g. F45/F64b/F64c/F65/F66 additions
+# shifted _tier1_warnings by several hundred lines). Fallback values here
+# are hints if dynamic discovery fails.
+AUDIT_START_LINE = 57
+AUDIT_END_LINE = 1600
 
 # Hand-curated binding between failure-mode IDs and named fix functions.
 # Only entries with a dedicated `def` go here. Inline enforcement (no named
@@ -100,10 +103,29 @@ def parse_skill(path: Path) -> dict:
 
 
 def load_code() -> tuple[str, str]:
-    """Return (full file text, audit+tier1_warnings body text)."""
+    """Return (full file text, audit+tier1_warnings body text).
+    Bounds are discovered dynamically: from `def audit(` to the end of
+    `def _tier1_warnings(` (the last function in the audit surface before
+    helper utilities). This survives audit() growing new checks."""
     text = CODE.read_text()
     lines = text.splitlines()
-    audit_body = "\n".join(lines[AUDIT_START_LINE - 1:AUDIT_END_LINE])
+    # Find def audit(
+    start = AUDIT_START_LINE
+    for i, line in enumerate(lines, 1):
+        if re.match(r"^def audit\s*\(", line):
+            start = i
+            break
+    # Find end: the line before the function after _tier1_warnings (or EOF).
+    end = AUDIT_END_LINE
+    seen_tier1 = False
+    for i, line in enumerate(lines, 1):
+        if re.match(r"^def _tier1_warnings\s*\(", line):
+            seen_tier1 = True
+            continue
+        if seen_tier1 and re.match(r"^def ", line):
+            end = i - 1
+            break
+    audit_body = "\n".join(lines[start - 1:end])
     return text, audit_body
 
 
