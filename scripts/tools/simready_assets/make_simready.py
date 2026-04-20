@@ -372,6 +372,12 @@ def audit(stage, classification=None):
                 continue
             if "_bracket" in b1.lower() or "_bracket" in (j.get("name") or "").lower():
                 continue
+            # Swivel seats and other non-wheel continuous joints legitimately
+            # carry body/mount/bolt meshes; only check joints whose body1
+            # looks like a wheel by name.
+            b1_nm_lower = b1.lower()
+            if not any(kw in b1_nm_lower for kw in ("wheel", "caster", "roller", "tire")):
+                continue
             b1_prim = stage.GetPrimAtPath(b1)
             if not b1_prim:
                 continue
@@ -1748,7 +1754,15 @@ def apply_collision_q1(stage, xform_path, is_body=False):
 
 
 def apply_collision_wheels(stage, xform_path):
-    """All wheel meshes get convexDecomposition (hull creates blobs)."""
+    """Wheel meshes: tire-named meshes use convexHull (drum shape, no
+    jitter); non-tire sub-parts (disc, detail, etc.) use convexDecomposition
+    for non-convex geometry. Switched 2026-04-19 after the SurgicalChair
+    caster build showed visible tire-cover popping under swivel torque —
+    a torus-ish tire mesh decomposed into many small hulls produces
+    contact separation that looks like the tire cover lifting off the rim.
+    Hull is geometrically a filled drum, which for physics-grade casters
+    is the right approximation (you don't need to model tread pattern).
+    """
     prim = stage.GetPrimAtPath(xform_path)
     if not prim:
         return 0
@@ -1759,7 +1773,11 @@ def apply_collision_wheels(stage, xform_path):
             continue
         UsdPhysics.CollisionAPI.Apply(desc)
         mc = UsdPhysics.MeshCollisionAPI.Apply(desc)
-        mc.CreateApproximationAttr("convexDecomposition")
+        dn = desc.GetName().lower()
+        if "tire" in dn:
+            mc.CreateApproximationAttr("convexHull")
+        else:
+            mc.CreateApproximationAttr("convexDecomposition")
         n += 1
     return n
 
@@ -2092,6 +2110,63 @@ def _is_swivel_caster(wheel_prim):
     return has_tire and has_bracket
 
 
+def regroup_body_meshes_by_movable(stage, movables, body_path):
+    """Move body-level structural meshes that visually belong to a movable
+    INTO the movable's Xform so they transform together.
+
+    The classifier receives a flat list of Xforms and routes each to body
+    or to a movable. But the raw USD often scatters a movable's sub-meshes
+    across the body layer using shared naming (`seat_body_01`, `seat_mount*`,
+    `seat_bolts_01` for a rotating seat). If these stay on the chassis body
+    they become static while the seat Xform rotates, and the soft cushion
+    on the seat visually detaches from the "static" seat frame.
+
+    Rule: for each non-wheel movable with name like `<prefix>_NN`, scan the
+    body's direct Mesh children and reparent any whose name starts with
+    `<prefix>_` into the movable's Xform (preserving world transform).
+    Skipped for continuous wheels — those are handled by
+    split_wheel_structural_parts with a different split direction.
+
+    Surfaced on SurgicalChair_A01_01 (2026-04-19): seat_body/mount/bolts
+    stayed on the leg while seat_01 rotated; cushion-on-rotating-seat
+    appeared to detach from static-seat-frame-on-leg each time the seat
+    swivelled.
+    """
+    body_prim = stage.GetPrimAtPath(body_path)
+    if not body_prim:
+        return {}
+    moved = {}
+    for name, info in movables.items():
+        if info["joint"] == "continuous":
+            continue  # wheels use split_wheel_structural_parts
+        if info.get("is_caster_bracket"):
+            continue  # brackets built by split_wheel_structural_parts
+        # prefix e.g. "seat" from "sm_surgicalchair_a01_seat_01"
+        parts = name.rsplit("_", 1)
+        if len(parts) != 2 or not parts[1].isdigit():
+            continue
+        prefix_full = parts[0]  # "sm_surgicalchair_a01_seat"
+        short_prefix = prefix_full.rsplit("_", 1)[-1]  # "seat"
+        if len(short_prefix) < 3:
+            continue  # reject absurdly short prefixes that'd over-match
+        movable_path = info["path"]
+        to_move = []
+        for c in body_prim.GetChildren():
+            if not c.IsA(UsdGeom.Mesh):
+                continue
+            cn = c.GetName().lower()
+            if cn.startswith(prefix_full.lower() + "_"):
+                # Don't move the movable Xform into itself (edge case when
+                # the body is also the default prim wrapping the movable).
+                if c.GetPath() == movable_path:
+                    continue
+                to_move.append(c.GetPath())
+        if to_move:
+            m = reparent_prims_preserve_world_xform(stage, to_move, movable_path)
+            moved.update(m)
+    return moved
+
+
 def split_wheel_structural_parts(stage, movables, body_path):
     """Split each continuous-joint wheel into the right physics topology.
 
@@ -2116,6 +2191,16 @@ def split_wheel_structural_parts(stage, movables, body_path):
     caster_brackets = {}
     for name, info in list(movables.items()):
         if info["joint"] != "continuous":
+            continue
+        # Gate by wheel-name keyword so swivel seats and similar non-wheel
+        # continuous joints don't match WHEEL_STRUCTURAL_KEYWORDS against their
+        # own sub-meshes. Surfaced on SurgicalChair_A01_01 (2026-04-19): the
+        # seat_01 continuous joint had seat_body/mount/bolts children, all
+        # matched the wheel-structural keywords, and the split stripped the
+        # seat frame to the leg — the soft cushion on the rotating seat then
+        # visually detached from the "static seat frame" on every swivel.
+        nm_lower = name.lower()
+        if not any(kw in nm_lower for kw in ("wheel", "caster", "roller", "tire")):
             continue
         wheel_prim = stage.GetPrimAtPath(info["path"])
         if not wheel_prim:
@@ -2580,6 +2665,17 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
             old_p = str(movables[name]["path"])
             if old_p in moved:
                 movables[name]["path"] = Sdf.Path(moved[old_p])
+
+    # Regroup body-level meshes that share a movable's prefix into the
+    # movable itself (keeps seat frame + cushion + bolts rotating together
+    # on a swivel-seat chair; no-op on trolleys where wheels are handled by
+    # split_wheel_structural_parts below). Must run BEFORE the wheel split
+    # so its side-effects don't get undone.
+    body_regroup_moved = regroup_body_meshes_by_movable(stage, movables, body_path)
+    if body_regroup_moved:
+        print(f"\n  BODY REGROUP: {len(body_regroup_moved)} body meshes → owning movable")
+        for old, new in body_regroup_moved.items():
+            print(f"    {old} -> {new}")
 
     # --- Wheel structural split (fixed wheels → chassis; casters → bracket body) ---
     wheel_moved, caster_brackets = split_wheel_structural_parts(stage, movables, body_path)
