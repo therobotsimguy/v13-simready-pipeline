@@ -358,12 +358,19 @@ def audit(stage, classification=None):
         # split_wheel_structural_parts failed silently, the bracket rotates with
         # the tire. Seen on EmergencyTrolley_A01_01 when structural parts were
         # wrapped in Xforms instead of direct Meshes.
+        # Skip 2-DOF caster bracket joints — the bracket legitimately contains
+        # mount / bolt / body meshes as structural members of its swivel body.
+        # The audit heuristic (revolute + wide limits → is_continuous) fires on
+        # bracket swivels with ±9999° limits; detect them by the "_bracket"
+        # naming convention used by split_wheel_structural_parts.
         wheel_split_leaks = []
         for j in joints:
             if not j.get("is_continuous"):
                 continue
             b1 = j.get("body1_path")
             if not b1:
+                continue
+            if "_bracket" in b1.lower() or "_bracket" in (j.get("name") or "").lower():
                 continue
             b1_prim = stage.GetPrimAtPath(b1)
             if not b1_prim:
@@ -1917,7 +1924,13 @@ def make_revolute_joint(stage, joint_path, body0, body1, local_pos0, local_pos1,
                         axis="Z", hinge_edge="min_x", lower_deg=-120, upper_deg=120):
     joint = UsdPhysics.RevoluteJoint.Define(stage, joint_path)
     joint.CreateAxisAttr(axis)
-    if hinge_edge == "min_x":
+    if hinge_edge == "continuous":
+        # Bidirectional unlimited swivel — used for 2-DOF caster brackets
+        # (Z rotation tracks push direction). Light angular drive below
+        # keeps the bracket from oscillating under gravity.
+        joint.CreateLowerLimitAttr(-9999.0)
+        joint.CreateUpperLimitAttr(9999.0)
+    elif hinge_edge == "min_x":
         joint.CreateLowerLimitAttr(float(lower_deg))
         joint.CreateUpperLimitAttr(0.0)
     else:
@@ -2052,33 +2065,110 @@ WHEEL_STRUCTURAL_KEYWORDS = ("fixer", "bolt", "body", "mount", "stopper",
                              # happen here.
                              "base", "trim")
 
-def split_wheel_structural_parts(stage, movables, body_path):
-    """Move structural child meshes (fixer/body/bolts) from wheel Xforms to body.
+# Sub-mesh keywords that identify a swivel-caster bracket (U-housing that
+# rotates around vertical while the tire rolls inside it). Checked as direct
+# children of a continuous-joint wheel Xform. Keep tight — broad matches like
+# "body" on a fixed-wheel disc would mis-trigger caster mode.
+CASTER_BRACKET_KEYWORDS = ("mount", "bracket", "housing", "fork", "yoke", "swivel")
 
-    Caster wheels contain rotating parts (tire, disc, detail) and structural
-    parts (fixer, body, bolts = the bracket/fork). Structural parts must stay
-    with the body; if they rotate with the wheel, brackets detach under force.
+
+def _is_swivel_caster(wheel_prim):
+    """Detect swivel-caster pattern: wheel Xform has BOTH a tire mesh and a
+    bracket-style sibling mesh (mount / bracket / housing / fork).
+
+    Contrast with fixed wheels (InstrumentTrolley): direct children are
+    tire + disc + detail — no bracket keyword, so 1-DOF path kicks in.
+    """
+    has_tire = False
+    has_bracket = False
+    for child in wheel_prim.GetAllChildren():
+        if child.GetTypeName() not in ("Mesh", "Xform"):
+            continue
+        nm = child.GetName().lower()
+        if "tire" in nm:
+            has_tire = True
+        if any(kw in nm for kw in CASTER_BRACKET_KEYWORDS):
+            has_bracket = True
+    return has_tire and has_bracket
+
+
+def split_wheel_structural_parts(stage, movables, body_path):
+    """Split each continuous-joint wheel into the right physics topology.
+
+    Fixed wheels (InstrumentTrolley, EmergencyTrolley, ResuscitationBed):
+    move structural meshes (fixer / body / bolts / frame / ...) from the
+    wheel Xform to the chassis body so they stay welded to the chassis
+    while only the tire sub-body spins.
+
+    Swivel casters (SurgicalChair, office chairs): split each wheel into
+    TWO rigid bodies — a bracket (U-housing containing mount / bolt / body
+    meshes) that swivels on a revolute Z joint to the chassis, and a tire
+    sub-body that rolls on a continuous joint to the bracket. True 2-DOF
+    caster behavior: turn in place + roll in whatever direction the robot
+    pushes. Mutates `movables` in place to inject the new bracket entry and
+    re-parent the tire to it.
+
+    Returns:
+        all_moved          — prim-path map of every reparent, for logging
+        caster_brackets    — {wheel_name: bracket_path} for each 2-DOF build
     """
     all_moved = {}
-    for name, info in movables.items():
+    caster_brackets = {}
+    for name, info in list(movables.items()):
         if info["joint"] != "continuous":
             continue
         wheel_prim = stage.GetPrimAtPath(info["path"])
         if not wheel_prim:
             continue
-        structural_paths = []
-        for child in wheel_prim.GetAllChildren():
-            # Move any direct child (Mesh or Xform wrapping one) whose name
-            # matches a structural keyword. EmergencyTrolley wraps each part
-            # in an Xform so direct-Mesh-only matching misses frame/caps/brake.
-            if child.GetTypeName() not in ("Mesh", "Xform"):
-                continue
-            if any(kw in child.GetName().lower() for kw in WHEEL_STRUCTURAL_KEYWORDS):
-                structural_paths.append(child.GetPath())
-        if structural_paths:
-            moved = reparent_prims_preserve_world_xform(stage, structural_paths, body_path)
+
+        if _is_swivel_caster(wheel_prim):
+            # --- 2-DOF caster: create bracket body, reparent bracket meshes ---
+            bracket_children = []
+            for child in wheel_prim.GetAllChildren():
+                if child.GetTypeName() not in ("Mesh", "Xform"):
+                    continue
+                nm = child.GetName().lower()
+                if "tire" in nm:
+                    continue  # tire stays inside the wheel Xform
+                if any(kw in nm for kw in WHEEL_STRUCTURAL_KEYWORDS):
+                    bracket_children.append(child.GetPath())
+            if not bracket_children:
+                continue  # nothing to split out; treat as fixed-wheel-ish
+            # New bracket Xform is a sibling of the wheel Xform under dp_parent.
+            wheel_parent = wheel_prim.GetPath().GetParentPath()
+            bracket_name = f"{wheel_prim.GetName()}_bracket"
+            bracket_path = wheel_parent.AppendChild(bracket_name)
+            UsdGeom.Xform.Define(stage, bracket_path)
+            moved = reparent_prims_preserve_world_xform(
+                stage, bracket_children, bracket_path)
             all_moved.update(moved)
-    return all_moved
+            caster_brackets[name] = bracket_path
+            # Inject bracket into movables as a revolute Z swivel on the body.
+            # Continuous range so it can spin freely like a real caster.
+            movables[bracket_name] = {
+                "path": bracket_path,
+                "joint": "revolute",
+                "axis": "Z",
+                "parent": "body",
+                "hinge_edge": "continuous",  # ±continuous swivel
+                "is_caster_bracket": True,
+            }
+            # The tire's parent is now the bracket, not the body.
+            info["parent"] = bracket_name
+            info["is_caster_tire"] = True
+        else:
+            # --- 1-DOF fixed wheel: move structural meshes to chassis body ---
+            structural_paths = []
+            for child in wheel_prim.GetAllChildren():
+                if child.GetTypeName() not in ("Mesh", "Xform"):
+                    continue
+                if any(kw in child.GetName().lower() for kw in WHEEL_STRUCTURAL_KEYWORDS):
+                    structural_paths.append(child.GetPath())
+            if structural_paths:
+                moved = reparent_prims_preserve_world_xform(
+                    stage, structural_paths, body_path)
+                all_moved.update(moved)
+    return all_moved, caster_brackets
 
 
 # --- Handle detection ---
@@ -2491,12 +2581,38 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
             if old_p in moved:
                 movables[name]["path"] = Sdf.Path(moved[old_p])
 
-    # --- Wheel structural split (fixer/body/bolts/frame/caps/bracket -> body) ---
-    wheel_moved = split_wheel_structural_parts(stage, movables, body_path)
+    # --- Wheel structural split (fixed wheels → chassis; casters → bracket body) ---
+    wheel_moved, caster_brackets = split_wheel_structural_parts(stage, movables, body_path)
     if wheel_moved:
-        print(f"\n  WHEEL SPLIT: {len(wheel_moved)} structural meshes -> body")
+        print(f"\n  WHEEL SPLIT: {len(wheel_moved)} structural meshes → "
+              f"{'bracket + ' if caster_brackets else ''}body")
         for old, new in wheel_moved.items():
             print(f"    {old} -> {new}")
+    if caster_brackets:
+        print(f"\n  CASTER 2-DOF: {len(caster_brackets)} caster bracket body(ies) created")
+        for wheel_name, bracket_path in caster_brackets.items():
+            print(f"    {wheel_name} → bracket {bracket_path}  "
+                  f"(revolute Z swivel on body, tire rolls on bracket)")
+
+    # Compute swivel anchor for each 2-DOF caster bracket injected by the
+    # split. Anchor is at the bracket's top-center — the point where the
+    # bracket mates with the leg under the chassis. Using the bracket's
+    # volumetric centroid would place the Z-axis through the middle of the
+    # caster, which works too, but top-center matches real-world caster
+    # geometry more closely and keeps the swivel axis collinear with the
+    # load path.
+    for name, info in movables.items():
+        if not info.get("is_caster_bracket"):
+            continue
+        bbox = mesh_world_bbox(stage, info["path"])
+        if bbox:
+            saved_anchors[name] = Gf.Vec3d(
+                (bbox[0][0] + bbox[1][0]) / 2,
+                (bbox[0][1] + bbox[1][1]) / 2,
+                bbox[1][2],
+            )
+            print(f"    anchor {name} (bracket top-center): "
+                  f"({saved_anchors[name][0]:.4f}, {saved_anchors[name][1]:.4f}, {saved_anchors[name][2]:.4f})")
 
     # Always recompute tire-center anchor for every continuous joint — whether or
     # not any structural parts were split. Prior behavior put this inside
@@ -2726,7 +2842,11 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
         lp1_f = Gf.Vec3f(float(lp1[0]), float(lp1[1]), float(lp1[2]))
 
         if jtype == "revolute":
-            hinge = detect_hinge_edge(stage, path, anchor_world=anchor)
+            # Caster brackets declare hinge_edge="continuous" explicitly —
+            # skip detect_hinge_edge to preserve the bidirectional ±unlimited
+            # swivel. Everything else auto-detects hinge side from geometry.
+            hinge = info.get("hinge_edge") or detect_hinge_edge(
+                stage, path, anchor_world=anchor)
             make_revolute_joint(stage, joint_path, parent_path, path,
                                 lp0_f, lp1_f, axis=axis, hinge_edge=hinge)
             print(f"    RevoluteJoint  {name}  axis={axis} hinge={hinge} parent={parent_name}")
@@ -2967,11 +3087,12 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
                                  lower_m=lower_m, upper_m=upper_m)
             print(f"    PrismaticJoint {name}  axis={axis} travel=[{lower_m:.3f}, {upper_m:.3f}]m parent={parent_name}")
         elif jtype == "continuous":
-            # Continuous joints are wheels/casters — always attach to body,
-            # never to another movable (wheels don't chain).
-            make_continuous_joint(stage, joint_path, body_path, path,
+            # Continuous joints are wheel-tires or caster-tires. Fixed wheels
+            # attach to body; 2-DOF caster tires attach to their bracket
+            # movable (parent_path already resolved above).
+            make_continuous_joint(stage, joint_path, parent_path, path,
                                   lp0_f, lp1_f, axis=axis)
-            print(f"    ContinuousJoint {name}  axis={axis}")
+            print(f"    ContinuousJoint {name}  axis={axis} parent={parent_name}")
         elif jtype == "fixed":
             make_fixed_joint(stage, joint_path, parent_path, path, lp0_f, lp1_f)
             print(f"    FixedJoint      {name}  parent={parent_name}")
