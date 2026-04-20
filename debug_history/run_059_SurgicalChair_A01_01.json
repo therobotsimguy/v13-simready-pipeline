@@ -1,0 +1,459 @@
+{
+  "id": "run_059",
+  "asset": "SurgicalChair_A01_01",
+  "object_type": "furniture",
+  "timestamp": "2026-04-20T11:54:47",
+  "elapsed_s": 615.33,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 68.38
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 68.38
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 68.38
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 68.38
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 68.38
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 68.38
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 68.38
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 68.38
+      },
+      {
+        "skill": "simready-behaviors",
+        "reason": "sm_surgicalchair_a01_seat_01: BEH:swivel-seat-revolute-Z",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel5_01: F09:axis-from-thin-bbox-Y",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_surgicalchair_a01_wheel5_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel5_01: F42:structural-split-bolt-mount-body",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel4_01: F09:axis-from-thin-bbox-X",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_surgicalchair_a01_wheel4_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel4_01: F42:structural-split-bolt-mount-body",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel3_01: F09:axis-from-thin-bbox-Y",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_surgicalchair_a01_wheel3_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel3_01: F42:structural-split-bolt-mount-body",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel2_01: F09:axis-from-thin-bbox-X",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_surgicalchair_a01_wheel2_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel2_01: F42:structural-split-bolt-mount-body",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel1_01: F09:axis-from-thin-bbox-X",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_surgicalchair_a01_wheel1_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 592.77
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_surgicalchair_a01_wheel1_01: F42:structural-split-bolt-mount-body",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 592.77
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 2,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 11,
+        "overrides": 0,
+        "confirmations": 10,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 6,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 24,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.011,
+        "decisions": {
+          "prims": 9
+        }
+      },
+      {
+        "stage": "geometric_fingerprint",
+        "part": null,
+        "elapsed_s": 8.559,
+        "decisions": {
+          "parts": 8,
+          "chars": 2116
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 31.228,
+        "decisions": {
+          "n_movable_seen": 7
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 28.58,
+        "decisions": {
+          "object_name": "surgical stool with caster wheels",
+          "mass_kg": 15
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 524.389,
+        "decisions": {}
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 22.557,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.002,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.011
+      },
+      "geometric_fingerprint": {
+        "calls": 1,
+        "total_s": 8.559
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 31.228
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 28.58
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 524.389
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 22.557
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.002
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 30.0,
+        "masses": {
+          "sm_surgicalchair_a01_leg_01": 9.0,
+          "sm_surgicalchair_a01_wheel5_01": 0.30000001192092896,
+          "sm_surgicalchair_a01_wheel4_01": 0.30000001192092896,
+          "sm_surgicalchair_a01_wheel3_01": 0.30000001192092896,
+          "sm_surgicalchair_a01_wheel2_01": 0.30000001192092896,
+          "sm_surgicalchair_a01_wheel1_01": 0.30000001192092896,
+          "sm_surgicalchair_a01_seat_01": 3.0,
+          "sm_surgicalchair_a01_wheel5_01_bracket": 0.30000001192092896,
+          "sm_surgicalchair_a01_wheel4_01_bracket": 0.30000001192092896,
+          "sm_surgicalchair_a01_wheel3_01_bracket": 0.30000001192092896,
+          "sm_surgicalchair_a01_wheel2_01_bracket": 0.30000001192092896,
+          "sm_surgicalchair_a01_wheel1_01_bracket": 0.30000001192092896
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "surgical stool with caster wheels",
+    "object_type": "furniture",
+    "material": "stainless_steel",
+    "material_density_kg_m3": 7800,
+    "estimated_mass_kg": 15,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_surgicalchair_a01_seat_01",
+        "behavior": "swivel",
+        "motion": "The entire seat assembly rotates 360 degrees around the central column.",
+        "range_description": "360 degrees",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "height_adjuster",
+        "behavior": "slider",
+        "motion": "The central column slides vertically to adjust the seat height.",
+        "range_description": "15-20 cm of vertical travel",
+        "range_meters": 0.2,
+        "joint_type": "prismatic",
+        "axis": "Z",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_surgicalchair_a01_wheel1_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
+        "range_description": "Continuous roll and 360-degree swivel",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Y (roll), Z (swivel)",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_surgicalchair_a01_wheel2_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
+        "range_description": "Continuous roll and 360-degree swivel",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Y (roll), Z (swivel)",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_surgicalchair_a01_wheel3_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
+        "range_description": "Continuous roll and 360-degree swivel",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Y (roll), Z (swivel)",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_surgicalchair_a01_wheel4_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
+        "range_description": "Continuous roll and 360-degree swivel",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Y (roll), Z (swivel)",
+        "limits_bidirectional": true
+      },
+      {
+        "name": "sm_surgicalchair_a01_wheel5_01",
+        "behavior": "wheel",
+        "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
+        "range_description": "Continuous roll and 360-degree swivel",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Y (roll), Z (swivel)",
+        "limits_bidirectional": true
+      }
+    ],
+    "special_notes": "The five caster wheels each have two degrees of freedom: a continuous revolute joint for rolling (around their local Y-axis) and a continuous revolute joint for swiveling (around their local Z-axis). The seat height adjustment is a prismatic joint along the main Z-axis.",
+    "is_graspable": false,
+    "grip_location": null
+  }
+}

@@ -1,45 +1,41 @@
 {
   "body": "sm_surgicalchair_a01_leg_01",
   "parts": {
-    "sm_surgicalchair_a01_01": {
-      "class": "structural",
-      "rationale": ["F07:structural-grouping-xform", "F03:intermediate-hierarchy-node"]
-    },
     "sm_surgicalchair_a01_seat_01": {
-      "class": "movable:continuous",
+      "class": "movable:revolute",
       "axis": "Z",
       "parent": "body",
-      "rationale": ["BEH:ROLLING-continuous-Z", "F06:object-understanding-swivel-360", "F05:gemini-confirms-continuous-Z", "MEC:swivel-chair-base-1DOF"]
+      "rationale": ["BEH:swivel-seat-revolute-Z", "V01:gemini-confirms-revolute-Z", "WORKAROUND:F64-treats-continuous-as-wheel-use-revolute-for-seat"]
     },
     "sm_surgicalchair_a01_wheel5_01": {
       "class": "movable:continuous",
-      "axis": "Z",
+      "axis": "Y",
       "parent": "body",
-      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
+      "rationale": ["F09:axis-from-thin-bbox-Y", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
     },
     "sm_surgicalchair_a01_wheel4_01": {
       "class": "movable:continuous",
-      "axis": "Z",
+      "axis": "X",
       "parent": "body",
-      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
+      "rationale": ["F09:axis-from-thin-bbox-X", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
     },
     "sm_surgicalchair_a01_wheel3_01": {
       "class": "movable:continuous",
-      "axis": "Z",
+      "axis": "Y",
       "parent": "body",
-      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
+      "rationale": ["F09:axis-from-thin-bbox-Y", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
     },
     "sm_surgicalchair_a01_wheel2_01": {
       "class": "movable:continuous",
-      "axis": "Z",
+      "axis": "X",
       "parent": "body",
-      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
+      "rationale": ["F09:axis-from-thin-bbox-X", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
     },
     "sm_surgicalchair_a01_wheel1_01": {
       "class": "movable:continuous",
-      "axis": "Z",
+      "axis": "X",
       "parent": "body",
-      "rationale": ["MEC:swivel-caster-2DOF", "F06:object-understanding-swivel-360", "OVERRIDE:caster-swivel-Z-not-thin-axis", "F42:structural-keywords-bolt-mount-body-stay-under-wheel"]
+      "rationale": ["F09:axis-from-thin-bbox-X", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
     }
   }
 }
