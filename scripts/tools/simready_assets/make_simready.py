@@ -2886,7 +2886,17 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
         part_masses = {}
         total_parts_mass = 0
         for name, info in movables.items():
-            skill_mass = SKILL_MASS.get(info["joint"], 1.0)
+            # Caster brackets are small plastic/steel U-housings — treat them
+            # like a light wheel component (~0.5 kg), not a heavy revolute
+            # door (5 kg). Surfaced on SurgicalChair_A01_01 (2026-04-19):
+            # 5 brackets at door-mass plus 6 continuous joints exceeded the
+            # 40% parts-of-total cap by a lot, so the Gemini-total scaling
+            # dragged tire masses down to 0.107 kg. With that little
+            # inertia, the auto-dynamic chair tunnels through the ground.
+            if info.get("is_caster_bracket"):
+                skill_mass = SKILL_MASS["continuous"]
+            else:
+                skill_mass = SKILL_MASS.get(info["joint"], 1.0)
             part_masses[name] = skill_mass
             total_parts_mass += skill_mass
 
