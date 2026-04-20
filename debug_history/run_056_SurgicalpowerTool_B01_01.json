@@ -1,0 +1,333 @@
+{
+  "id": "run_056",
+  "asset": "SurgicalpowerTool_B01_01",
+  "object_type": "tool",
+  "timestamp": "2026-04-19T19:09:07",
+  "elapsed_s": 545.05,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 52.76
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 52.76
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 52.76
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 52.76
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 52.76
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 52.76
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 52.76
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 52.76
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 8,
+    "total_overrides": 0
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.022,
+        "decisions": {
+          "prims": 31
+        }
+      },
+      {
+        "stage": "geometric_fingerprint",
+        "part": null,
+        "elapsed_s": 1.12,
+        "decisions": {
+          "parts": 30,
+          "chars": 6515
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 31.447,
+        "decisions": {
+          "n_movable_seen": 6
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 20.171,
+        "decisions": {
+          "object_name": "surgical power drill",
+          "mass_kg": 1.5
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 472.968,
+        "decisions": {}
+      },
+      {
+        "stage": "mujoco_validation",
+        "part": null,
+        "elapsed_s": 0.481,
+        "decisions": {
+          "mujoco": "0/1 pass, 0 warn, 1 fail"
+        }
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 18.839,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.022
+      },
+      "geometric_fingerprint": {
+        "calls": 1,
+        "total_s": 1.12
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 31.447
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 20.171
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 472.968
+      },
+      "mujoco_validation": {
+        "calls": 1,
+        "total_s": 0.481
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 18.839
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.001
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 6.7,
+        "masses": {
+          "sm_surgicalpowertool_b01_main_01": 1.0,
+          "sm_surgicalpowertool_b01_smallbutton2_01": 0.15000000596046448,
+          "sm_surgicalpowertool_b01_button2_01": 0.15000000596046448,
+          "sm_surgicalpowertool_b01_button1_01": 0.15000000596046448,
+          "sm_surgicalpowertool_b01_smallbutton1_01": 0.15000000596046448
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "mujoco_score": "0/1 pass, 0 warn, 1 fail",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "surgical power drill",
+    "object_type": "tool",
+    "material": "stainless_steel",
+    "material_density_kg_m3": 7800,
+    "estimated_mass_kg": 1.5,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_surgicalpowertool_b01_drillbit_01",
+        "behavior": "tool_bit",
+        "motion": "Spins at high speed for drilling.",
+        "range_description": "Continuous rotation",
+        "range_meters": null,
+        "joint_type": "continuous",
+        "axis": "Y",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_surgicalpowertool_b01_button1_01",
+        "behavior": "button",
+        "motion": "Presses inward to activate the drill, likely for forward rotation.",
+        "range_description": "0-3mm press",
+        "range_meters": 0.003,
+        "joint_type": "prismatic",
+        "axis": "Z",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_surgicalpowertool_b01_button2_01",
+        "behavior": "button",
+        "motion": "Presses inward to activate the drill, likely for reverse rotation.",
+        "range_description": "0-3mm press",
+        "range_meters": 0.003,
+        "joint_type": "prismatic",
+        "axis": "Z",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_surgicalpowertool_b01_smallbutton1_01",
+        "behavior": "button",
+        "motion": "Presses inward, likely a safety lock or mode switch.",
+        "range_description": "0-2mm press",
+        "range_meters": 0.002,
+        "joint_type": "prismatic",
+        "axis": "X",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_surgicalpowertool_b01_smallbutton2_01",
+        "behavior": "button",
+        "motion": "Presses inward, likely a safety lock or mode switch.",
+        "range_description": "0-2mm press",
+        "range_meters": 0.002,
+        "joint_type": "prismatic",
+        "axis": "Y",
+        "limits_bidirectional": false
+      }
+    ],
+    "special_notes": "The drill bit requires a continuous joint for high-speed rotation. The buttons are triggers and should be modeled with small, spring-loaded prismatic joints.",
+    "is_graspable": true,
+    "grip_location": "The main handle, around the prim 'sm_surgicalpowertool_b01_handle_01'."
+  }
+}

@@ -1,12 +1,63 @@
 {
-  "object_name": "handheld_surgical_retractor",
-  "object_type": "instrument",
+  "object_name": "surgical power drill",
+  "object_type": "tool",
   "material": "stainless_steel",
   "material_density_kg_m3": 7800,
-  "estimated_mass_kg": 0.1,
-  "is_articulated": false,
-  "movable_parts": [],
-  "special_notes": "The object is a single rigid body. The prongs at the ends are the primary points of interaction for retracting tissue.",
+  "estimated_mass_kg": 1.5,
+  "is_articulated": true,
+  "movable_parts": [
+    {
+      "name": "sm_surgicalpowertool_b01_drillbit_01",
+      "behavior": "tool_bit",
+      "motion": "Spins at high speed for drilling.",
+      "range_description": "Continuous rotation",
+      "range_meters": null,
+      "joint_type": "continuous",
+      "axis": "Y",
+      "limits_bidirectional": false
+    },
+    {
+      "name": "sm_surgicalpowertool_b01_button1_01",
+      "behavior": "button",
+      "motion": "Presses inward to activate the drill, likely for forward rotation.",
+      "range_description": "0-3mm press",
+      "range_meters": 0.003,
+      "joint_type": "prismatic",
+      "axis": "Z",
+      "limits_bidirectional": false
+    },
+    {
+      "name": "sm_surgicalpowertool_b01_button2_01",
+      "behavior": "button",
+      "motion": "Presses inward to activate the drill, likely for reverse rotation.",
+      "range_description": "0-3mm press",
+      "range_meters": 0.003,
+      "joint_type": "prismatic",
+      "axis": "Z",
+      "limits_bidirectional": false
+    },
+    {
+      "name": "sm_surgicalpowertool_b01_smallbutton1_01",
+      "behavior": "button",
+      "motion": "Presses inward, likely a safety lock or mode switch.",
+      "range_description": "0-2mm press",
+      "range_meters": 0.002,
+      "joint_type": "prismatic",
+      "axis": "X",
+      "limits_bidirectional": false
+    },
+    {
+      "name": "sm_surgicalpowertool_b01_smallbutton2_01",
+      "behavior": "button",
+      "motion": "Presses inward, likely a safety lock or mode switch.",
+      "range_description": "0-2mm press",
+      "range_meters": 0.002,
+      "joint_type": "prismatic",
+      "axis": "Y",
+      "limits_bidirectional": false
+    }
+  ],
+  "special_notes": "The drill bit requires a continuous joint for high-speed rotation. The buttons are triggers and should be modeled with small, spring-loaded prismatic joints.",
   "is_graspable": true,
-  "grip_location": "The central handle/shaft"
+  "grip_location": "The main handle, around the prim 'sm_surgicalpowertool_b01_handle_01'."
 }

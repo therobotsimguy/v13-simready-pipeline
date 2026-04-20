@@ -1,1 +1,17 @@
-{"body": "sm_retractor_a01_01", "parts": {}}
+{
+  "body": "sm_surgicalpowertool_b01_main_01",
+  "parts": {
+    "sm_surgicalpowertool_b01_decalbottom_01": {"class": "structural"},
+    "sm_surgicalpowertool_b01_decalbody_01": {"class": "structural"},
+    "sm_surgicalpowertool_b01_button2_01": {"class": "movable:prismatic", "axis": "+Y", "parent": "body"},
+    "sm_surgicalpowertool_b01_button1_01": {"class": "movable:prismatic", "axis": "+Y", "parent": "body"},
+    "sm_surgicalpowertool_b01_smallbutton1_01": {"class": "movable:prismatic", "axis": "+Z", "parent": "body"},
+    "sm_surgicalpowertool_b01_handlebase_01": {"class": "structural"},
+    "sm_surgicalpowertool_b01_cylinderpart1_01": {"class": "structural"},
+    "sm_surgicalpowertool_b01_cylinderpart2_01": {"class": "structural"},
+    "sm_surgicalpowertool_b01_cylinderpart3_01": {"class": "structural"},
+    "sm_surgicalpowertool_b01_cylinderpart4_01": {"class": "structural"},
+    "sm_surgicalpowertool_b01_drillbit_01": {"class": "structural"},
+    "sm_surgicalpowertool_b01_smallbutton2_01": {"class": "movable:prismatic", "axis": "+X", "parent": "body"}
+  }
+}
