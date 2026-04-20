@@ -227,7 +227,7 @@ as usual.
 |  8 | MedicalutilityCart_A03_01 | cart | **partial** (2026-04-18 — drove F42 base/trim keyword, F43 bake_xform_scales, F44 skip-concave-organizer, F45 articulation self-collisions, F46 handle-based direction, F46b signed-axis override, and the teleop ArticulationCfg fix for dynamic roots. Wheels + ground + physics all PASS. Drawers still open in wrong face — Gemini keeps classifying axis=Y; requires deeper classifier work to reliably pick the correct face on this asset) |
 |  9 | Mobilecartsandtables_C01_01 | cart / table | **built** (2026-04-18 — drove F42: `base`/`trim` added to `WHEEL_STRUCTURAL_KEYWORDS`, fixing bracket-rotates-with-tire. AUDIT 7/7, MUJOCO 27/28; 4 casters + height-adjust table + handle. Teleop PASS) |
 | 10 | ResuscitationBed_A01_01 | bed | **built** (2026-04-18 — drove F47 zero-thickness collider skip + F48 wheel/caster class alias. 4 wheels had been silently dropped as class="wheel" (not `movable:continuous`); 3 flat decals crashed PhysX broadphase via qhull NaN. AUDIT 7/7, MUJOCO 38/44, teleop rolls on casters) |
-| 11 | Retractor_A01_01 | surgical tool | pending |
+| 11 | Retractor_A01_01 | surgical tool | **built** (2026-04-19 — single-mesh USD, classified as non-articulated graspable prop; AUDIT 7/7, MUJOCO 4/4, 95.9s, teleop PASS) |
 | 12 | RoboticSystem_A01_01 | system | pending |
 | 13 | RoboticSystem_B01_Console_01 | system | pending |
 | 14 | Scissors_A01_01 | surgical tool | **built** |
@@ -238,7 +238,7 @@ as usual.
 | 19 | SurgicalpowerTool_B01_01 | surgical tool | pending |
 | 20 | SurgicalTable_A01_01 | table | pending |
 
-Score: **12 / 20 built + 1 partial** (MedicalutilityCart: physics correct,
+Score: **13 / 20 built + 1 partial** (MedicalutilityCart: physics correct,
 drawers mis-faced; SurgicalChair: 2-DOF caster topology correct, spawn-time
 PhysX broadphase still under investigation). Remaining 7 assets can be run
 with the single entry-point command; no per-asset tuning is required unless
