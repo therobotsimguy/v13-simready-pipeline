@@ -60,9 +60,8 @@ That is the **only** command you need. It orchestrates:
 4. `object_understanding.py` — infer mass + material density
 5. Claude classifier — decide which parts move and how
 6. `make_simready.py` — apply physics APIs, collision, joints, drives
-7. `validate_dynamics.py` — MuJoCo stability check
-8. `verify_visual.py` — render before/after for visual sanity
-9. Auto-push debug data + classify JSONs to this repo
+7. `verify_visual.py` — render before/after for visual sanity
+8. Auto-push debug data + classify JSONs to this repo
 
 End-to-end: ~3–5 min per asset (most of it is LLM calls).
 
@@ -76,9 +75,8 @@ End-to-end: ~3–5 min per asset (most of it is LLM calls).
 
 `make_simready.py` is a **sub-step**, not an entry point. It's invoked by
 `simready_agent.py` as a subprocess. Calling it directly skips vision,
-object understanding, classification, MuJoCo validation, and visual verify —
-you'll get an untested asset that may fail in ways the agent would have
-caught.
+object understanding, classification, and visual verify — you'll get an
+untested asset that may fail in ways the agent would have caught.
 
 The one exception is rebuilding a previously-classified asset for a
 regression test — then you can pass `--classify-json` + `--object-json`

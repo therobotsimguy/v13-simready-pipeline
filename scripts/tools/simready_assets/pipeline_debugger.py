@@ -61,7 +61,6 @@ class PipelineDebugger:
 
         # Metadata
         self.audit_score = ""
-        self.mujoco_score = ""
         self.classification = {}
         self.gemini_output = {}
 
@@ -546,7 +545,6 @@ class PipelineDebugger:
             "diagnostics": self.diagnostics,
 
             "audit_score": self.audit_score,
-            "mujoco_score": self.mujoco_score,
 
             "verdict": self.verdict,
             "user_notes": self.user_notes,
@@ -674,8 +672,6 @@ class PipelineDebugger:
         # Scores
         if self.audit_score:
             print(f"\n  AUDIT: {self.audit_score}")
-        if self.mujoco_score:
-            print(f"  MUJOCO: {self.mujoco_score}")
 
         # Verdict
         if self.verdict:

@@ -38,7 +38,6 @@ from claude_agent_sdk import (
 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 MAKE_SIMREADY = SCRIPT_DIR / "make_simready.py"
-VALIDATE_DYNAMICS = SCRIPT_DIR / "validate_dynamics.py"
 PROJECT_ROOT = SCRIPT_DIR.parent.parent.parent
 V13_ROOT = SCRIPT_DIR.parent.parent.parent   # scripts/tools/simready_assets → simready_v13/
 ISAACLAB_ROOT = Path(os.path.expanduser("~/IsaacLab"))
@@ -70,6 +69,70 @@ def load_skill(name: str) -> str:
 # ═══════════════════════════════════════════════════════════════════
 # USD HIERARCHY READER
 # ═══════════════════════════════════════════════════════════════════
+
+def _replay_classification_rationales(dbg, classify_json_path) -> None:
+    """Read agent_classify.json and replay per-part rationale citations as
+    skill activations on the debugger.
+
+    The classifier output schema includes a `rationale` list per part, e.g.
+    `["F09:axis-from-thin-bbox", "JP:caster-damping-2.0"]`. Each entry is
+    parsed into (skill, impact, body) and forwarded to dbg.log_skill so the
+    final debugger report shows which rules the LLM actually applied while
+    classifying — not just which skill files were loaded into its prompt.
+
+    Unknown / malformed rationale entries are silently dropped.
+    """
+    import re
+    import json as _json
+    from pathlib import Path as _Path
+    p = _Path(str(classify_json_path))
+    if not p.exists():
+        return
+    try:
+        with open(p) as f:
+            classification = _json.load(f)
+    except Exception:
+        return
+    parts = classification.get("parts", {})
+    if not isinstance(parts, dict):
+        return
+
+    NAMED_PREFIX = {
+        "JP":       ("simready-joint-params",       "info"),
+        "RM":       ("robot-model",                  "info"),
+        "MEC":      ("simready-mechanism-lookup",    "info"),
+        "COL":      ("simready-collision",           "info"),
+        "USD":      ("usd-physx-schemas",            "info"),
+        "BEH":      ("simready-behaviors",           "info"),
+        "OVERRIDE": ("classifier",                   "override"),
+        "WARN":     ("classifier",                   "warning"),
+    }
+
+    n_logged = 0
+    for part_name, info in parts.items():
+        if not isinstance(info, dict):
+            continue
+        rationale = info.get("rationale", [])
+        if not isinstance(rationale, list):
+            continue
+        for rule in rationale:
+            if not isinstance(rule, str) or ":" not in rule:
+                continue
+            head = rule.split(":", 1)[0].strip()
+            if re.fullmatch(r"[FKDS]\d+", head):
+                skill, impact = "failure-modes", "confirmation"
+            elif re.fullmatch(r"C\d+", head):
+                skill, impact = "simready-criteria", "confirmation"
+            elif head in NAMED_PREFIX:
+                skill, impact = NAMED_PREFIX[head]
+            else:
+                continue
+            dbg.log_skill(skill, f"{part_name}: {rule}", impact=impact)
+            n_logged += 1
+    if n_logged:
+        print(f"\n  RATIONALE TRACE: {n_logged} skill rule citation(s) "
+              f"replayed from classifier output")
+
 
 def read_usd_hierarchy(usd_path: str) -> str:
     """Extract USD hierarchy as structured text for LLM classification.
@@ -423,7 +486,32 @@ sees handles, hinges, and materials you can't infer from prim names alone.
 6. Output ONLY valid JSON. No markdown fences, no explanation.
 
 ## Output Format
-{{"body": "<body_xform_name>", "parts": {{"<part>": {{"class": "movable:revolute", "axis": "Z", "parent": "<parent_name_or_body>"}}, "<part>": {{"class": "structural"}}}}}}
+{{"body": "<body_xform_name>", "parts": {{
+  "<part>": {{"class": "movable:revolute", "axis": "Z", "parent": "body",
+              "rationale": ["F09:axis-from-thin-bbox", "JP:wheel-revolute-default"]}},
+  "<part>": {{"class": "structural", "rationale": []}}
+}}}}
+
+## Rationale (REQUIRED — list rules you actually applied to this part)
+
+For EACH part, add a `"rationale"` field listing the skill rule IDs that
+informed your decision. List ONLY rules you actually applied while
+reasoning. Do NOT fabricate citations.
+
+Prefix taxonomy:
+- `F##:<short>` / `K##:<short>` / `D##:<short>` / `S##:<short>` — failure-modes rule applied (e.g. "F09:axis-from-thin-bbox", "F11:declared-parent-chain")
+- `C##:<short>` — simready-criteria (e.g. "C5:joint-per-movable")
+- `JP:<short>` — joint-params lookup (e.g. "JP:caster-damping-2.0")
+- `RM:<short>` — robot-model constraint (e.g. "RM:franka-150N-cap")
+- `MEC:<short>` — mechanism lookup match (e.g. "MEC:swivel-caster-2DOF")
+- `COL:<short>` — collision strategy (e.g. "COL:tire-convexHull")
+- `USD:<short>` — USD/PhysX schema rule (e.g. "USD:no-grandchild-RB")
+- `BEH:<short>` — behavior taxonomy match (e.g. "BEH:DOOR-revolute-Z")
+- `OVERRIDE:<short>` — overrode a Gemini hint with a skill rule
+- `WARN:<short>` — flagged a potential issue without changing the class
+
+Empty `"rationale": []` is fine for trivially-obvious classifications
+(body root, plain structural shell). For movables, expect 1–4 entries.
 
 ## Kinematic-Chain Example (medical boom arm)
 Hierarchy:
@@ -578,7 +666,9 @@ thin_axis for continuous-joint wheel axles (aspect=disk_*) and its long_axis
 for prismatic sliders/telescoping tubes (aspect=elongated_*). Name-based guesses
 are only a fallback when fingerprint data is missing.
 Tell the classifier to return JSON in this exact format:
-{{"body": "name", "parts": {{"part": {{"class": "movable:revolute", "axis": "Z"}}}}}}
+{{"body": "name", "parts": {{"part": {{"class": "movable:revolute", "axis": "Z", "parent": "body", "rationale": ["F09:axis-from-thin-bbox"]}}}}}}
+The `rationale` field is REQUIRED per part — see classifier system prompt
+for the prefix taxonomy. Use `[]` only for trivially-obvious classifications.
 
 ### STEP 2: SAVE
 Parse the classifier's JSON response. Write it to {CLASSIFY_TMP}
@@ -668,18 +758,25 @@ Test with Franka teleop:
 
     dbg.end_stage()
 
-    # ── Phase 7: Behavioral validation (V2) ──
-    dbg.start_stage("mujoco_validation")
-    # Find the output physics USD
+    # ── Replay classifier rationales as skill activations ──
+    # Each part in agent_classify.json may carry a `rationale` list of
+    # rule IDs (e.g. ["F09:axis-from-thin-bbox", "JP:caster-damping-2.0"]).
+    # Parse them so the debugger report shows which skill rules the LLM
+    # actually applied, not just which skills were loaded into its prompt.
+    _replay_classification_rationales(dbg, CLASSIFY_TMP)
+
+    # ── Locate output physics USD for downstream phases ──
+    # (Phase 7 MuJoCo validation removed 2026-04-19 — Isaac Sim teleop is
+    # ground truth; URDF-based MuJoCo check produced noisy false negatives
+    # on parallel-sibling joints. Cross-solver validation will return as
+    # the Newton C11 parity battery, not as a MuJoCo URDF check.)
     output_usd = None
-    # Check V13 persistent output directory first
     v13_output = OUTPUT_ROOT / input_path.stem
     if v13_output.exists():
         for f in v13_output.glob("*_physics.usd"):
             output_usd = f
             break
     if not output_usd:
-        # Fallback: simready_out next to input
         output_dir = input_path.parent / "simready_out"
         if output_dir.exists():
             for f in output_dir.glob("*_physics.usd"):
@@ -689,25 +786,6 @@ Test with Franka teleop:
         candidate = input_path.with_name(input_path.stem + "_physics.usd")
         if candidate.exists():
             output_usd = candidate
-
-    if output_usd and VALIDATE_DYNAMICS.exists():
-        print(f"\n[Phase 7] Behavioral validation (MuJoCo, headless)...")
-        print("-" * 70)
-        from validate_dynamics import validate as run_behavioral_validation
-        bv_results = run_behavioral_validation(str(output_usd), verbose=True)
-        # Defensive .get() — validate_dynamics has multiple return paths; tolerate missing keys.
-        _p = bv_results.get('pass_count', 0)
-        _w = bv_results.get('warn_count', 0)
-        _f = bv_results.get('fail_count', 0)
-        _t = bv_results.get('total', 0)
-        dbg.mujoco_score = f"{_p}/{_t} pass, {_w} warn, {_f} fail"
-        if _f > 0:
-            print(f"\n  WARNING: {_f} behavioral check(s) FAILED")
-    elif output_usd:
-        print(f"\n[Phase 7] Skipped — validate_dynamics.py not found")
-    else:
-        print(f"\n[Phase 7] Skipped — output _physics.usd not found")
-    dbg.end_stage(decisions={"mujoco": dbg.mujoco_score})
 
     # ── Phase 8: Post-build visual verification (V3 enhancement) ──
     dbg.start_stage("visual_verification")
