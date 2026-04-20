@@ -52,15 +52,23 @@ Symptoms if you pick wrong:
 That is the **only** command you need. It orchestrates:
 
 1. `read_hierarchy` — parse USD structure
-2. `gemini_vision.py` — render views, analyze geometry
-3. `object_understanding.py` — infer mass + material density
-4. Claude classifier — decide which parts move and how
-5. `make_simready.py` — apply physics APIs, collision, joints, drives
-6. `validate_dynamics.py` — MuJoCo stability check
-7. `verify_visual.py` — render before/after for visual sanity
-8. Auto-push debug data + classify JSONs to this repo
+2. `geometric_fingerprint.py` — emit per-part bbox / aspect / thin_axis /
+   long_axis / pivot ground-truth from the USD, injected into the classifier
+   prompt so wheel-axle and slider-direction decisions come from exact
+   geometry, not pixel inference
+3. `gemini_vision.py` — render views, analyze geometry
+4. `object_understanding.py` — infer mass + material density
+5. Claude classifier — decide which parts move and how
+6. `make_simready.py` — apply physics APIs, collision, joints, drives
+7. `validate_dynamics.py` — MuJoCo stability check
+8. `verify_visual.py` — render before/after for visual sanity
+9. Auto-push debug data + classify JSONs to this repo
 
 End-to-end: ~3–5 min per asset (most of it is LLM calls).
+
+`--dynamic` is auto-inferred when the classifier produces any
+`movable:continuous` part (wheels/casters imply a pushable body). Manual
+`--dynamic` still works and takes precedence.
 
 ---
 
@@ -224,17 +232,27 @@ as usual.
 | 13 | RoboticSystem_B01_Console_01 | system | pending |
 | 14 | Scissors_A01_01 | surgical tool | **built** |
 | 15 | SelfretainingRetractor_A01_01 | surgical tool | **built** (motion PASS — shift-drag arms at `--asset_scale 5.0`; prongs visually clip at close position — geometry limitation, not a pipeline bug; see `LEARNINGS.md` → scissor self-collision) |
-| 16 | SurgicalChair_A01_01 | chair | pending |
+| 16 | SurgicalChair_A01_01 | chair | **partial** (2026-04-19 — drove 2-DOF swivel-caster support, caster-bracket centroid-origin fix, `--dynamic` auto-inference from continuous joints, F49 authored-pose anchor, wheel-keyword gating on swivel seats, `_is_degenerate_mesh` eps raise 1e-6 → 3mm to catch thin trim, caster bracket mass override (wheel-class, not revolute-class). AUDIT 7/7; chair still spawns with PhysX broadphase error on some geometry combinations — investigation ongoing) |
 | 17 | SurgicalChair_B01_01 | chair | pending |
 | 18 | SurgicalMicroScope_A01_01 | system | pending |
 | 19 | SurgicalpowerTool_B01_01 | surgical tool | pending |
 | 20 | SurgicalTable_A01_01 | table | pending |
 
-Score: **12 / 20 built** (MedicalutilityCart counts as partial — physics
-correct, drawers mis-faced but usable for teleop). Remaining 8 assets can
-be run with the single entry-point command; no per-asset tuning is required
-unless V13 surfaces a new silent-failure class, in which case follow the
-3-step fix rule below.
+Score: **12 / 20 built + 1 partial** (MedicalutilityCart: physics correct,
+drawers mis-faced; SurgicalChair: 2-DOF caster topology correct, spawn-time
+PhysX broadphase still under investigation). Remaining 7 assets can be run
+with the single entry-point command; no per-asset tuning is required unless
+V13 surfaces a new silent-failure class, in which case follow the 3-step
+fix rule below.
+
+**New feature (2026-04-19):** **2-DOF swivel casters.** When a wheel Xform
+contains both a tire mesh AND a bracket-keyword mesh (mount / bracket /
+housing / fork / yoke / swivel), `split_wheel_structural_parts` now builds
+a 2-body kinematic chain per caster — a bracket body that swivels on a
+revolute Z joint to the chassis, plus a tire body that rolls on a continuous
+joint to the bracket. Real office-chair / surgical-chair caster behavior.
+Fixed-axle wheels (InstrumentTrolley, EmergencyTrolley, ResuscitationBed)
+fall through unchanged — their wheels have no bracket-keyword meshes.
 
 **Recent fix wave (2026-04-18):** F40 Gemini prismatic-range override,
 F41 handheld-tool auto-dynamic, F42 wheel-split keyword growth (base/trim),
