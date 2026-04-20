@@ -372,6 +372,13 @@ def audit(stage, classification=None):
                 continue
             if "_bracket" in b1.lower() or "_bracket" in (j.get("name") or "").lower():
                 continue
+            # 2-DOF caster tires hinge off a bracket (not the chassis body).
+            # The tire assembly legitimately contains hub/body/bolt as
+            # rigid members that roll with the rubber. Skip the leak check
+            # for any continuous joint whose body0 is a bracket.
+            b0 = j.get("body0_path") or ""
+            if "_bracket" in b0.lower():
+                continue
             # Swivel seats and other non-wheel continuous joints legitimately
             # carry body/mount/bolt meshes; only check joints whose body1
             # looks like a wheel by name.
@@ -2208,6 +2215,15 @@ def split_wheel_structural_parts(stage, movables, body_path):
 
         if _is_swivel_caster(wheel_prim):
             # --- 2-DOF caster: create bracket body, reparent bracket meshes ---
+            # Only STRICT caster-bracket keywords (mount / bracket / housing /
+            # fork / yoke / swivel) go into the bracket. The hub/drum, inner
+            # body, and bolts that sit INSIDE the tire assembly stay with
+            # the tire so they roll together. Surfaced 2026-04-19 on
+            # SurgicalChair: wheel_body_01 is the plastic hub inside the
+            # rubber tire; it had been lumped into the bracket because
+            # "body" is in WHEEL_STRUCTURAL_KEYWORDS, so the hub swivelled
+            # with the mount while the tire rolled independently — the
+            # rubber appeared to "come off" the drum under swivel torque.
             bracket_children = []
             for child in wheel_prim.GetAllChildren():
                 if child.GetTypeName() not in ("Mesh", "Xform"):
@@ -2215,7 +2231,7 @@ def split_wheel_structural_parts(stage, movables, body_path):
                 nm = child.GetName().lower()
                 if "tire" in nm:
                     continue  # tire stays inside the wheel Xform
-                if any(kw in nm for kw in WHEEL_STRUCTURAL_KEYWORDS):
+                if any(kw in nm for kw in CASTER_BRACKET_KEYWORDS):
                     bracket_children.append(child.GetPath())
             if not bracket_children:
                 continue  # nothing to split out; treat as fixed-wheel-ish
