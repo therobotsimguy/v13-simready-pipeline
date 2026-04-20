@@ -377,6 +377,114 @@ for any joint with an explicit override — user intent is authoritative.
 
 ---
 
+## 2026-04-19 — 2-DOF swivel casters + authoring landmines (SurgicalChair_A01_01)
+
+SurgicalChair drove a week's worth of pipeline-wide lessons in one asset.
+The headline feature is real 2-DOF casters (bracket swivel + tire roll, vs
+the prior 1-DOF roll-only), but every fix along the way exposed a rule
+that applies beyond casters. In order of discovery:
+
+**1. Synthetic rigid-body Xforms must sit at their geometric centroid.**
+`split_wheel_structural_parts()` creates a new `<wheel>_bracket` Xform for
+each caster via `UsdGeom.Xform.Define(bracket_path)`. At identity, the
+bracket's origin sits at world (0, 0, 0) while its mount mesh lives ~30 cm
+away. `PhysicsMassAPI` then derives COM from collider geometry — ~30 cm
+off the Xform origin — and gravity alone produces ~3 N·m of torque on a
+1 kg body. The bracket oscillates about its off-origin pivot and the
+wheels visibly "fall apart" from the chair leg. **Rule:** whenever the
+pipeline *synthesises* a rigid-body Xform (not one authored in the raw
+USD), `AddTranslateOp().Set(centroid)` on it BEFORE reparenting meshes
+into it — `reparent_prims_preserve_world_xform` produces small local
+mesh transforms relative to the new frame.
+
+**2. Wheel-specific logic must be gated by wheel-specific keywords, not
+`joint == "continuous"`.** The chair's swivel seat is `movable:continuous`
+but isn't a wheel; every bit of wheel logic that fired on it introduced a
+bug:
+- `split_wheel_structural_parts` stripped `seat_body` / `seat_mount` /
+  `seat_bolts` to the leg via `WHEEL_STRUCTURAL_KEYWORDS` → rotating seat
+  detached from static seat frame (cushion visibly separated on every
+  swivel).
+- The axis-override heuristic rewrote the classifier's correct `Z` to `X`
+  because it treated the near-cube seat bbox as a "wheel" and picked the
+  thin X dimension.
+- The audit's `wheel_split_leaks` check false-failed on seat_body's
+  "body" keyword match.
+
+Gate all of these on name keywords (`wheel` / `caster` / `roller` / `tire`)
+before applying wheel heuristics. Continuous joint type alone is not
+sufficient discriminator.
+
+**3. Caster brackets need their OWN keyword set, not `WHEEL_STRUCTURAL_KEYWORDS`.**
+The first 2-DOF split put the hub/drum mesh (`wheel*_body_01`) into the
+bracket because "body" is in the broader structural keyword list. The hub
+then swiveled with the mount on Z while the rubber rolled on its own
+X/Y axle — same physical volume rotating on two different axes produced
+contact separation that looked like the tire cover peeling off. Rule:
+bracket gets meshes matching `CASTER_BRACKET_KEYWORDS` only
+(`mount / bracket / housing / fork / yoke / swivel`); hub, bolt, disc,
+detail stay with the tire so they roll together.
+
+**4. The `is_continuous` audit heuristic (revolute + |hi-lo| > 1000 →
+"wheel") misclassifies caster-bracket Z-swivels with ±9999° limits.**
+Any audit check using that flag needs an explicit `_bracket` skip
+(wheel_split_leaks, S-wheel-split, and any future wheel-targeted check).
+
+**5. Mass skill for caster brackets is `continuous`-wheel, not revolute.**
+Brackets are injected into movables with `joint="revolute"`; the default
+SKILL_MASS for revolute is 5 kg (a door). With 5 brackets × 5 kg +
+5 tires × 0.5 kg + 1 seat × 0.5 kg = 28 kg of parts against a 15 kg
+Gemini total, the 40 %-cap scaler dragged tire mass down to 0.107 kg.
+A 107-gram tire has near-zero inertia and the dynamic-root chair
+tunnelled through the floor. Explicitly override brackets to
+SKILL_MASS["continuous"] = 0.5 kg.
+
+**6. `_is_degenerate_mesh` epsilon at 1e-6 m was nonsense. Qhull's real
+cutoff is millimeters.** The chair's `seat_cups_01` has Y-thickness of
+2.4 mm — a thin trim ring. At `eps=1e-6` it sailed through as "valid
+collider", PhysX qhull crashed with `Illegal BroadPhaseUpdateData`, every
+rigid body in the articulation got an Invalid transform, and the whole
+asset disappeared from the viewport on spawn. Raised eps to 0.003 m
+(3 mm) — catches trim, decals, badges; keeps legitimate thin geometry
+(shelf boards, drawer walls usually 5 mm+).
+
+**7. `--dynamic` must be auto-inferred from continuous-joint presence.**
+User expectation: anything with wheels rolls under shift-drag. The CLI
+flag alone means every wheeled asset requires a manual opt-in.
+`apply_physics()` now sets `dynamic_body=True` whenever any movable has
+`class=="movable:continuous"`, logging
+`(auto-dynamic: N continuous joint(s) imply wheeled/mobile asset)`.
+
+**8. The F49 world-anchor `localPos0=(0,0,0)` assumed body origin was
+world zero — false for any body authored off-origin.** SurgicalChair's
+leg is authored at (0, 0.027, 0.244); the FixedJoint teleported the body
+to world origin on spawn and the chair landed half-submerged. Fix:
+compute body's authored L2W and feed translation + rotation into
+`localPos0` + `localRot0`. DrugCabinet and Fridge (2026-04-18) only
+"worked" because their body origins happened to be at (0, 0, 0).
+
+**Systemic lesson:** every wheel-specific pipeline behavior assumed the
+classifier correctly separated wheels from other movables. Once the
+classifier started producing richer topologies (swivel seats, 2-DOF
+casters), the wheel-only assumptions became false positives. The fix
+pattern is uniform: **gate by name keyword AND joint type, not joint
+type alone**.
+
+Cross-ref: `scripts/tools/simready_assets/make_simready.py`:
+- `split_wheel_structural_parts` — caster detection, bracket synthesis,
+  centroid-origin authoring, wheel vs caster keyword gates
+- `_is_degenerate_mesh` — 3 mm eps
+- `make_world_anchor_joint` — body-L2W-aware anchor
+- apply_physics mass loop — bracket is wheel-class
+- `audit()` — `_bracket` skips on wheel-specific checks
+
+Assets touched this wave: InstrumentTrolley + EmergencyTrolley +
+ResuscitationBed all remain 1-DOF (no caster keywords in their wheels) and
+regress clean. SurgicalChair is the first 2-DOF-caster asset; structurally
+matches real office-chair caster bases.
+
+---
+
 ## 2026-04-19 — F43 pivot-sandwich regression (InstrumentTrolley_B01_01)
 
 **Symptom:** fresh rebuild of `InstrumentTrolley_B01_01` (same classify.json as
