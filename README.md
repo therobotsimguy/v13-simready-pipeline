@@ -230,7 +230,7 @@ as usual.
 | 13 | RoboticSystem_B01_Console_01 | system | pending |
 | 14 | Scissors_A01_01 | surgical tool | **built** |
 | 15 | SelfretainingRetractor_A01_01 | surgical tool | **built** (motion PASS — shift-drag arms at `--asset_scale 5.0`; prongs visually clip at close position — geometry limitation, not a pipeline bug; see `LEARNINGS.md` → scissor self-collision) |
-| 16 | SurgicalChair_A01_01 | chair | **partial** (2026-04-19 — drove 2-DOF swivel-caster support, caster-bracket centroid-origin fix, `--dynamic` auto-inference from continuous joints, F49 authored-pose anchor, wheel-keyword gating on swivel seats, `_is_degenerate_mesh` eps raise 1e-6 → 3mm to catch thin trim, caster bracket mass override (wheel-class, not revolute-class). AUDIT 7/7; chair still spawns with PhysX broadphase error on some geometry combinations — investigation ongoing) |
+| 16 | SurgicalChair_A01_01 | chair | **partial — pipeline fixes identified, manual patch working** (2026-04-20 — drove F64d/F64e/F65/F66/F67 + F45 v2 fix wave. Issues surfaced live: (a) F64c strip_chassis_floor_blockers removed all 3 leg colliders → body had zero colliders, fix: preserve ≥1 collider (F64d); (b) F64 audit flagged `_bracket` bodies as cube-wheels, fix: skip `_bracket` in F64 check (F64e); (c) apply_physics wheel-dispatch treated swivel seat as wheel, fix: gate on wheel-name keywords (F65); (d) non-adjacent bbox-overlap under F45 crashed broadphase, fix: author filterPairs (F66) + conditional F45 (v2, off for 2-DOF caster assets); (e) double-nested Xform with chassis grandchild caused Fabric render/physics divergence, fix: flatten and promote chassis to inner Xform + decompose xformOp:transform to translate+rotateXYZ+scale (F67). Earlier 2026-04-19 fixes preserved: caster-bracket centroid-origin, `--dynamic` auto-inference, wheel-keyword gating on swivel seats, `_is_degenerate_mesh` eps raise 1e-6→3mm, caster bracket mass override. AUDIT 7/7; asset now spawns + settles + rolls in inspect_asset.py; shift-drag detaches casters only because Isaac Sim's manipulator bypasses articulation constraints — real use via Franka/torque will respect joints. Next session: integrate F67 as flatten_redundant_xform_layers in apply_physics so future chair builds don't need manual `/tmp/fix_chair.py` patch.) |
 | 17 | SurgicalChair_B01_01 | chair | pending |
 | 18 | SurgicalMicroScope_A01_01 | system | pending |
 | 19 | SurgicalpowerTool_B01_01 | surgical tool | **built** (2026-04-19 — drove F63 orphan-structural-siblings fix: raw USD authored tool body as 10 sibling Xforms (main_01 + cylinderpart1-4 + handlebase + handle + drillbit + decals), classifier marked 1 as body root, other 9 had no RigidBodyAPI → dragged main detached from rest. Added `weld_structural_siblings_into_body` to make_simready.py, F63 audit check, skill docs. Post-fix body: 1 → 11 colliders; AUDIT 7/7; 0 orphans; teleop PASS with all parts moving together. Regression-tested clean on InstrumentTrolley_B / Refrigerator_A / EmergencyTrolley / DrugCabinet / BipolardissectingScissors) |
@@ -272,10 +272,33 @@ Results:
 - **Behaviors: 16 → 18** (added compliant_hinge + compliant_slider via Howell PRBM)
 - **+1,453 lines** of new skill content, all with provenance tags
 
-**Next up:** pick from `Retractor_A01_01`, `RoboticSystem_A01_01`,
-`SurgicalChair_A01_01`, or another pending asset. Deformable-asset track
-(bedsheets, IV tubing, surgical drapes, cables) is now unblocked via
-`deformable-physics-robotics` — Newton VBD + MuJoCo Warp path.
+**Next session work (continuation of 2026-04-20 SurgicalChair fix wave):**
+
+1. **Integrate F67 as `flatten_redundant_xform_layers()` in apply_physics** —
+   detect the pattern (Xform with ArticulationRootAPI, child Xform with same
+   name carrying only identity/wrapper xformOps, grandchild with
+   RigidBodyAPI) and promote the grandchild's physics APIs + world transform
+   up into the inner Xform. Author decomposed `translate+rotateXYZ+scale`
+   ops, NOT `xformOp:transform` matrix (Isaac Lab's ArticulationCfg parses
+   the decomposed form correctly; the matrix form caused articulation
+   binding issues on SurgicalChair_A01_01 before manual decomposition).
+   Run as early phase in apply_physics, before joint authoring. Also
+   update joint body0/body1 relationships to point at the promoted prim.
+2. **Add C4 audit check for the redundant-Xform pattern** — FAIL if
+   ArticulationRootAPI sits on a prim whose direct child is a same-named
+   Xform with no RigidBody but a grandchild with one.
+3. **Validate SurgicalChair rebuild end-to-end** — rerun raw input through
+   simready_agent.py and confirm no manual patch needed. Current manually-
+   patched USD at `~/SimReady_Output/simready/SurgicalChair_A01_01/` is a
+   working reference for what the output should look like.
+4. **Unblocked pending assets:** `RoboticSystem_A01_01`,
+   `RoboticSystem_B01_Console_01`, `SurgicalChair_B01_01`,
+   `SurgicalMicroScope_A01_01`. The drift detector + expanded audit
+   citations (F01–F66) should catch most asset-specific issues during
+   classification + apply + audit.
+5. **Deformable-asset track** (bedsheets, IV tubing, surgical drapes,
+   cables) still unblocked via `deformable-physics-robotics` — Newton VBD
+   + MuJoCo Warp path. Needs asset pilot first.
 
 ---
 
