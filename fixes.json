@@ -1,0 +1,2040 @@
+{
+  "version": 1,
+  "description": "V13 learning-propagation manifest. One row per failure-mode ID. See lint_fixes_manifest.py for schema and regeneration.",
+  "entries": [
+    {
+      "id": "D01",
+      "tier": "D",
+      "category": "Element",
+      "title": "Hourglassing in FEM",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 113
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D02",
+      "tier": "D",
+      "category": "Element",
+      "title": "Over-stiff bending (shear locking)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 114
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D03",
+      "tier": "D",
+      "category": "Mesh",
+      "title": "Inverted tetrahedra",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 115
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D04",
+      "tier": "D",
+      "category": "Mesh",
+      "title": "Aspect ratio > 3 blows up sim",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 116
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D05",
+      "tier": "D",
+      "category": "Solver",
+      "title": "Energy drift over long sim",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 117
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D06",
+      "tier": "D",
+      "category": "Contact",
+      "title": "Cloth/rope tunneling",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 118
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D07",
+      "tier": "D",
+      "category": "Contact",
+      "title": "Gripper passes through deformable (Isaac Sim PhysX 5)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 119
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D08",
+      "tier": "D",
+      "category": "Coupling",
+      "title": "Deformable-rigid instability",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 120
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D09",
+      "tier": "D",
+      "category": "Coupling",
+      "title": "Multi-layer cloth jitter",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 121
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D10",
+      "tier": "D",
+      "category": "Clean/HW",
+      "title": "Warp GPU divergence on deformables",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 122
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D11",
+      "tier": "D",
+      "category": "Material",
+      "title": "Sim material \u2260 real object",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 123
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D12",
+      "tier": "D",
+      "category": "Sim-to-Real",
+      "title": "Gripper slip on deformable",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 124
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D13",
+      "tier": "D",
+      "category": "Mesh",
+      "title": "Higher sim-mesh resolution \u2192 MORE deformation (not less)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 125
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D14",
+      "tier": "D",
+      "category": "Authoring",
+      "title": "Python-created rope unravels; UI rope stable",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 126
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D15",
+      "tier": "D",
+      "category": "Solver",
+      "title": "Gradual drift over long sim",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 127
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D16",
+      "tier": "D",
+      "category": "Contact",
+      "title": "Stretched/torn deformable at contact",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 128
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D17",
+      "tier": "D",
+      "category": "Contact",
+      "title": "Missed collision in concave/tight geometry",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 129
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "D18",
+      "tier": "D",
+      "category": "Material",
+      "title": "Oscillation when over-damped",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 130
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "F01",
+      "tier": "F",
+      "category": "Geometry/Units",
+      "title": "Asset in cm not meters, everything 100x off",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 27
+      },
+      "code": {
+        "function": "normalize_to_meters",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F02",
+      "tier": "F",
+      "category": "Geometry/Units",
+      "title": "Mesh has 0 vertices, collision crashes",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 28
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F03",
+      "tier": "F",
+      "category": "Geometry/Units",
+      "title": "BBox returns None, anchors/mass undefined",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 29
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F04",
+      "tier": "F",
+      "category": "Classification",
+      "title": "LLM returns invalid JSON",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 30
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F05",
+      "tier": "F",
+      "category": "Classification",
+      "title": "LLM names part that doesn't exist in USD",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 31
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F06",
+      "tier": "F",
+      "category": "Classification",
+      "title": "Structural part classified as movable",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 32
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F07",
+      "tier": "F",
+      "category": "Classification",
+      "title": "Movable part classified as structural",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 33
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F08",
+      "tier": "F",
+      "category": "Classification",
+      "title": "Wrong joint type (revolute vs prismatic)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 34
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F09",
+      "tier": "F",
+      "category": "Classification",
+      "title": "Wrong axis (Z vs X vs Y)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 35
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F10",
+      "tier": "F",
+      "category": "Classification",
+      "title": "Grandchild classified as movable",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 36
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F11",
+      "tier": "F",
+      "category": "Hierarchy",
+      "title": "Movables nested under body, don't move",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 42
+      },
+      "code": {
+        "function": "reparent_prims_preserve_world_xform",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F12",
+      "tier": "F",
+      "category": "Hierarchy",
+      "title": "Reparent crashes (SdfBatchNamespaceEdit)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 43
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F13",
+      "tier": "F",
+      "category": "Hierarchy",
+      "title": "Parts at wrong position after reparent",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 44
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F14",
+      "tier": "F",
+      "category": "Position",
+      "title": "Both joint anchors at (0,0,0), part pinned to origin",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 45
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F14b",
+      "tier": "F",
+      "category": "Position",
+      "title": "F14 zero-anchor check mis-flags symmetric-pivot instruments (scissors, clamps, pliers, forceps)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 46
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F15",
+      "tier": "F",
+      "category": "Position",
+      "title": "Wheel clips through bracket (~15mm off)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 47
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F16",
+      "tier": "F",
+      "category": "Position",
+      "title": "Hinge on wrong side of door",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 48
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F17",
+      "tier": "F",
+      "category": "Position",
+      "title": "Drawer opens into body instead of outward",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 49
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F18",
+      "tier": "F",
+      "category": "Limits",
+      "title": "Door jams at 0\u00b0, blocks gripper",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 50
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F19",
+      "tier": "F",
+      "category": "Limits",
+      "title": "Wheel can't spin freely",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 51
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F20",
+      "tier": "F",
+      "category": "Limits",
+      "title": "Drawer frozen, can't slide",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 52
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F21",
+      "tier": "F",
+      "category": "Mass",
+      "title": "Trolley body 318kg, can't drag",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 53
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F22",
+      "tier": "F",
+      "category": "Mass",
+      "title": "Door too heavy for robot",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 54
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F23",
+      "tier": "F",
+      "category": "Mass",
+      "title": "Wheel blows away on contact",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 55
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F24",
+      "tier": "F",
+      "category": "Mass",
+      "title": "PhysX assigns wrong default mass",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 56
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F25",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Invisible wall blocks robot",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 62
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F26",
+      "tier": "F",
+      "category": "Collision",
+      "title": "PhysX hangs on load (never finishes)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 63
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F27",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Wheel blob, poor rolling contact",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 64
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F28",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Door jams when closing (PhysX overlap)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 65
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F29",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Gripper passes through handle",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 66
+      },
+      "code": {
+        "function": "wire_friction",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F30",
+      "tier": "F",
+      "category": "Friction",
+      "title": "PhysX ignores friction entirely",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 67
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F31",
+      "tier": "F",
+      "category": "Friction",
+      "title": "Gripper slides off handle",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 68
+      },
+      "code": {
+        "function": "wire_friction",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F32",
+      "tier": "F",
+      "category": "Friction",
+      "title": "Dynamic body oscillates wildly when dragged",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 69
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F33",
+      "tier": "F",
+      "category": "Clean",
+      "title": "Host simulator conflict",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 70
+      },
+      "code": {
+        "function": "strip_existing_physics",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F34",
+      "tier": "F",
+      "category": "Clean",
+      "title": "Gripper gap 20mm instead of 0.5mm",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 71
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F35",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Movable part has zero collision \u2014 can't interact",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 72
+      },
+      "code": {
+        "function": "_get_all_descendant_meshes",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F36",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Gripper gap from robot finger convexHull",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 73
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F37",
+      "tier": "F",
+      "category": "Limits",
+      "title": "Slider part only reaches half its range",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 74
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F38",
+      "tier": "F",
+      "category": "Hierarchy",
+      "title": "Reparented child breaks DCC alignment (trigger exits slot, teeth misalign)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 75
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F39",
+      "tier": "F",
+      "category": "Position",
+      "title": "Structural mesh in movable travel zone (wheels where drawer opens)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 76
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F40",
+      "tier": "F",
+      "category": "Limits",
+      "title": "Prismatic travel wildly overshoots part size (5mm button gets 60cm travel)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 77
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F42",
+      "tier": "F",
+      "category": "Wheel/Hierarchy",
+      "title": "Caster bracket rotates with the tire instead of the chassis; whole wheel assembly spins as one",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 78
+      },
+      "code": {
+        "function": "split_wheel_structural_parts",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F43",
+      "tier": "F",
+      "category": "Geometry/Units",
+      "title": "Asset physically grounded (wheels on floor per audit) but renders floating above ground in Isaac Sim",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 79
+      },
+      "code": {
+        "function": "bake_xform_scales",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F44",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Adjacent stacked drawers pass through each other during teleop",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 80
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F45",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Two sibling movables (both jointed to the same chassis) pass through each other",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 81
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F46",
+      "tier": "F",
+      "category": "Position",
+      "title": "Drawer opens into the body instead of outward on symmetric-bbox drawers",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 82
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F46b",
+      "tier": "F",
+      "category": "Position",
+      "title": "Top lid opens toward the back while sibling drawers open toward the front \u2014 mixed-direction convention defeats F46 heuri",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 83
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F47",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Asset disappears at sim start; every rigid body transform reports \"Invalid\"; PhysX logs \"Illegal BroadPhaseUpdateData\"",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 84
+      },
+      "code": {
+        "function": "_is_degenerate_mesh",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F48",
+      "tier": "F",
+      "category": "Classification",
+      "title": "Wheels classified as shorthand \"wheel\" or \"caster\" silently dropped; asset has no rolling mechanism (slides as a block)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 85
+      },
+      "code": {
+        "function": "_normalize_class_aliases",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F49",
+      "tier": "F",
+      "category": "Authoring",
+      "title": "Fixtures (fridge, drug cabinet) pinned via PhysX-specific `kinematicEnabled=True` break Newton articulation parsing; dua",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 86
+      },
+      "code": {
+        "function": "make_world_anchor_joint",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F50",
+      "tier": "F",
+      "category": "Collision",
+      "title": "Parent-child overlap during joint motion (rest-pose clean)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 87
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F51",
+      "tier": "F",
+      "category": "Limits/Drive",
+      "title": "Mimic joint chatter / oscillation",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 88
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F52",
+      "tier": "F",
+      "category": "Limits/Drive",
+      "title": "Joint floppy after PGS\u2192TGS switch",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 89
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F53",
+      "tier": "F",
+      "category": "Hierarchy",
+      "title": "URDF-imported robot defies gravity, \"Prim is not Articulation\" error",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 90
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F54",
+      "tier": "F",
+      "category": "Authoring",
+      "title": "Asset spawns at (0,0,0) after ArticulationCfg wrap",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 91
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F55",
+      "tier": "F",
+      "category": "Geometry/Units",
+      "title": "Scaled mesh makes robot move wrong speed or fly off",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 92
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F56",
+      "tier": "F",
+      "category": "Authoring",
+      "title": "Transform/axis gizmo jumps at simulation start",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 93
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F57",
+      "tier": "F",
+      "category": "Limits/Drive",
+      "title": "Stiff drive + mimic joint: solver fails to converge",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 94
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F58",
+      "tier": "F",
+      "category": "Clean/Hardware",
+      "title": "Sim stable at 4 envs, NaN at 32+ envs",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 95
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F59",
+      "tier": "F",
+      "category": "Inertial",
+      "title": "Asset jitters at rest or rotates unintentionally",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 96
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F60",
+      "tier": "F",
+      "category": "Inertial",
+      "title": "Instability \"fixed\" by adding armature",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 97
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F61",
+      "tier": "F",
+      "category": "Clean/Hardware",
+      "title": "Frame-1 explosion on load (asset flies apart immediately)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 98
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F62",
+      "tier": "F",
+      "category": "Collision",
+      "title": "False-clean diagnosis (no overlaps reported but asset misbehaves)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 99
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F63",
+      "tier": "F",
+      "category": "Hierarchy/Collision",
+      "title": "Main body drags, rest of tool stays visually pinned at author pose",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 100
+      },
+      "code": {
+        "function": "weld_structural_siblings_into_body",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F64",
+      "tier": "F",
+      "category": "Wheel/Collision",
+      "title": "Wheels don't rotate when chassis is dragged; whole asset slides like a sled",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 101
+      },
+      "code": {
+        "function": "synthesize_wheel_cylinder_collider",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F64b",
+      "tier": "F",
+      "category": "Wheel/Collision",
+      "title": "F64 cylinder synthesized but chassis still skids \u2014 wheel-named meshes migrated into chassis by F42 split sit at floor le",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 102
+      },
+      "code": {
+        "function": "_strip_chassis_wheel_blockers",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F64c",
+      "tier": "F",
+      "category": "Wheel/Collision",
+      "title": "After F64+F64b, central foot/pedestal collider still touches floor below wheels (lift column, central base)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 103
+      },
+      "code": {
+        "function": "strip_chassis_floor_blockers",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "K01",
+      "tier": "K",
+      "category": "Synthesis",
+      "title": "Kinematic chain cannot reach task goal",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 140
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K02",
+      "tier": "K",
+      "category": "Dynamic",
+      "title": "Closed-loop constraint drift under actuation",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 141
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K03",
+      "tier": "K",
+      "category": "Validation",
+      "title": "Asset fragile under \u00b110% perturbations",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 142
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K04",
+      "tier": "K",
+      "category": "Format",
+      "title": "URDF closed-loop collapse on conversion",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 143
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K05",
+      "tier": "K",
+      "category": "Format",
+      "title": "MJCF actuator semantics dropped on USD round-trip",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 144
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K06",
+      "tier": "K",
+      "category": "Standards",
+      "title": "Adjustable hospital bed has entrapment risk",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 145
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K07",
+      "tier": "K",
+      "category": "Standards",
+      "title": "Office chair exceeds BIFMA cycle rating",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 146
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K08",
+      "tier": "K",
+      "category": "Sim-to-Real",
+      "title": "Friction stiction mismatch",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 147
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K09",
+      "tier": "K",
+      "category": "Collision",
+      "title": "Tunneling (fast-moving pass-through)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 148
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K10",
+      "tier": "K",
+      "category": "Collision",
+      "title": "Ghost collisions (adjacent-link false positives)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 149
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K11",
+      "tier": "K",
+      "category": "Kinematic",
+      "title": "Jacobian singularity in IK",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 150
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K12",
+      "tier": "K",
+      "category": "Dynamic",
+      "title": "Ill-conditioned inertia matrix (cond > 10\u2076)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 151
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "K13",
+      "tier": "K",
+      "category": "Performance",
+      "title": "GPU-incompatible topology",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 152
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K14",
+      "tier": "K",
+      "category": "Performance",
+      "title": "Batch memory bottleneck at scale",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 153
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K15",
+      "tier": "K",
+      "category": "Performance",
+      "title": "Excessive substeps required for stability",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 154
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K16",
+      "tier": "K",
+      "category": "Semantic",
+      "title": "Joint axis misdefined",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 155
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "K17",
+      "tier": "K",
+      "category": "Semantic",
+      "title": "Inertial parameters physically implausible",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 156
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "K18",
+      "tier": "K",
+      "category": "Semantic",
+      "title": "Friction model mismatch across engines",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 157
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S01",
+      "tier": "S",
+      "category": "Newton",
+      "title": "Articulated body on granular (MPM) terrain explodes or sinks",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 167
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S02",
+      "tier": "S",
+      "category": "MuJoCo",
+      "title": "`mjData.contact` forces show million-N spikes in control callback",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 168
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S03",
+      "tier": "S",
+      "category": "MuJoCo",
+      "title": "Setting contact regularization R=0 allows MORE penetration over time",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 169
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S04",
+      "tier": "S",
+      "category": "MuJoCo",
+      "title": "Object on flat hfield bounces continuously",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 170
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S05",
+      "tier": "S",
+      "category": "MuJoCo/MJX",
+      "title": "Training gradients noisy when contact is stiff",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 171
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S06",
+      "tier": "S",
+      "category": "MJX/JAX",
+      "title": "Non-deterministic despite `TF_DETERMINISTIC_OPS=1`",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 172
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S07",
+      "tier": "S",
+      "category": "Isaac Sim",
+      "title": "Cannot simulate granular (sand/soil)",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 173
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S08",
+      "tier": "S",
+      "category": "Isaac Sim",
+      "title": "Cloth multi-layer / tearing unsupported",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 174
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S09",
+      "tier": "S",
+      "category": "Sim-to-Real",
+      "title": "Save/resume mid-contact produces different results",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 175
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    },
+    {
+      "id": "S10",
+      "tier": "S",
+      "category": "Havok",
+      "title": "Cannot query hinge angle (API limitation); Coriolis ignored",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 176
+      },
+      "code": {
+        "function": null,
+        "file": null
+      },
+      "audit": {
+        "cites_id": false,
+        "file": null
+      }
+    }
+  ]
+}

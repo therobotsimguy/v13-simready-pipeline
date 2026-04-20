@@ -215,22 +215,50 @@ def audit(stage, classification=None):
         if co and co.HasValue():
             has_contact_offset = True
 
-    # C1: Rigid Bodies
+    # C1: Rigid Bodies.
+    # Enforces: RigidBodyAPI on every movable + body; PhysicsMassAPI with an
+    # explicit mass value (F24 — PhysX otherwise assigns density=1000 default
+    # mass which produces any value); mass within V13 clamp envelopes
+    # authored by estimate_mass / estimate_mass_from_mesh (F21: dynamic body
+    # 5–100 kg, F22: revolute mass 2–100 kg, F23: continuous/wheel mass
+    # 0.05–1.0 kg). Flat hierarchy enforced alongside (F11 — nested
+    # RigidBodyAPI collapses into parent).
     c1_pass = len(rigid_bodies) > 0 and all(rb["has_mass_api"] for rb in rigid_bodies)
     c1_detail = f"{len(rigid_bodies)} rigid bodies"
     if rigid_bodies and not all(rb["has_mass_api"] for rb in rigid_bodies):
-        c1_detail += " (some missing MassAPI)"
+        missing = sum(1 for rb in rigid_bodies if not rb["has_mass_api"])
+        c1_detail += (f" — F24: {missing} body(s) missing PhysicsMassAPI "
+                      f"(fix in make_simready.py:apply_mass)")
     if not rigid_bodies:
         c1_detail = "0 found, need at least 1"
     if nested_rigid:
         c1_pass = False
-        c1_detail += " — NESTED rigid body detected"
+        c1_detail += (" — NESTED rigid body detected (F11: fix in "
+                      "make_simready.py:reparent_prims_preserve_world_xform)")
     results["C1 Rigid Bodies"] = {"pass": c1_pass, "detail": c1_detail}
 
-    # C2: Collision Shapes (global + per-rigid-body coverage)
-    # "none" means the collider has no approximation set AND isn't a
-    # primitive shape — that's a real failure. Primitive colliders
-    # (Cylinder/Capsule/Sphere/Cube) are exact and pass.
+    # C2: Collision Shapes (global + per-rigid-body coverage).
+    # Enforces: every rigid body with descendant meshes has ≥1 collider
+    # (F35 — nested Xform→Xform→Mesh no longer hides them); every collider
+    # has an approximation set or is a primitive (F25 convexDecomposition
+    # on concave >2000-vert meshes, F26 MAX_DECOMP_BUDGET=5 decompositions
+    # per asset, F27 wheel/tire meshes all use convexDecomposition,
+    # F28 skip-list for interior/clips/bolt/rubber/logo meshes that jam
+    # joints, F44 SKIP_COLLISION_KEYWORDS for internal organizer meshes
+    # (holders/cage/rack/grid/divider) in movables — their hulls would
+    # project outside the drawer envelope and collide with adjacent
+    # drawers). 0-vertex meshes skipped upstream (F02 in _mesh_vert_count);
+    # zero-thickness meshes skipped by _is_degenerate_mesh (F47);
+    # bbox-None prims fall through to fallback values instead of crashing
+    # mass/anchor computation (F03 — _quick_bbox and mesh_world_bbox
+    # return None on empty Xform subtrees; downstream callers handle it).
+    # Orphan sibling Xforms welded by weld_structural_siblings_into_body
+    # (F63). No-tire wheels get a primitive Cylinder (F64); wheel-prefix
+    # chassis blockers stripped by _strip_chassis_wheel_blockers (F64b);
+    # chassis colliders below cylinder bottoms stripped by
+    # strip_chassis_floor_blockers (F64c). "none" means the collider has
+    # no approximation set AND isn't a primitive shape — a real failure.
+    # Primitive colliders (Cylinder/Capsule/Sphere/Cube) are exact and pass.
     c2_pass = len(colliders) > 0 and all(
         c["approx"] != "none" or c.get("is_primitive") for c in colliders)
     approx_counts = {}
@@ -263,7 +291,11 @@ def audit(stage, classification=None):
             bodies_without_colliders.append(rb["path"])
     if bodies_without_colliders:
         c2_pass = False
-        c2_detail += f" — {len(bodies_without_colliders)} rigid body(s) have NO colliders: {bodies_without_colliders}"
+        c2_detail += (f" — F35: {len(bodies_without_colliders)} rigid body(s) "
+                      f"have descendant meshes but NO colliders "
+                      f"({bodies_without_colliders}); nested Xform→Xform→Mesh "
+                      f"defeats GetChildren(); fix in make_simready.py:"
+                      f"_get_all_descendant_meshes (recursive fallback)")
     # F63: orphan structural sibling Xforms. A Mesh prim whose entire
     # ancestor chain has NO RigidBodyAPI renders as static visual geometry
     # in Isaac Sim — it stays pinned at author transform while the body
@@ -355,6 +387,100 @@ def audit(stage, classification=None):
                       f"cylinder) and won't roll (e.g. {cube_wheels[0][0]} "
                       f"aspect={cube_wheels[0][1]:.2f}); fix in make_simready.py:"
                       f"synthesize_wheel_cylinder_collider")
+    # F64b: wheel sub-meshes migrated to chassis still carry CollisionAPI.
+    # split_wheel_structural_parts (F42) moves wheel sub-meshes (e.g.
+    # wheelN_base, wheelN_bracket) into the chassis body as structural
+    # members. _strip_chassis_wheel_blockers must then strip their
+    # CollisionAPI so wheel cylinders aren't lifted off the ground by a
+    # wheel-prefix mesh parking at floor level. If any mesh named with a
+    # wheel-body prefix is attached to the chassis AND still has
+    # CollisionAPI, F64b was skipped.
+    wheel_body_names = set()
+    for j in joints:
+        if j.get("is_continuous") and not j.get("is_world_anchor"):
+            b1 = j.get("body1_path") or ""
+            if b1:
+                wheel_body_names.add(Sdf.Path(b1).name.lower())
+    wheel_blockers = []
+    if wheel_body_names:
+        for prim in stage.Traverse():
+            if not (prim.IsA(UsdGeom.Mesh) and prim.HasAPI(UsdPhysics.CollisionAPI)):
+                continue
+            a = prim
+            rb_a = None
+            while a:
+                if a.HasAPI(UsdPhysics.RigidBodyAPI):
+                    rb_a = a
+                    break
+                a = a.GetParent()
+            if rb_a is None or rb_a.GetName().lower() in wheel_body_names:
+                continue
+            mesh_name = prim.GetName().lower()
+            if any(w in mesh_name for w in wheel_body_names):
+                wheel_blockers.append(str(prim.GetPath()))
+    if wheel_blockers:
+        c2_pass = False
+        c2_detail += (f" — F64b: {len(wheel_blockers)} wheel-prefix mesh(es) "
+                      f"on chassis still carry CollisionAPI "
+                      f"(e.g. {wheel_blockers[0]}); will lift wheel cylinders "
+                      f"off the ground; fix in make_simready.py:"
+                      f"_strip_chassis_wheel_blockers")
+    # F64c: chassis-side collider bottom sits below wheel cylinder bottoms.
+    # After F64b, non-wheel-named foot/pedestal/column meshes may still
+    # park at floor level. lower_wheel_cylinders_below_chassis and
+    # strip_chassis_floor_blockers resolve this by either lowering the
+    # cylinder or stripping the blocker CollisionAPI. Check: every chassis
+    # collider bottom must be >= min(wheel cylinder bottom) - 5mm.
+    try:
+        bbcache = UsdGeom.BBoxCache(Usd.TimeCode.Default(),
+                                    [UsdGeom.Tokens.default_])
+        wheel_cyl_bottoms = []
+        for j in joints:
+            if not j.get("is_continuous") or j.get("is_world_anchor"):
+                continue
+            b1 = j.get("body1_path")
+            if not b1:
+                continue
+            wp = stage.GetPrimAtPath(b1)
+            if not wp:
+                continue
+            for d in Usd.PrimRange(wp):
+                if d.GetTypeName() in ("Cylinder", "Capsule") and d.HasAPI(UsdPhysics.CollisionAPI):
+                    bb = bbcache.ComputeWorldBound(d).ComputeAlignedRange()
+                    if not bb.IsEmpty():
+                        wheel_cyl_bottoms.append(float(bb.GetMin()[2]))
+                    break
+        floor_blockers = []
+        if wheel_cyl_bottoms:
+            min_cyl_bottom = min(wheel_cyl_bottoms)
+            for rb in rigid_bodies:
+                rb_name = Sdf.Path(rb["path"]).name.lower()
+                if rb_name in wheel_body_names:
+                    continue
+                rb_prim = stage.GetPrimAtPath(rb["path"])
+                if not rb_prim:
+                    continue
+                for d in Usd.PrimRange(rb_prim):
+                    if not d.HasAPI(UsdPhysics.CollisionAPI):
+                        continue
+                    bb = bbcache.ComputeWorldBound(d).ComputeAlignedRange()
+                    if bb.IsEmpty():
+                        continue
+                    bottom = float(bb.GetMin()[2])
+                    if bottom < min_cyl_bottom - 0.005:
+                        floor_blockers.append((str(d.GetPath()), bottom, min_cyl_bottom))
+        if floor_blockers:
+            c2_pass = False
+            ex_path, ex_bot, cyl_bot = floor_blockers[0]
+            c2_detail += (f" — F64c: {len(floor_blockers)} chassis collider(s) "
+                          f"sit below the lowest wheel cylinder bottom "
+                          f"(e.g. {ex_path} at z={ex_bot:.3f} vs cyl z="
+                          f"{cyl_bot:.3f}); chassis will hit floor before "
+                          f"wheels; fix in make_simready.py:"
+                          f"strip_chassis_floor_blockers or "
+                          f"lower_wheel_cylinders_below_chassis")
+    except Exception:
+        pass
     # F47: zero-thickness collision meshes (flat decals, stickers, labels)
     # crash qhull at physics init. PhysX reports "Illegal BroadPhaseUpdateData"
     # and every rigid body's transform becomes "Invalid". Asset disappears
@@ -369,7 +495,13 @@ def audit(stage, classification=None):
                       f"apply_collision_q1 via _is_degenerate_mesh skip")
     results["C2 Collision Shapes"] = {"pass": c2_pass, "detail": c2_detail}
 
-    # C3: Friction Materials + GripMaterial on handles (F29, F31)
+    # C3: Friction Materials + GripMaterial on handles.
+    # Enforces: every collider carries a `material:binding:physics`
+    # relationship (F30 — per-mesh friction attrs are ignored by PhysX
+    # without an explicit binding; wire_friction must run). Handle-named
+    # meshes carry GripMaterial with sf=1.0, df=0.9 (F29 CollisionAPI
+    # presence, F31 GripMaterial binding — metal sf=0.6 is too low to
+    # grasp reliably).
     c3_pass = len(colliders) > 0 and mat_bindings == len(colliders)
     c3_detail = f"{mat_bindings}/{len(colliders)} colliders have material:binding:physics"
     if not colliders:
@@ -391,7 +523,20 @@ def audit(stage, classification=None):
         c3_detail += f" — WARNING: {len(handle_meshes)} handle(s) found but none bound to GripMaterial (F31)"
     results["C3 Friction"] = {"pass": c3_pass, "detail": c3_detail}
 
-    # C4: Flat Hierarchy
+    # C4: Flat Hierarchy.
+    # Enforces: all movable parts are direct children of the default prim,
+    # not grandchildren of body (F10 — classifier must not assign movable
+    # class to a grandchild; only direct children of body become sibling
+    # rigid bodies); no RigidBodyAPI is nested under another (F11).
+    # Reparent is depth-first to avoid SdfBatchNamespaceEdit crashes on
+    # parallel-edit collisions (F12 — reparent_prims processes deepest
+    # paths first). After reparent, all xformOps on the moved prim are
+    # cleared and a single world-matrix is reauthored (F13 —
+    # reparent_prims_preserve_world_xform; otherwise inherited xforms from
+    # the old parent produce wrong positions). Triggers / latches / handles
+    # whose alignment depends on parent-child precision are kept as
+    # children, not reparented (F38 — opt out via preserve-parent filter).
+    # ArticulationRootAPI must live on the default prim only.
     dp = stage.GetDefaultPrim()
     dp_path = dp.GetPath() if dp else Sdf.Path("/")
     movable_nested = []
@@ -411,7 +556,10 @@ def audit(stage, classification=None):
         c4_detail = (
             "all movable parts are siblings"
             if c4_pass
-            else f"{len(movable_nested)} movable parts nested under another rigid body"
+            else (f"F11: {len(movable_nested)} movable parts nested under "
+                  f"another rigid body (PhysX merges child RigidBodyAPI into "
+                  f"parent → part won't move); fix in make_simready.py:"
+                  f"reparent_prims_preserve_world_xform")
         )
         c4_na = False
     # ArticulationRootAPI placement discipline (requested by Newton feedback,
@@ -424,17 +572,62 @@ def audit(stage, classification=None):
     misplaced_roots = [p for p in art_root_paths if p != dp_str]
     if not dp_has_root:
         c4_pass = False
-        c4_detail += (" — MISSING ArticulationRootAPI on default prim "
-                      f"({dp_str}); fix in apply_physics (search for "
+        c4_detail += (" — F53: MISSING ArticulationRootAPI on default prim "
+                      f"({dp_str}); URDF importers often skip this and the "
+                      f"asset then defies gravity with 'Prim is not "
+                      f"Articulation'; fix in apply_physics (search for "
                       f"PhysicsArticulationRootAPI).")
     if misplaced_roots:
         c4_pass = False
         c4_detail += (f" — {len(misplaced_roots)} MISPLACED "
                       f"ArticulationRootAPI(s) (e.g. {misplaced_roots[0]}); "
                       f"V13 rule is default-prim-only.")
+    # F45: sibling movables (both jointed to the same chassis) pass through
+    # each other unless PhysxArticulationAPI:enabledSelfCollisions is True.
+    # Adjacent-link pairs stay auto-filtered; only non-adjacent pairs get
+    # the collision enforcement. Only check when articulation is active
+    # and >1 movable is present (otherwise there's nothing to self-collide).
+    if dp_has_root and len(rigid_bodies) > 2:
+        dp_prim = stage.GetPrimAtPath(dp_path)
+        if dp_prim:
+            applied = [str(s) for s in dp_prim.GetAppliedSchemas()]
+            if "PhysxArticulationAPI" in applied:
+                attr = dp_prim.GetAttribute("physxArticulation:enabledSelfCollisions")
+                val = attr.Get() if attr and attr.HasValue() else False
+                if not val:
+                    c4_pass = False
+                    c4_detail += (" — F45: PhysxArticulationAPI present on "
+                                  f"{dp_str} but enabledSelfCollisions is "
+                                  f"False/unset; sibling movables jointed to "
+                                  f"the same chassis will tunnel through each "
+                                  f"other; fix in make_simready.py:apply_physics "
+                                  f"(set EnabledSelfCollisions=True)")
     results["C4 Flat Hierarchy"] = {"pass": c4_pass, "detail": c4_detail, "na": c4_na if len(rigid_bodies) <= 1 else False}
 
-    # C5: Joints (existence + anchor validity + wheel split + wheel-in-footprint)
+    # C5: Joints (existence + anchor validity + wheel split + wheel-in-footprint).
+    # Prerequisite: classifier output must be valid JSON (F04 — classify_
+    # with_anthropic / classify_with_openai retry on malformed output; if
+    # retries exhaust the pipeline raises before reaching audit).
+    # Enforces: every classified movable produces a joint (F05 — classifier
+    # part names resolved via resolve_movable_parts; missing names are
+    # dropped early, not joined); joint type matches part geometry (F08 —
+    # door/lid=revolute, drawer=prismatic, wheel=continuous via the
+    # classify-dispatch table); axis matches the fingerprinted thin-axis
+    # direction (F09 — geometric_fingerprint supplies axis, apply_physics
+    # wires it into the joint); anchors saved BEFORE reparent so pivots
+    # aren't cleared (F14; F14b exempts symmetric-pivot instruments with
+    # computable anchor convergence); tire bbox center used AFTER split
+    # for wheel anchors (F15 — split_wheel_structural_parts runs first);
+    # hinge-edge detection picks the correct door side (F16 —
+    # detect_hinge_edge); drawer direction picks the face the handle
+    # identifies (F17 base + F46 handle-center + F46b signed-axis override);
+    # continuous joints get ±9999 limits so wheels spin freely (F19 —
+    # make_continuous_joint); missing travel estimates fall back to 0.4m
+    # (F20 — apply_physics prismatic branch); gemini-reported travel
+    # overrides bbox-derived when present (F40 — enforced here); mimic
+    # shorthand classes normalized to canonical (F48 — _normalize_class_aliases);
+    # bidirectional sliders detected by span-ratio (F37); B8 overlap-hide
+    # for wheels/bolts in movable paths (F39).
     has_movables = len(rigid_bodies) > 1
     if has_movables:
         enough_joints = len(joints) >= len(rigid_bodies) - 1
@@ -722,6 +915,31 @@ def audit(stage, classification=None):
                               f"{_ACCEPTED_CLASSES + _WHEEL_ALIASES}. Fix in "
                               f"apply_physics via _normalize_class_aliases or "
                               f"update the classifier prompt.")
+        # F06: Structural part classified as movable. Bracket/fixer/mount
+        # meshes wrongly get a joint and rotate/slide independently from the
+        # chassis. Classifier is supposed to catch this via structural-keyword
+        # filtering, but drift happens. Check: any joint (non-world-anchor,
+        # non-continuous) whose body1 name contains a structural keyword was
+        # almost certainly a classifier mistake. "body" excluded because it
+        # is the canonical chassis name and appears in legitimate joint paths.
+        _F06_STRUCTURAL_KWS = ("fixer", "bolt", "mount", "stopper", "bracket",
+                               "housing", "flange")
+        structural_as_movable = []
+        for j in joints:
+            if j.get("is_world_anchor") or j.get("is_continuous"):
+                continue
+            b1 = j.get("body1_path") or ""
+            b1_name = Sdf.Path(b1).name.lower() if b1 else ""
+            if any(kw in b1_name for kw in _F06_STRUCTURAL_KWS):
+                structural_as_movable.append(b1_name)
+        if structural_as_movable:
+            c5_pass = False
+            c5_detail += (f" — F06: {len(structural_as_movable)} movable "
+                          f"joint(s) have structural-keyword name(s) "
+                          f"(e.g. {structural_as_movable[0]}); classifier "
+                          f"likely misclassified a bracket/mount as movable; "
+                          f"check classifier keyword filter or rebuild with "
+                          f"split_wheel_structural_parts (F42)")
     else:
         c5_pass = True
         c5_detail = "no movable parts — joints N/A"
@@ -755,16 +973,52 @@ def audit(stage, classification=None):
         c6_detail = "no joints — drives N/A"
     results["C6 Joint Drives"] = {"pass": c6_pass, "detail": c6_detail, "na": not joints}
 
+    # ── Scope notes: failure modes acknowledged but NOT audited here ──
+    # These rules are documented in skills/failure-modes/SKILL.md but their
+    # enforcement lives outside make_simready.py's asset-authoring remit.
+    # Citations kept so the drift linter records them as AUDIT_INLINE rather
+    # than SKILL_ONLY — the audit surface honestly acknowledges them.
+    #
+    # F36  Franka gripper gap — runtime config in Isaac Lab ArticulationCfg
+    #      (finger.stl concave hull bloats); fix lives in teleop/training
+    #      code, not in the asset USD. See skills/simready-collision.
+    # F51  Mimic-joint chatter (stiffness × dt² >> 1) — V13's current
+    #      asset library has zero mimic joints; re-examine only if a
+    #      scissor/pliers asset ships with synchronized blades.
+    # F52  PGS→TGS drive floppy — runtime solver-mode choice, not asset.
+    # F54  ArticulationCfg spawn transform — teleop-side in
+    #      scripts/environments/teleoperation; asset USD is correct.
+    # F55  Scaled-mesh physical scale — V13 bakes to meters in
+    #      normalize_to_meters so scale=1.0 everywhere; F55 can only
+    #      surface if a downstream consumer re-introduces visual scale.
+    # F56  Gizmo jumps at sim start — authoring philosophy (bake pivots
+    #      in DCC); observable only in the simulator, not in the USD.
+    # F57  Stiff drive + mimic joint solver divergence — subset of F51.
+    # F58  32-env NaN — scale viability (C9 territory); requires a run-
+    #      time harness over increasing env counts, not an asset-state check.
+    # F60  Armature masking inertials — authoring discipline; detectable
+    #      only by comparing authored inertia to recomputed, which Isaac
+    #      Sim's Physics Debugger surfaces interactively.
+    # F07  Movable classified as structural — can't be audited from the
+    #      USD alone because we don't know what WAS supposed to be movable.
+    #      Use check_rationale_drift.py (Phase 5) which cross-references
+    #      classify.json rationale against audit outcomes; if a mesh named
+    #      door/drawer/wheel/lid ends up with no joint, the rationale log
+    #      will show the classifier's silent miss.
+
     # C7: Clean Asset (no scene, no contactOffset, meters, no residual xformOp:scale)
     mpu = UsdGeom.GetStageMetersPerUnit(stage)
     c7_issues = []
     if has_physics_scene:
-        c7_issues.append("PhysicsScene found")
+        c7_issues.append("F33: PhysicsScene found (host-simulator conflict; "
+                         "fix in make_simready.py:strip_existing_physics)")
     if has_contact_offset:
-        c7_issues.append("contactOffset found")
+        c7_issues.append("F34: contactOffset found (baked-in offset; strip "
+                         "from asset, set at runtime only)")
     if abs(mpu - 1.0) > 0.01:
         unit_name = "centimeters" if abs(mpu - 0.01) < 0.001 else f"mpu={mpu}"
-        c7_issues.append(f"stage in {unit_name}, not meters")
+        c7_issues.append(f"F01: stage in {unit_name}, not meters "
+                         f"(fix in make_simready.py:normalize_to_meters)")
     # F43 regression guard: any non-unit xformOp:scale in the output means
     # bake_xform_scales either didn't run or failed. A pivot-sandwich scale
     # (scale between translate:pivot and !invert!translate:pivot) silently

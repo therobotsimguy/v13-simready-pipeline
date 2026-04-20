@@ -319,6 +319,102 @@ When you find and fix a pipeline bug, apply the **3-step fix rule**:
 Validated by rebuilding a known-good asset (e.g. `InstrumentTrolley_B01_01`)
 and confirming the audit catches the regression when the fix is reverted.
 
+### Drift detector: `fixes.json` + `lint_fixes_manifest.py`
+
+The 3-step rule is honor-system unless something checks it. `fixes.json` is
+the structured source of truth for every F / D / K / S failure-mode ID —
+one row per ID with pointers to its skill location, its fix function (if
+named), and whether `audit()` cites it. `lint_fixes_manifest.py` validates
+that every row still resolves to a real location and classifies each
+entry by propagation state.
+
+```bash
+make lint    # validate fixes.json → reports CODE_NO_AUDIT / CODE_NO_SKILL drift
+make scan    # regenerate fixes.json from skill file + code scan
+```
+
+Status categories the linter reports:
+
+| Status          | Meaning                                                      |
+|-----------------|--------------------------------------------------------------|
+| `ENFORCED`      | skill + named fix function + audit citation all present     |
+| `AUDIT_INLINE`  | skill + audit citation, fix is inline (no named function)   |
+| `CODE_NO_AUDIT` | skill + code, **no audit citation** — silent regression risk |
+| `CODE_NO_SKILL` | cited in code but missing from failure-modes skill — F-number hole |
+| `SKILL_ONLY`    | documented, zero enforcement — backlog                       |
+
+Linter exits 1 on broken refs (manifest points at a missing file /
+renamed function / removed audit citation). Run before every commit
+that touches skills, `make_simready.py`, or adds a new F-number.
+
+### Propagator: `propagate_learning.py`
+
+Automates the 3-step fix rule. Given a diagnosed failure (observation +
+root cause + proposed fix), it drafts the SKILL row, the CODE function
+and call site, and the AUDIT check as one markdown document for human
+review. Allocates the next available F/D/K/S number from the manifest
+so numbering stays consistent.
+
+```bash
+python3 propagate_learning.py \
+  --observation "wheels don't rotate when chassis is dragged" \
+  --diagnosis "no tire mesh, cube-aspect collider" \
+  --proposed-fix "synthesize primitive Cylinder sized to wheel bbox" \
+  --dry-run            # show prompt, no LLM call
+
+# Live run (default model: claude-sonnet-4-5, ≤$0.05 per draft)
+python3 propagate_learning.py --observation ... --diagnosis ... --proposed-fix ...
+```
+
+The propagator **never writes to skill/code/audit files directly** and
+**never commits**. It emits a draft to stdout (and `.research_delta/
+propagations/`) for human review. Workflow:
+
+1. Review the draft
+2. Copy edits into the three files
+3. `make scan && make lint` → confirm new ID status = `ENFORCED`
+4. Rebuild `InstrumentTrolley_B01_01` → confirm no regression
+5. Rebuild the failing asset → confirm the fix resolves the observation
+
+The gold-standard examples (F63 weld orphans, F64 cube-wheel cylinders)
+are included in the prompt so the LLM mirrors their precise shape —
+same level of detail in the skill row, same naming discipline for the
+fix function, same F-number-prefixed FAIL message in the audit check.
+
+### Runtime rationale drift: `check_rationale_drift.py`
+
+The classifier emits a `rationale` list per part (e.g.
+`["F49:world-anchor-applied", "F09:thin-axis-from-fingerprint"]`).
+Audit checks separately. This tool cross-references per build:
+
+```bash
+python3 check_rationale_drift.py \
+  --classify ~/SimReady_Output/simready/classify/<asset>_classify.json \
+  --usd ~/SimReady_Output/simready/<asset>/<asset>_physics.usd
+```
+
+Reports three drift classes:
+- **CONTRADICTION** — classifier claimed `F##` AND audit FAILs with `F##` cited (rule supposed to fire, output violates it — highest-priority drift)
+- **BLIND SPOT** — audit FAIL with no matching classifier claim (classifier didn't anticipate; informational)
+- **UNVERIFIABLE** — classifier claim has no corresponding audit check (use `make lint` to see if it's `SKILL_ONLY` vs inline)
+
+Exit 1 on contradictions.
+
+### Audit regression harness: `test_audit_fixes.py`
+
+Every fix function claims an audit check catches regressions. But audits
+can be insufficient (F35 scissors — audit existed but checked the wrong
+invariant). This test suite constructs minimal failing USD stages
+in-memory and asserts audit FAILs with the expected F-number:
+
+```bash
+make test-audit     # or: python3 test_audit_fixes.py
+```
+
+Currently covers F01, F11, F33, F47, F63 plus a baseline-doesn't-false-
+positive test. Extend by adding `def test_F##_...` functions following
+the same pattern (build stage → mutate → audit → assert).
+
 ---
 
 ## Next session — Learning Propagator (architectural priority)
