@@ -234,9 +234,9 @@ as usual.
 | 17 | SurgicalChair_B01_01 | chair | pending |
 | 18 | SurgicalMicroScope_A01_01 | system | pending |
 | 19 | SurgicalpowerTool_B01_01 | surgical tool | **built** (2026-04-19 — drove F63 orphan-structural-siblings fix: raw USD authored tool body as 10 sibling Xforms (main_01 + cylinderpart1-4 + handlebase + handle + drillbit + decals), classifier marked 1 as body root, other 9 had no RigidBodyAPI → dragged main detached from rest. Added `weld_structural_siblings_into_body` to make_simready.py, F63 audit check, skill docs. Post-fix body: 1 → 11 colliders; AUDIT 7/7; 0 orphans; teleop PASS with all parts moving together. Regression-tested clean on InstrumentTrolley_B / Refrigerator_A / EmergencyTrolley / DrugCabinet / BipolardissectingScissors) |
-| 20 | SurgicalTable_A01_01 | table | pending |
+| 20 | SurgicalTable_A01_01 | table | **built** (2026-04-19 — drove F64/F64b/F64c caster fixes: 4 no-tire casters (cap+core only, bbox aspect 1.06) skidded on cube colliders, chassis parked on `wheel*_base` plates + `base1` foot at floor level. Added `synthesize_wheel_cylinder_collider` (primitive Cylinder, axis Y, r=4cm h=7.6cm, rubber-bound), `_strip_chassis_wheel_blockers` (hides + strips wheel-prefix blockers), `strip_chassis_floor_blockers` (hides + strips non-wheel floor blockers). AUDIT 7/7, 14 links / 13 joints (4 casters + table tilt + headrest + frame1/2 + joint1-4 leg-rest chain + lader4 prismatic lift). First live verification of classifier rationale tracking: 52 rule citations, 14 parts each with `rationale` field (F06/F07/F09/F11/F20/BEH/MEC). Teleop PASS.) |
 
-Score: **14 / 20 built + 1 partial** (MedicalutilityCart: physics correct,
+Score: **15 / 20 built + 1 partial** (MedicalutilityCart: physics correct,
 drawers mis-faced; SurgicalChair: 2-DOF caster topology correct, spawn-time
 PhysX broadphase still under investigation). Remaining 7 assets can be run
 with the single entry-point command; no per-asset tuning is required unless

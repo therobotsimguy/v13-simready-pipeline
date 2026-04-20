@@ -112,9 +112,15 @@ def audit(stage, classification=None):
             # at sim start. Fix in apply_collision_q1 / apply_collision_wheels:
             # skip meshes where any bbox axis < 1e-6.
             is_degenerate = prim.IsA(UsdGeom.Mesh) and _is_degenerate_mesh(prim)
+            # Primitive shapes (Cylinder/Capsule/Sphere/Cube) are exact —
+            # they don't need an approximation. F64 synthesizes a Cylinder
+            # collider for cube-shaped wheels; mark it as 'primitive' so
+            # the C2 audit check doesn't flag the absent approximation.
+            is_primitive = prim.GetTypeName() in ("Cylinder", "Capsule", "Sphere", "Cube")
             colliders.append({
                 "name": prim.GetName(),
-                "approx": approx_val,
+                "approx": "primitive" if is_primitive else approx_val,
+                "is_primitive": is_primitive,
                 "has_physics_mat_binding": has_binding,
                 "degenerate": is_degenerate,
             })
@@ -222,7 +228,11 @@ def audit(stage, classification=None):
     results["C1 Rigid Bodies"] = {"pass": c1_pass, "detail": c1_detail}
 
     # C2: Collision Shapes (global + per-rigid-body coverage)
-    c2_pass = len(colliders) > 0 and all(c["approx"] != "none" for c in colliders)
+    # "none" means the collider has no approximation set AND isn't a
+    # primitive shape — that's a real failure. Primitive colliders
+    # (Cylinder/Capsule/Sphere/Cube) are exact and pass.
+    c2_pass = len(colliders) > 0 and all(
+        c["approx"] != "none" or c.get("is_primitive") for c in colliders)
     approx_counts = {}
     for c in colliders:
         approx_counts[c["approx"]] = approx_counts.get(c["approx"], 0) + 1
@@ -295,6 +305,56 @@ def audit(stage, classification=None):
                       f"have mesh geometry but NO rigid body ancestor "
                       f"(e.g. {example}); fix in make_simready.py:"
                       f"weld_structural_siblings_into_body")
+    # F64: continuous-joint wheels with cube-shaped colliders skid instead
+    # of rolling. A wheel rigid body must EITHER contain a tire-named mesh
+    # (treated as convexHull drum) OR have a primitive Cylinder/Capsule
+    # collider (synthesized by F64). Otherwise the convex-decomposition of
+    # cap+core+bracket meshes produces a near-cube collider that won't roll.
+    cube_wheels = []
+    for j in joints:
+        if not j.get("is_continuous"):
+            continue
+        if j.get("is_world_anchor"):
+            continue
+        body1_path = j.get("body1_path")
+        if not body1_path:
+            continue
+        wheel_prim = stage.GetPrimAtPath(body1_path)
+        if not wheel_prim:
+            continue
+        # Is there a primitive cylinder/capsule collider in the subtree?
+        has_primitive = False
+        has_tire = False
+        for d in Usd.PrimRange(wheel_prim):
+            if d.GetTypeName() in ("Cylinder", "Capsule") and d.HasAPI(UsdPhysics.CollisionAPI):
+                has_primitive = True
+                break
+            if d.IsA(UsdGeom.Mesh) and "tire" in d.GetName().lower():
+                has_tire = True
+        if has_primitive or has_tire:
+            continue
+        # Compute aspect ratio of the rigid body's collider envelope.
+        # Use the same _wheel_local_bbox helper.
+        try:
+            bb = _wheel_local_bbox(stage, wheel_prim)
+        except Exception:
+            bb = None
+        if not bb:
+            continue
+        _, _, _, sizes = bb
+        sl = [float(sizes[i]) for i in range(3) if float(sizes[i]) > 1e-6]
+        if not sl:
+            continue
+        aspect = max(sl) / min(sl)
+        if aspect < 1.8:
+            cube_wheels.append((str(wheel_prim.GetPath()), aspect))
+    if cube_wheels:
+        c2_pass = False
+        c2_detail += (f" — F64: {len(cube_wheels)} continuous-joint wheel(s) "
+                      f"have cube-shaped colliders (no tire mesh, no primitive "
+                      f"cylinder) and won't roll (e.g. {cube_wheels[0][0]} "
+                      f"aspect={cube_wheels[0][1]:.2f}); fix in make_simready.py:"
+                      f"synthesize_wheel_cylinder_collider")
     # F47: zero-thickness collision meshes (flat decals, stickers, labels)
     # crash qhull at physics init. PhysX reports "Illegal BroadPhaseUpdateData"
     # and every rigid body's transform becomes "Invalid". Asset disappears
@@ -1815,7 +1875,246 @@ def apply_collision_q1(stage, xform_path, is_body=False):
     return n_col, n_decomp
 
 
-def apply_collision_wheels(stage, xform_path):
+def _wheel_local_bbox(stage, wheel_prim):
+    """Compute the wheel's bbox in the wheel Xform's LOCAL frame.
+
+    Returns (min_vec, max_vec, center_vec, sizes_vec) or None if no points.
+    Used by F64 to size a synthesized cylinder collider that lives as a
+    child of the wheel Xform (so it's positioned in wheel-local coords).
+    """
+    wxf = UsdGeom.Xformable(wheel_prim).ComputeLocalToWorldTransform(0)
+    wxf_inv = wxf.GetInverse()
+    pts_local_min = [float("inf")] * 3
+    pts_local_max = [float("-inf")] * 3
+    found = False
+    for d in Usd.PrimRange(wheel_prim):
+        if not d.IsA(UsdGeom.Mesh):
+            continue
+        d_pts = UsdGeom.Mesh(d).GetPointsAttr().Get()
+        if not d_pts:
+            continue
+        d_xf = UsdGeom.Xformable(d).ComputeLocalToWorldTransform(0)
+        for p in d_pts:
+            wp = d_xf.Transform(Gf.Vec3d(float(p[0]), float(p[1]), float(p[2])))
+            lp = wxf_inv.Transform(wp)
+            for i in range(3):
+                if lp[i] < pts_local_min[i]:
+                    pts_local_min[i] = lp[i]
+                if lp[i] > pts_local_max[i]:
+                    pts_local_max[i] = lp[i]
+            found = True
+    if not found:
+        return None
+    mn = Gf.Vec3d(*pts_local_min)
+    mx = Gf.Vec3d(*pts_local_max)
+    center = (mn + mx) * 0.5
+    sizes = Gf.Vec3d(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2])
+    return (mn, mx, center, sizes)
+
+
+def _has_tire_descendant(prim):
+    """True if any descendant mesh's name contains a tire/rubber keyword."""
+    keywords = ("tire", "rubber", "tyre", "tread")
+    for d in Usd.PrimRange(prim):
+        if d.IsA(UsdGeom.Mesh) and any(k in d.GetName().lower() for k in keywords):
+            return True
+    return False
+
+
+def synthesize_wheel_cylinder_collider(stage, wheel_path, axis_str, dp_path):
+    """F64 fix — replace mesh colliders on a near-cube wheel with a primitive
+    cylinder sized to the wheel's bbox, oriented along the joint axis.
+
+    A wheel Xform that contains only structural sub-meshes (caster cap +
+    core, no rubber tire) gets convex-decomposed into a near-cube collider
+    that skids on the floor instead of rolling. Visual cap+core meshes
+    stay as-is for rendering; the cylinder collider takes over physics and
+    is hidden from render via visibility=invisible.
+
+    Returns (cyl_path_str, height, radius) or None if synthesis was skipped.
+    """
+    wheel_prim = stage.GetPrimAtPath(wheel_path)
+    if not wheel_prim or not wheel_prim.IsValid():
+        return None
+    bb = _wheel_local_bbox(stage, wheel_prim)
+    if bb is None:
+        return None
+    _, _, center, sizes = bb
+    axis_idx = {"X": 0, "Y": 1, "Z": 2}.get(axis_str.upper().lstrip("+-"), 1)
+    height = float(sizes[axis_idx])
+    non_axis_dims = [float(sizes[i]) for i in range(3) if i != axis_idx]
+    radius = max(non_axis_dims) * 0.5
+    if height <= 1e-6 or radius <= 1e-6:
+        return None
+    # Strip CollisionAPI from descendant meshes — replaced by the cylinder.
+    n_stripped = 0
+    for d in Usd.PrimRange(wheel_prim):
+        if d.HasAPI(UsdPhysics.CollisionAPI):
+            d.RemoveAPI(UsdPhysics.CollisionAPI)
+            d.RemoveAPI(UsdPhysics.MeshCollisionAPI)
+            n_stripped += 1
+    # Create the cylinder as a child of the wheel Xform.
+    cyl_name = "f64_collider"
+    cyl_path = wheel_path.AppendChild(cyl_name)
+    cyl = UsdGeom.Cylinder.Define(stage, cyl_path)
+    cyl.GetAxisAttr().Set(axis_str.upper().lstrip("+-"))
+    cyl.GetHeightAttr().Set(height)
+    cyl.GetRadiusAttr().Set(radius)
+    # Position the cylinder at the wheel's local bbox center.
+    cyl_xf = UsdGeom.Xformable(cyl)
+    cyl_xf.ClearXformOpOrder()
+    top = cyl_xf.AddTranslateOp(UsdGeom.XformOp.PrecisionDouble)
+    top.Set(center)
+    # Hide from render — physics still uses the CollisionAPI.
+    UsdGeom.Imageable(cyl).CreateVisibilityAttr().Set("invisible")
+    UsdPhysics.CollisionAPI.Apply(cyl.GetPrim())
+    # Bind a rubber friction material if one already exists in the asset.
+    rubber_mat_path = None
+    for mp in stage.GetPrimAtPath(dp_path).GetChildren():
+        if mp.GetTypeName() == "Material" and "rubber" in mp.GetName().lower():
+            rubber_mat_path = mp.GetPath()
+            break
+    if rubber_mat_path is None:
+        # Look one level deeper (e.g. /default/Looks/rubber_xxx)
+        for sc in stage.GetPrimAtPath(dp_path).GetChildren():
+            if sc.GetTypeName() == "Scope":
+                for mp in sc.GetChildren():
+                    if mp.GetTypeName() == "Material" and "rubber" in mp.GetName().lower():
+                        rubber_mat_path = mp.GetPath()
+                        break
+            if rubber_mat_path:
+                break
+    if rubber_mat_path is not None:
+        rubber_prim = stage.GetPrimAtPath(rubber_mat_path)
+        if not rubber_prim.HasAPI(UsdPhysics.MaterialAPI):
+            phys_api = UsdPhysics.MaterialAPI.Apply(rubber_prim)
+            phys_api.CreateStaticFrictionAttr(0.8)
+            phys_api.CreateDynamicFrictionAttr(0.7)
+            phys_api.CreateRestitutionAttr(0.0)
+        bind = UsdShade.MaterialBindingAPI.Apply(cyl.GetPrim())
+        bind.Bind(UsdShade.Material(rubber_prim),
+                  UsdShade.Tokens.weakerThanDescendants, "physics")
+    return (str(cyl_path), height, radius, n_stripped)
+
+
+def strip_chassis_floor_blockers(stage, body_path, movables):
+    """F64c — strip CollisionAPI from chassis meshes that extend below the
+    F64 wheel cylinder bottoms. Without this, a chassis foot/pedestal
+    authored below the wheel mesh visible bottoms keeps colliding with
+    the floor; the wheel revolute constraint then prevents the chassis
+    from being lifted, and the wheels never touch the ground.
+
+    This runs after F64b, which strips wheel-name-prefixed blockers only;
+    F64c removes the rest (central foot, base column, pedestals) by Z-test
+    only. Visible meshes stay; wheels become the sole floor contact.
+
+    Surfaced on SurgicalTable_A01_01 (2026-04-19): `base1` chassis mesh at
+    z=0.0056 still 1cm below wheel cylinders at z=0.0162 after F64+F64b.
+    """
+    body_prim = stage.GetPrimAtPath(body_path)
+    if not body_prim:
+        return 0
+    # Find min cylinder bottom across all F64 wheels.
+    cyl_bottom = float("inf")
+    for name, info in movables.items():
+        if info.get("joint") != "continuous":
+            continue
+        wp = stage.GetPrimAtPath(info["path"])
+        if not wp:
+            continue
+        for c in wp.GetChildren():
+            if c.GetTypeName() == "Cylinder" and c.HasAPI(UsdPhysics.CollisionAPI):
+                cxf = UsdGeom.Xformable(c).ComputeLocalToWorldTransform(0)
+                cz = cxf[3][2]
+                radius = UsdGeom.Cylinder(c).GetRadiusAttr().Get() or 0.0
+                height = UsdGeom.Cylinder(c).GetHeightAttr().Get() or 0.0
+                axis_str = (UsdGeom.Cylinder(c).GetAxisAttr().Get() or "Y").upper()
+                bot = cz - (height * 0.5 if axis_str == "Z" else radius)
+                if bot < cyl_bottom:
+                    cyl_bottom = bot
+    if cyl_bottom == float("inf"):
+        return 0
+    bbc = UsdGeom.BBoxCache(0, ["default"])
+    n = 0
+    for d in Usd.PrimRange(body_prim):
+        if not d.IsA(UsdGeom.Mesh):
+            continue
+        if not d.HasAPI(UsdPhysics.CollisionAPI):
+            continue
+        try:
+            bb = bbc.ComputeWorldBound(d)
+            zmin = bb.GetBox().GetMin()[2]
+        except Exception:
+            continue
+        # Strip chassis meshes whose bottom is more than 5mm below the
+        # wheel cylinder bottoms — those will block ground contact and
+        # prevent rolling.
+        if zmin < cyl_bottom - 0.005:
+            d.RemoveAPI(UsdPhysics.CollisionAPI)
+            d.RemoveAPI(UsdPhysics.MeshCollisionAPI)
+            # Also hide — after gravity-settle onto the wheel cylinders,
+            # this mesh (authored at floor level) would render below ground.
+            UsdGeom.Imageable(d).CreateVisibilityAttr().Set("invisible")
+            n += 1
+    return n
+
+
+def _strip_chassis_wheel_blockers(stage, body_path, wheel_name, wheel_cyl_bottom_z):
+    """F64b — strip CollisionAPI from chassis meshes that share the wheel's
+    name prefix AND sit below the wheel cylinder's bottom.
+
+    `split_wheel_structural_parts` (F42) migrates wheel sub-meshes named
+    `<wheel>_base/bracket/mount/housing/...` into the chassis as structural
+    parts that rotate WITH the chassis (not with the tire). Geometrically
+    correct, but those meshes typically extend down to the caster's
+    mounting-plate level — at floor height. Their CollisionAPI then makes
+    the chassis itself hit the ground, parking it on its own caster bases
+    while the wheels float. Strip those meshes' CollisionAPI: they remain
+    visible but stop blocking ground contact.
+
+    Surfaced on SurgicalTable_A01_01 (2026-04-19): chassis had 4
+    `wheel*_base` meshes at bottom_z=0.0001 while F64 cylinders sat at
+    bottom_z=0.017 — chassis kept the asset pinned and wheels couldn't
+    push it.
+    """
+    body_prim = stage.GetPrimAtPath(body_path)
+    if not body_prim or not body_prim.IsValid():
+        return 0
+    bbc = UsdGeom.BBoxCache(0, ["default"])
+    n = 0
+    prefix = wheel_name.lower()
+    # Drop trailing `_NN` to get base prefix (e.g. `wheel1_01` → `wheel1`)
+    parts = prefix.rsplit("_", 1)
+    if len(parts) == 2 and parts[1].isdigit():
+        prefix = parts[0]
+    for d in Usd.PrimRange(body_prim):
+        if not d.IsA(UsdGeom.Mesh):
+            continue
+        if not d.HasAPI(UsdPhysics.CollisionAPI):
+            continue
+        dn = d.GetName().lower()
+        if prefix not in dn:
+            continue
+        try:
+            bb = bbc.ComputeWorldBound(d)
+            zmin = bb.GetBox().GetMin()[2]
+        except Exception:
+            continue
+        # Strip if mesh extends below the wheel cylinder bottom by > 5mm
+        if zmin < wheel_cyl_bottom_z - 0.005:
+            d.RemoveAPI(UsdPhysics.CollisionAPI)
+            d.RemoveAPI(UsdPhysics.MeshCollisionAPI)
+            # Also hide the mesh: once physics settles the asset onto the
+            # wheel cylinders, this mesh (at author z = floor level) ends
+            # up visually below the floor. Hiding it avoids the "wheel
+            # under ground" artifact on SurgicalTable_A01_01-style assets.
+            UsdGeom.Imageable(d).CreateVisibilityAttr().Set("invisible")
+            n += 1
+    return n
+
+
+def apply_collision_wheels(stage, xform_path, axis_str=None, dp_path=None,
+                           body_path=None):
     """Wheel meshes: tire-named meshes use convexHull (drum shape, no
     jitter); non-tire sub-parts (disc, detail, etc.) use convexDecomposition
     for non-convex geometry. Switched 2026-04-19 after the SurgicalChair
@@ -1824,6 +2123,15 @@ def apply_collision_wheels(stage, xform_path):
     contact separation that looks like the tire cover lifting off the rim.
     Hull is geometrically a filled drum, which for physics-grade casters
     is the right approximation (you don't need to model tread pattern).
+
+    F64: when the wheel has NO tire-named sub-mesh AND its overall bbox
+    is near-cube (max-axis / min-axis < 1.8), the per-mesh hull/decomp
+    produces a near-cube collider that doesn't roll. In that case the
+    per-mesh CollisionAPI is replaced with a synthesized primitive
+    Cylinder via synthesize_wheel_cylinder_collider, oriented along the
+    joint axis. Surfaced on SurgicalTable_A01_01 (2026-04-19): caster
+    Xforms contained only `cap` (plastic) + `core` (steel) sub-meshes,
+    overall bbox 8×7.6×8 cm (aspect 1.06 → cube), so wheels skidded.
     """
     prim = stage.GetPrimAtPath(xform_path)
     if not prim:
@@ -1841,6 +2149,45 @@ def apply_collision_wheels(stage, xform_path):
         else:
             mc.CreateApproximationAttr("convexDecomposition")
         n += 1
+    # F64: detect cube-shaped wheels and swap to a primitive cylinder.
+    if axis_str and dp_path is not None and not _has_tire_descendant(prim):
+        bb = _wheel_local_bbox(stage, prim)
+        if bb:
+            _, _, _, sizes = bb
+            sl = [float(sizes[i]) for i in range(3) if float(sizes[i]) > 1e-6]
+            if sl:
+                aspect = max(sl) / min(sl)
+                if aspect < 1.8:
+                    res = synthesize_wheel_cylinder_collider(stage, xform_path, axis_str, dp_path)
+                    if res:
+                        cyl_path, h, r, n_stripped = res
+                        print(f"    F64: {prim.GetName()} aspect={aspect:.2f} (no tire) → "
+                              f"synth cylinder axis={axis_str} h={h:.3f}m r={r:.3f}m "
+                              f"(stripped {n_stripped} mesh collider(s))")
+                        # F64b: strip chassis-side blockers that share the
+                        # wheel's name prefix and sit below the cylinder bottom.
+                        # Compute cylinder world bottom from its translate +
+                        # radius — UsdGeom.BBoxCache returns local-only extent
+                        # for primitive Cylinder prims, so we can't rely on it.
+                        if body_path is not None:
+                            cyl_prim = stage.GetPrimAtPath(Sdf.Path(cyl_path))
+                            if cyl_prim and cyl_prim.IsValid():
+                                cxf = UsdGeom.Xformable(cyl_prim).ComputeLocalToWorldTransform(0)
+                                cyl_world_z = cxf[3][2]
+                                # axis=Y → radius extends in XZ → bottom = z - r
+                                # axis=X → radius extends in YZ → bottom = z - r
+                                # axis=Z → radius extends in XY → bottom = z - h/2
+                                if axis_str.upper().lstrip("+-") == "Z":
+                                    cyl_bot = cyl_world_z - h * 0.5
+                                else:
+                                    cyl_bot = cyl_world_z - r
+                                n_blockers = _strip_chassis_wheel_blockers(
+                                    stage, body_path, prim.GetName(), cyl_bot)
+                                if n_blockers:
+                                    print(f"      F64b: stripped {n_blockers} chassis-side "
+                                          f"`{prim.GetName().rsplit('_', 1)[0]}*` "
+                                          f"mesh blocker(s) below cyl_bot={cyl_bot:.4f}")
+                        return 1  # one collider — the cylinder
     return n
 
 
@@ -3081,7 +3428,10 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
         # filter and descend all meshes, matching body collision treatment.
         is_fixed = info["joint"] == "fixed"
         if is_wheel:
-            n_col = apply_collision_wheels(stage, info["path"])
+            n_col = apply_collision_wheels(stage, info["path"],
+                                           axis_str=info.get("axis"),
+                                           dp_path=dp_path,
+                                           body_path=body_path)
             n_d = n_col
         elif is_fixed:
             n_col, n_d = apply_collision_q1(stage, info["path"], is_body=True)
@@ -3089,6 +3439,14 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
             n_col, n_d = apply_collision_q1(stage, info["path"], is_body=False)
         total_decomp += n_d
         print(f"    {name}: {n_col} colliders ({n_d} decomp)")
+
+    # F64c: after all colliders authored, strip any remaining chassis
+    # meshes whose bottoms sit below the F64 wheel cylinder bottoms — the
+    # wheel revolute joint constraint can't lift the chassis past such a
+    # blocker, so the wheels float and the chassis parks on its foot.
+    n_stripped = strip_chassis_floor_blockers(stage, body_path, movables)
+    if n_stripped:
+        print(f"    F64c: stripped {n_stripped} chassis floor-blocker mesh(es) below wheel cylinder bottoms")
 
     if total_decomp > MAX_DECOMP_BUDGET:
         print(f"    WARNING: {total_decomp} decomp exceeds budget of {MAX_DECOMP_BUDGET}")
