@@ -1,29 +1,41 @@
 {
-  "body": "sm_instrumenttrolley_b01_01",
+  "body": "sm_surgicalchair_a01_leg_01",
   "parts": {
-    "sm_wheel_b01_01": {
-      "class": "movable:continuous",
-      "axis": "Y",
+    "sm_surgicalchair_a01_seat_01": {
+      "class": "movable:prismatic",
+      "axis": "Z",
       "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox", "BEH:ROLLING-continuous", "MEC:swivel-caster-2DOF", "OVERRIDE:gemini-said-Z-fingerprint-says-Y"]
+      "rationale": ["F05:object-understanding-seat-slider-0-25cm", "F09:long_axis=Z-matches-prismatic-travel", "BEH:LINEAR_TRANSLATIONAL-height-adjust", "JP:prismatic-damping-5.0", "F40:range-0.25m-from-object-understanding"]
     },
-    "sm_wheel_b02_01": {
+    "sm_surgicalchair_a01_wheel1_01": {
       "class": "movable:continuous",
-      "axis": "Y",
+      "axis": "Z",
       "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox", "BEH:ROLLING-continuous", "MEC:swivel-caster-2DOF", "OVERRIDE:gemini-said-Z-fingerprint-says-Y"]
+      "rationale": ["F07:wheel-keyword-movable", "F05:object-understanding-swivel-360-continuous", "MEC:swivel-caster-2DOF-but-only-swivel-representable", "BEH:ROLLING-caster-swivel-Z"]
     },
-    "sm_wheel_b03_01": {
+    "sm_surgicalchair_a01_wheel2_01": {
       "class": "movable:continuous",
-      "axis": "Y",
+      "axis": "Z",
       "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox", "BEH:ROLLING-continuous", "MEC:swivel-caster-2DOF", "OVERRIDE:gemini-said-Z-fingerprint-says-Y"]
+      "rationale": ["F07:wheel-keyword-movable", "F05:object-understanding-swivel-360-continuous", "MEC:swivel-caster-2DOF-but-only-swivel-representable", "BEH:ROLLING-caster-swivel-Z"]
     },
-    "sm_wheel_b04_01": {
+    "sm_surgicalchair_a01_wheel3_01": {
       "class": "movable:continuous",
-      "axis": "Y",
+      "axis": "Z",
       "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox", "BEH:ROLLING-continuous", "MEC:swivel-caster-2DOF", "OVERRIDE:gemini-said-Z-fingerprint-says-Y"]
+      "rationale": ["F07:wheel-keyword-movable", "F05:object-understanding-swivel-360-continuous", "MEC:swivel-caster-2DOF-but-only-swivel-representable", "BEH:ROLLING-caster-swivel-Z"]
+    },
+    "sm_surgicalchair_a01_wheel4_01": {
+      "class": "movable:continuous",
+      "axis": "Z",
+      "parent": "body",
+      "rationale": ["F07:wheel-keyword-movable", "F05:object-understanding-swivel-360-continuous", "MEC:swivel-caster-2DOF-but-only-swivel-representable", "BEH:ROLLING-caster-swivel-Z"]
+    },
+    "sm_surgicalchair_a01_wheel5_01": {
+      "class": "movable:continuous",
+      "axis": "Z",
+      "parent": "body",
+      "rationale": ["F07:wheel-keyword-movable", "F05:object-understanding-swivel-360-continuous", "MEC:swivel-caster-2DOF-but-only-swivel-representable", "BEH:ROLLING-caster-swivel-Z"]
     }
   }
 }
