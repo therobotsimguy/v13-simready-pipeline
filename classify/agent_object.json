@@ -1,83 +1,53 @@
 {
-  "object_name": "surgical stool with caster wheels",
+  "object_name": "instrument trolley with caster wheels",
   "object_type": "furniture",
   "material": "stainless_steel",
   "material_density_kg_m3": 7800,
-  "estimated_mass_kg": 15,
+  "estimated_mass_kg": 18.0,
   "is_articulated": true,
   "movable_parts": [
     {
-      "name": "sm_surgicalchair_a01_seat_01",
-      "behavior": "swivel",
-      "motion": "The entire seat assembly rotates 360 degrees around the central column.",
-      "range_description": "360 degrees",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "height_adjuster",
-      "behavior": "slider",
-      "motion": "The central column slides vertically to adjust the seat height.",
-      "range_description": "15-20 cm of vertical travel",
-      "range_meters": 0.2,
-      "joint_type": "prismatic",
-      "axis": "Z",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_surgicalchair_a01_wheel1_01",
+      "name": "sm_wheel_b01_01",
       "behavior": "wheel",
-      "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
-      "range_description": "Continuous roll and 360-degree swivel",
-      "range_meters": null,
+      "motion": "A caster wheel that both spins around its horizontal axle (roll) and swivels around its vertical axis (caster).",
+      "range_description": "Continuous rotation for both roll and swivel.",
+      "range_meters": 0,
       "joint_type": "continuous",
-      "axis": "Y (roll), Z (swivel)",
-      "limits_bidirectional": true
+      "axis": "Y for roll, Z for swivel",
+      "limits_bidirectional": false
     },
     {
-      "name": "sm_surgicalchair_a01_wheel2_01",
+      "name": "sm_wheel_b02_01",
       "behavior": "wheel",
-      "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
-      "range_description": "Continuous roll and 360-degree swivel",
-      "range_meters": null,
+      "motion": "A caster wheel that both spins around its horizontal axle (roll) and swivels around its vertical axis (caster).",
+      "range_description": "Continuous rotation for both roll and swivel.",
+      "range_meters": 0,
       "joint_type": "continuous",
-      "axis": "Y (roll), Z (swivel)",
-      "limits_bidirectional": true
+      "axis": "Y for roll, Z for swivel",
+      "limits_bidirectional": false
     },
     {
-      "name": "sm_surgicalchair_a01_wheel3_01",
+      "name": "sm_wheel_b03_01",
       "behavior": "wheel",
-      "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
-      "range_description": "Continuous roll and 360-degree swivel",
-      "range_meters": null,
+      "motion": "A caster wheel that both spins around its horizontal axle (roll) and swivels around its vertical axis (caster).",
+      "range_description": "Continuous rotation for both roll and swivel.",
+      "range_meters": 0,
       "joint_type": "continuous",
-      "axis": "Y (roll), Z (swivel)",
-      "limits_bidirectional": true
+      "axis": "Y for roll, Z for swivel",
+      "limits_bidirectional": false
     },
     {
-      "name": "sm_surgicalchair_a01_wheel4_01",
+      "name": "sm_wheel_b04_01",
       "behavior": "wheel",
-      "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
-      "range_description": "Continuous roll and 360-degree swivel",
-      "range_meters": null,
+      "motion": "A caster wheel that both spins around its horizontal axle (roll) and swivels around its vertical axis (caster).",
+      "range_description": "Continuous rotation for both roll and swivel.",
+      "range_meters": 0,
       "joint_type": "continuous",
-      "axis": "Y (roll), Z (swivel)",
-      "limits_bidirectional": true
-    },
-    {
-      "name": "sm_surgicalchair_a01_wheel5_01",
-      "behavior": "wheel",
-      "motion": "Caster wheel assembly that rolls continuously and swivels 360 degrees.",
-      "range_description": "Continuous roll and 360-degree swivel",
-      "range_meters": null,
-      "joint_type": "continuous",
-      "axis": "Y (roll), Z (swivel)",
-      "limits_bidirectional": true
+      "axis": "Y for roll, Z for swivel",
+      "limits_bidirectional": false
     }
   ],
-  "special_notes": "The five caster wheels each have two degrees of freedom: a continuous revolute joint for rolling (around their local Y-axis) and a continuous revolute joint for swiveling (around their local Z-axis). The seat height adjustment is a prismatic joint along the main Z-axis.",
+  "special_notes": "Each of the four caster wheels has two independent, continuous axes of rotation: a roll axis (horizontal) for forward/backward movement and a swivel axis (vertical) for steering. The [pivot] tag in the USD indicates the swivel point.",
   "is_graspable": false,
-  "grip_location": null
+  "grip_location": "The horizontal bars or top tray surface are used for pushing."
 }

@@ -1,0 +1,428 @@
+{
+  "id": "run_060",
+  "asset": "InstrumentTrolley_B01_01",
+  "object_type": "furniture",
+  "timestamp": "2026-04-21T13:01:19",
+  "elapsed_s": 143.57,
+  "skills": {
+    "entries": [
+      {
+        "skill": "simready-behaviors",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 51.66
+      },
+      {
+        "skill": "simready-criteria",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 51.66
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 51.66
+      },
+      {
+        "skill": "simready-joint-params",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 51.66
+      },
+      {
+        "skill": "robot-model",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 51.66
+      },
+      {
+        "skill": "simready-collision",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 51.66
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 51.66
+      },
+      {
+        "skill": "usd-physx-schemas",
+        "reason": "Loaded into classifier agent system prompt",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 51.66
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_wheel_b01_01: F09:axis-from-thin-bbox",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "simready-behaviors",
+        "reason": "sm_wheel_b01_01: BEH:ROLLING-continuous",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_wheel_b01_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "classifier",
+        "reason": "sm_wheel_b01_01: OVERRIDE:gemini-said-Z-fingerprint-says-Y",
+        "decision": "",
+        "impact": "override",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_wheel_b02_01: F09:axis-from-thin-bbox",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "simready-behaviors",
+        "reason": "sm_wheel_b02_01: BEH:ROLLING-continuous",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_wheel_b02_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "classifier",
+        "reason": "sm_wheel_b02_01: OVERRIDE:gemini-said-Z-fingerprint-says-Y",
+        "decision": "",
+        "impact": "override",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_wheel_b03_01: F09:axis-from-thin-bbox",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "simready-behaviors",
+        "reason": "sm_wheel_b03_01: BEH:ROLLING-continuous",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_wheel_b03_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "classifier",
+        "reason": "sm_wheel_b03_01: OVERRIDE:gemini-said-Z-fingerprint-says-Y",
+        "decision": "",
+        "impact": "override",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "failure-modes",
+        "reason": "sm_wheel_b04_01: F09:axis-from-thin-bbox",
+        "decision": "",
+        "impact": "confirmation",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "simready-behaviors",
+        "reason": "sm_wheel_b04_01: BEH:ROLLING-continuous",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "simready-mechanism-lookup",
+        "reason": "sm_wheel_b04_01: MEC:swivel-caster-2DOF",
+        "decision": "",
+        "impact": "info",
+        "elapsed_s": 127.23
+      },
+      {
+        "skill": "classifier",
+        "reason": "sm_wheel_b04_01: OVERRIDE:gemini-said-Z-fingerprint-says-Y",
+        "decision": "",
+        "impact": "override",
+        "elapsed_s": 127.23
+      }
+    ],
+    "summary": {
+      "simready-behaviors": {
+        "calls": 5,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-criteria": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "failure-modes": {
+        "calls": 5,
+        "overrides": 0,
+        "confirmations": 4,
+        "warnings": 0
+      },
+      "simready-joint-params": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "robot-model": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-collision": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "simready-mechanism-lookup": {
+        "calls": 5,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "usd-physx-schemas": {
+        "calls": 1,
+        "overrides": 0,
+        "confirmations": 0,
+        "warnings": 0
+      },
+      "classifier": {
+        "calls": 4,
+        "overrides": 4,
+        "confirmations": 0,
+        "warnings": 0
+      }
+    },
+    "total_activations": 24,
+    "total_overrides": 4
+  },
+  "stages": {
+    "entries": [
+      {
+        "stage": "read_hierarchy",
+        "part": null,
+        "elapsed_s": 0.012,
+        "decisions": {
+          "prims": 6
+        }
+      },
+      {
+        "stage": "geometric_fingerprint",
+        "part": null,
+        "elapsed_s": 0.943,
+        "decisions": {
+          "parts": 5,
+          "chars": 1421
+        }
+      },
+      {
+        "stage": "visual_analysis",
+        "part": null,
+        "elapsed_s": 31.015,
+        "decisions": {
+          "n_movable_seen": 4
+        }
+      },
+      {
+        "stage": "object_understanding",
+        "part": null,
+        "elapsed_s": 19.679,
+        "decisions": {
+          "object_name": "instrument trolley with caster wheels",
+          "mass_kg": 18.0
+        }
+      },
+      {
+        "stage": "skill_loading",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      },
+      {
+        "stage": "agent_classify_and_build",
+        "part": null,
+        "elapsed_s": 75.571,
+        "decisions": {}
+      },
+      {
+        "stage": "visual_verification",
+        "part": null,
+        "elapsed_s": 16.337,
+        "decisions": {}
+      },
+      {
+        "stage": "physics_diagnostics",
+        "part": null,
+        "elapsed_s": 0.001,
+        "decisions": {}
+      }
+    ],
+    "summary": {
+      "read_hierarchy": {
+        "calls": 1,
+        "total_s": 0.012
+      },
+      "geometric_fingerprint": {
+        "calls": 1,
+        "total_s": 0.943
+      },
+      "visual_analysis": {
+        "calls": 1,
+        "total_s": 31.015
+      },
+      "object_understanding": {
+        "calls": 1,
+        "total_s": 19.679
+      },
+      "skill_loading": {
+        "calls": 1,
+        "total_s": 0.001
+      },
+      "agent_classify_and_build": {
+        "calls": 1,
+        "total_s": 75.571
+      },
+      "visual_verification": {
+        "calls": 1,
+        "total_s": 16.337
+      },
+      "physics_diagnostics": {
+        "calls": 1,
+        "total_s": 0.001
+      }
+    }
+  },
+  "diagnostics": {
+    "checks": {
+      "D1_disconnected": {
+        "count": 0,
+        "paths": []
+      },
+      "D2_orphaned_colliders": {
+        "count": 0,
+        "paths": []
+      },
+      "D3_mass_ratio": {
+        "ratio": 32.0,
+        "masses": {
+          "sm_instrumenttrolley_b01_01": 16.0,
+          "sm_wheel_b01_01": 0.5,
+          "sm_wheel_b02_01": 0.5,
+          "sm_wheel_b03_01": 0.5,
+          "sm_wheel_b04_01": 0.5
+        }
+      },
+      "D4_anchor_mismatch": {
+        "count": 0,
+        "mismatches": []
+      },
+      "D5_zero_volume": {
+        "count": 0,
+        "parts": []
+      },
+      "D6_collision_coverage": {
+        "count": 0,
+        "parts": []
+      }
+    },
+    "issues": [],
+    "total_checks": 6,
+    "issues_found": 0
+  },
+  "audit_score": "7/7",
+  "verdict": "PENDING",
+  "user_notes": "User skipped verdict",
+  "issues_found": [],
+  "classification": {},
+  "gemini_output": {
+    "object_name": "instrument trolley with caster wheels",
+    "object_type": "furniture",
+    "material": "stainless_steel",
+    "material_density_kg_m3": 7800,
+    "estimated_mass_kg": 18.0,
+    "is_articulated": true,
+    "movable_parts": [
+      {
+        "name": "sm_wheel_b01_01",
+        "behavior": "wheel",
+        "motion": "A caster wheel that both spins around its horizontal axle (roll) and swivels around its vertical axis (caster).",
+        "range_description": "Continuous rotation for both roll and swivel.",
+        "range_meters": 0,
+        "joint_type": "continuous",
+        "axis": "Y for roll, Z for swivel",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_wheel_b02_01",
+        "behavior": "wheel",
+        "motion": "A caster wheel that both spins around its horizontal axle (roll) and swivels around its vertical axis (caster).",
+        "range_description": "Continuous rotation for both roll and swivel.",
+        "range_meters": 0,
+        "joint_type": "continuous",
+        "axis": "Y for roll, Z for swivel",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_wheel_b03_01",
+        "behavior": "wheel",
+        "motion": "A caster wheel that both spins around its horizontal axle (roll) and swivels around its vertical axis (caster).",
+        "range_description": "Continuous rotation for both roll and swivel.",
+        "range_meters": 0,
+        "joint_type": "continuous",
+        "axis": "Y for roll, Z for swivel",
+        "limits_bidirectional": false
+      },
+      {
+        "name": "sm_wheel_b04_01",
+        "behavior": "wheel",
+        "motion": "A caster wheel that both spins around its horizontal axle (roll) and swivels around its vertical axis (caster).",
+        "range_description": "Continuous rotation for both roll and swivel.",
+        "range_meters": 0,
+        "joint_type": "continuous",
+        "axis": "Y for roll, Z for swivel",
+        "limits_bidirectional": false
+      }
+    ],
+    "special_notes": "Each of the four caster wheels has two independent, continuous axes of rotation: a roll axis (horizontal) for forward/backward movement and a swivel axis (vertical) for steering. The [pivot] tag in the USD indicates the swivel point.",
+    "is_graspable": false,
+    "grip_location": "The horizontal bars or top tray surface are used for pushing."
+  }
+}

@@ -1,41 +1,29 @@
 {
-  "body": "sm_surgicalchair_a01_leg_01",
+  "body": "sm_instrumenttrolley_b01_01",
   "parts": {
-    "sm_surgicalchair_a01_seat_01": {
-      "class": "movable:revolute",
-      "axis": "Z",
-      "parent": "body",
-      "rationale": ["BEH:swivel-seat-revolute-Z", "V01:gemini-confirms-revolute-Z", "WORKAROUND:F64-treats-continuous-as-wheel-use-revolute-for-seat"]
-    },
-    "sm_surgicalchair_a01_wheel5_01": {
+    "sm_wheel_b01_01": {
       "class": "movable:continuous",
       "axis": "Y",
       "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox-Y", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
+      "rationale": ["F09:axis-from-thin-bbox", "BEH:ROLLING-continuous", "MEC:swivel-caster-2DOF", "OVERRIDE:gemini-said-Z-fingerprint-says-Y"]
     },
-    "sm_surgicalchair_a01_wheel4_01": {
-      "class": "movable:continuous",
-      "axis": "X",
-      "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox-X", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
-    },
-    "sm_surgicalchair_a01_wheel3_01": {
+    "sm_wheel_b02_01": {
       "class": "movable:continuous",
       "axis": "Y",
       "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox-Y", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
+      "rationale": ["F09:axis-from-thin-bbox", "BEH:ROLLING-continuous", "MEC:swivel-caster-2DOF", "OVERRIDE:gemini-said-Z-fingerprint-says-Y"]
     },
-    "sm_surgicalchair_a01_wheel2_01": {
+    "sm_wheel_b03_01": {
       "class": "movable:continuous",
-      "axis": "X",
+      "axis": "Y",
       "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox-X", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
+      "rationale": ["F09:axis-from-thin-bbox", "BEH:ROLLING-continuous", "MEC:swivel-caster-2DOF", "OVERRIDE:gemini-said-Z-fingerprint-says-Y"]
     },
-    "sm_surgicalchair_a01_wheel1_01": {
+    "sm_wheel_b04_01": {
       "class": "movable:continuous",
-      "axis": "X",
+      "axis": "Y",
       "parent": "body",
-      "rationale": ["F09:axis-from-thin-bbox-X", "MEC:swivel-caster-2DOF", "F42:structural-split-bolt-mount-body"]
+      "rationale": ["F09:axis-from-thin-bbox", "BEH:ROLLING-continuous", "MEC:swivel-caster-2DOF", "OVERRIDE:gemini-said-Z-fingerprint-says-Y"]
     }
   }
 }
