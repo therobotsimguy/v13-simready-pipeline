@@ -9,7 +9,7 @@
       "title": "Hourglassing in FEM",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 118
+        "line": 120
       },
       "code": {
         "function": null,
@@ -27,7 +27,7 @@
       "title": "Over-stiff bending (shear locking)",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 119
+        "line": 121
       },
       "code": {
         "function": null,
@@ -45,7 +45,7 @@
       "title": "Inverted tetrahedra",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 120
+        "line": 122
       },
       "code": {
         "function": null,
@@ -63,7 +63,7 @@
       "title": "Aspect ratio > 3 blows up sim",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 121
+        "line": 123
       },
       "code": {
         "function": null,
@@ -81,7 +81,7 @@
       "title": "Energy drift over long sim",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 122
+        "line": 124
       },
       "code": {
         "function": null,
@@ -99,7 +99,7 @@
       "title": "Cloth/rope tunneling",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 123
+        "line": 125
       },
       "code": {
         "function": null,
@@ -117,7 +117,7 @@
       "title": "Gripper passes through deformable (Isaac Sim PhysX 5)",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 124
+        "line": 126
       },
       "code": {
         "function": null,
@@ -135,7 +135,7 @@
       "title": "Deformable-rigid instability",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 125
+        "line": 127
       },
       "code": {
         "function": null,
@@ -153,7 +153,7 @@
       "title": "Multi-layer cloth jitter",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 126
+        "line": 128
       },
       "code": {
         "function": null,
@@ -171,7 +171,7 @@
       "title": "Warp GPU divergence on deformables",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 127
+        "line": 129
       },
       "code": {
         "function": null,
@@ -189,7 +189,7 @@
       "title": "Sim material \u2260 real object",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 128
+        "line": 130
       },
       "code": {
         "function": null,
@@ -207,7 +207,7 @@
       "title": "Gripper slip on deformable",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 129
+        "line": 131
       },
       "code": {
         "function": null,
@@ -225,7 +225,7 @@
       "title": "Higher sim-mesh resolution \u2192 MORE deformation (not less)",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 130
+        "line": 132
       },
       "code": {
         "function": null,
@@ -243,7 +243,7 @@
       "title": "Python-created rope unravels; UI rope stable",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 131
+        "line": 133
       },
       "code": {
         "function": null,
@@ -261,7 +261,7 @@
       "title": "Gradual drift over long sim",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 132
+        "line": 134
       },
       "code": {
         "function": null,
@@ -279,7 +279,7 @@
       "title": "Stretched/torn deformable at contact",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 133
+        "line": 135
       },
       "code": {
         "function": null,
@@ -297,7 +297,7 @@
       "title": "Missed collision in concave/tight geometry",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 134
+        "line": 136
       },
       "code": {
         "function": null,
@@ -315,7 +315,7 @@
       "title": "Oscillation when over-damped",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 135
+        "line": 137
       },
       "code": {
         "function": null,
@@ -1582,8 +1582,44 @@
         "file": null
       },
       "audit": {
-        "cites_id": false,
-        "file": null
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F68",
+      "tier": "F",
+      "category": "Wheel/Hierarchy",
+      "title": "2-DOF caster bracket visually detaches from its chassis leg during shift-drag teleop \u2014 the swivel pivot point \"comes off",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 109
+      },
+      "code": {
+        "function": "normalize_caster_bracket_mount_rotation",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      }
+    },
+    {
+      "id": "F69",
+      "tier": "F",
+      "category": "Limits/Drive",
+      "title": "2-DOF caster asset visually falls apart during shift-drag teleop \u2014 bracket detaches from chassis anchor AND the chair bo",
+      "skill": {
+        "path": "skills/failure-modes/SKILL.md",
+        "line": 110
+      },
+      "code": {
+        "function": "make_revolute_joint",
+        "file": "scripts/tools/simready_assets/make_simready.py"
+      },
+      "audit": {
+        "cites_id": true,
+        "file": "scripts/tools/simready_assets/make_simready.py"
       }
     },
     {
@@ -1593,7 +1629,7 @@
       "title": "Kinematic chain cannot reach task goal",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 145
+        "line": 147
       },
       "code": {
         "function": null,
@@ -1611,7 +1647,7 @@
       "title": "Closed-loop constraint drift under actuation",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 146
+        "line": 148
       },
       "code": {
         "function": null,
@@ -1629,7 +1665,7 @@
       "title": "Asset fragile under \u00b110% perturbations",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 147
+        "line": 149
       },
       "code": {
         "function": null,
@@ -1647,7 +1683,7 @@
       "title": "URDF closed-loop collapse on conversion",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 148
+        "line": 150
       },
       "code": {
         "function": null,
@@ -1665,7 +1701,7 @@
       "title": "MJCF actuator semantics dropped on USD round-trip",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 149
+        "line": 151
       },
       "code": {
         "function": null,
@@ -1683,7 +1719,7 @@
       "title": "Adjustable hospital bed has entrapment risk",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 150
+        "line": 152
       },
       "code": {
         "function": null,
@@ -1701,7 +1737,7 @@
       "title": "Office chair exceeds BIFMA cycle rating",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 151
+        "line": 153
       },
       "code": {
         "function": null,
@@ -1719,7 +1755,7 @@
       "title": "Friction stiction mismatch",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 152
+        "line": 154
       },
       "code": {
         "function": null,
@@ -1737,7 +1773,7 @@
       "title": "Tunneling (fast-moving pass-through)",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 153
+        "line": 155
       },
       "code": {
         "function": null,
@@ -1755,7 +1791,7 @@
       "title": "Ghost collisions (adjacent-link false positives)",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 154
+        "line": 156
       },
       "code": {
         "function": null,
@@ -1773,7 +1809,7 @@
       "title": "Jacobian singularity in IK",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 155
+        "line": 157
       },
       "code": {
         "function": null,
@@ -1791,7 +1827,7 @@
       "title": "Ill-conditioned inertia matrix (cond > 10\u2076)",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 156
+        "line": 158
       },
       "code": {
         "function": null,
@@ -1809,7 +1845,7 @@
       "title": "GPU-incompatible topology",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 157
+        "line": 159
       },
       "code": {
         "function": null,
@@ -1827,7 +1863,7 @@
       "title": "Batch memory bottleneck at scale",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 158
+        "line": 160
       },
       "code": {
         "function": null,
@@ -1845,7 +1881,7 @@
       "title": "Excessive substeps required for stability",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 159
+        "line": 161
       },
       "code": {
         "function": null,
@@ -1863,7 +1899,7 @@
       "title": "Joint axis misdefined",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 160
+        "line": 162
       },
       "code": {
         "function": null,
@@ -1881,7 +1917,7 @@
       "title": "Inertial parameters physically implausible",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 161
+        "line": 163
       },
       "code": {
         "function": null,
@@ -1899,7 +1935,7 @@
       "title": "Friction model mismatch across engines",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 162
+        "line": 164
       },
       "code": {
         "function": null,
@@ -1917,7 +1953,7 @@
       "title": "Articulated body on granular (MPM) terrain explodes or sinks",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 172
+        "line": 174
       },
       "code": {
         "function": null,
@@ -1935,7 +1971,7 @@
       "title": "`mjData.contact` forces show million-N spikes in control callback",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 173
+        "line": 175
       },
       "code": {
         "function": null,
@@ -1953,7 +1989,7 @@
       "title": "Setting contact regularization R=0 allows MORE penetration over time",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 174
+        "line": 176
       },
       "code": {
         "function": null,
@@ -1971,7 +2007,7 @@
       "title": "Object on flat hfield bounces continuously",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 175
+        "line": 177
       },
       "code": {
         "function": null,
@@ -1989,7 +2025,7 @@
       "title": "Training gradients noisy when contact is stiff",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 176
+        "line": 178
       },
       "code": {
         "function": null,
@@ -2007,7 +2043,7 @@
       "title": "Non-deterministic despite `TF_DETERMINISTIC_OPS=1`",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 177
+        "line": 179
       },
       "code": {
         "function": null,
@@ -2025,7 +2061,7 @@
       "title": "Cannot simulate granular (sand/soil)",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 178
+        "line": 180
       },
       "code": {
         "function": null,
@@ -2043,7 +2079,7 @@
       "title": "Cloth multi-layer / tearing unsupported",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 179
+        "line": 181
       },
       "code": {
         "function": null,
@@ -2061,7 +2097,7 @@
       "title": "Save/resume mid-contact produces different results",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 180
+        "line": 182
       },
       "code": {
         "function": null,
@@ -2079,7 +2115,7 @@
       "title": "Cannot query hinge angle (API limitation); Coriolis ignored",
       "skill": {
         "path": "skills/failure-modes/SKILL.md",
-        "line": 181
+        "line": 183
       },
       "code": {
         "function": null,

@@ -76,6 +76,8 @@ KNOWN_FIXES = {
     "F64":  ("synthesize_wheel_cylinder_collider",           True),
     "F64b": ("_strip_chassis_wheel_blockers",                False),
     "F64c": ("strip_chassis_floor_blockers",                 False),
+    "F68":  ("normalize_caster_bracket_mount_rotation",      True),
+    "F69":  ("make_revolute_joint",                          True),
 }
 
 # Table-row regex for skill markdown. Matches:

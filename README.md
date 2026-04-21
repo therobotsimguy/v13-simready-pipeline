@@ -230,18 +230,20 @@ as usual.
 | 13 | RoboticSystem_B01_Console_01 | system | pending |
 | 14 | Scissors_A01_01 | surgical tool | **built** |
 | 15 | SelfretainingRetractor_A01_01 | surgical tool | **built** (motion PASS — shift-drag arms at `--asset_scale 5.0`; prongs visually clip at close position — geometry limitation, not a pipeline bug; see `LEARNINGS.md` → scissor self-collision) |
-| 16 | SurgicalChair_A01_01 | chair | **partial — pipeline fixes identified, manual patch working** (2026-04-20 — drove F64d/F64e/F65/F66/F67 + F45 v2 fix wave. Issues surfaced live: (a) F64c strip_chassis_floor_blockers removed all 3 leg colliders → body had zero colliders, fix: preserve ≥1 collider (F64d); (b) F64 audit flagged `_bracket` bodies as cube-wheels, fix: skip `_bracket` in F64 check (F64e); (c) apply_physics wheel-dispatch treated swivel seat as wheel, fix: gate on wheel-name keywords (F65); (d) non-adjacent bbox-overlap under F45 crashed broadphase, fix: author filterPairs (F66) + conditional F45 (v2, off for 2-DOF caster assets); (e) double-nested Xform with chassis grandchild caused Fabric render/physics divergence, fix: flatten and promote chassis to inner Xform + decompose xformOp:transform to translate+rotateXYZ+scale (F67). Earlier 2026-04-19 fixes preserved: caster-bracket centroid-origin, `--dynamic` auto-inference, wheel-keyword gating on swivel seats, `_is_degenerate_mesh` eps raise 1e-6→3mm, caster bracket mass override. AUDIT 7/7; asset now spawns + settles + rolls in inspect_asset.py; shift-drag detaches casters only because Isaac Sim's manipulator bypasses articulation constraints — real use via Franka/torque will respect joints. Next session: integrate F67 as flatten_redundant_xform_layers in apply_physics so future chair builds don't need manual `/tmp/fix_chair.py` patch.) |
+| 16 | SurgicalChair_A01_01 | chair | **still broken — F68 + F69 landed, asset STILL falls apart in teleop (2026-04-21)**. Fix wave continues from 2026-04-20 (F64d/F64e/F65/F66/F67 + F45 v2). **2026-04-21 session**: chassis-rebuild of SurgicalChair AUDIT 7/7, InstrumentTrolley_B regression clean, but teleop shift-drag STILL detaches casters AND other parts fly off. Root-cause chase landed two more F-numbers, neither fully solved it: **F68** — raw USD authors each splayed caster's mount mesh with a Z rotation facing its leg (wheel3+75°, wheel5−70°); `reparent_prims_preserve_world_xform` collapses that into a `TypeTransform` matrix on the bracket child (first cut of F68 missed this — only checked Euler/Orient ops). Fix: `normalize_caster_bracket_mount_rotation` snapshot→reset→reauthor now covers TypeTransform too. Audit C5 FAILs residual >5° rotation or non-identity 3×3 in TypeTransform. **F69** — revolute Z bracket swivel joints inherited the door-hinge default `damping=2.0`. For a 2-DOF caster chain (chassis ~7kg → bracket 0.34kg → tire 0.34kg, bracket:tire ≈ 1:1), any chassis impulse resonates down the chain — tire inertia whips the bracket faster than 2.0 can absorb, solver budget blows, constraint visually separates. Real caster bearings damp at 5–20 N·m·s/rad; V13 was modeling them as near-frictionless. Fix: `make_revolute_joint` caster-swivel branch (`hinge_edge="continuous"`) authors `damping=15.0`. Audit C6 FAILs any `_bracket_joint` with `drive:angular:physics:damping < 5.0`. **Reality check**: joint-anchor mismatches are 0.00mm on both chair and trolley (authoring correct on both); the difference was always dynamics, not topology. After F68 + F69 direct-patch on the post-rebuild USD, AUDIT 7/7 + all criteria PASS, but the user reports the chair still falls apart in shift-drag teleop. Remaining suspects: **F62** `enabledSelfCollisions=False` on this articulation (set off by F45 v2 because PhysX produced NaN at bracket↔wheel hull level on 2-DOF casters) — may be letting bracket and tire interpenetrate under impulse; **F61** no `physxScene:maxDepenetrationVelocity` cap ships with the asset — when frame-1 contact produces any penetration, PhysX launches bodies at unbounded velocity; **chassis mass 7.2kg vs trolley 16kg** — the chair is literally half the trolley chassis, compounding every impulse propagation problem. **Patched reference USDs**: `SurgicalChair_A01_01_physics_f68.usd` (F68 only), `SurgicalChair_A01_01_physics_f68_f69.usd` (F68 + F69). Pipeline fixes landed + enforced by audit; teleop verdict still FAIL. |
 | 17 | SurgicalChair_B01_01 | chair | pending |
 | 18 | SurgicalMicroScope_A01_01 | system | pending |
 | 19 | SurgicalpowerTool_B01_01 | surgical tool | **built** (2026-04-19 — drove F63 orphan-structural-siblings fix: raw USD authored tool body as 10 sibling Xforms (main_01 + cylinderpart1-4 + handlebase + handle + drillbit + decals), classifier marked 1 as body root, other 9 had no RigidBodyAPI → dragged main detached from rest. Added `weld_structural_siblings_into_body` to make_simready.py, F63 audit check, skill docs. Post-fix body: 1 → 11 colliders; AUDIT 7/7; 0 orphans; teleop PASS with all parts moving together. Regression-tested clean on InstrumentTrolley_B / Refrigerator_A / EmergencyTrolley / DrugCabinet / BipolardissectingScissors) |
 | 20 | SurgicalTable_A01_01 | table | **built** (2026-04-19 — drove F64/F64b/F64c caster fixes: 4 no-tire casters (cap+core only, bbox aspect 1.06) skidded on cube colliders, chassis parked on `wheel*_base` plates + `base1` foot at floor level. Added `synthesize_wheel_cylinder_collider` (primitive Cylinder, axis Y, r=4cm h=7.6cm, rubber-bound), `_strip_chassis_wheel_blockers` (hides + strips wheel-prefix blockers), `strip_chassis_floor_blockers` (hides + strips non-wheel floor blockers). AUDIT 7/7, 14 links / 13 joints (4 casters + table tilt + headrest + frame1/2 + joint1-4 leg-rest chain + lader4 prismatic lift). First live verification of classifier rationale tracking: 52 rule citations, 14 parts each with `rationale` field (F06/F07/F09/F11/F20/BEH/MEC). Teleop PASS.) |
 
-Score: **15 / 20 built + 1 partial** (MedicalutilityCart: physics correct,
-drawers mis-faced; SurgicalChair: 2-DOF caster topology correct, spawn-time
-PhysX broadphase still under investigation). Remaining 7 assets can be run
-with the single entry-point command; no per-asset tuning is required unless
-V13 surfaces a new silent-failure class, in which case follow the 3-step
-fix rule below.
+Score: **15 / 20 built + 1 partial + 1 still broken** (MedicalutilityCart:
+physics correct, drawers mis-faced; **SurgicalChair: AUDIT 7/7, runtime
+teleop still fails** — F68 mount-rotation bake + F69 bracket-swivel
+damping=15 both landed and enforced, but shift-drag still detaches
+casters and flies parts off as of 2026-04-21). Remaining 7 assets can be
+run with the single entry-point command; no per-asset tuning is required
+unless V13 surfaces a new silent-failure class, in which case follow the
+3-step fix rule below.
 
 **New feature (2026-04-19):** **2-DOF swivel casters.** When a wheel Xform
 contains both a tire mesh AND a bracket-keyword mesh (mount / bracket /
@@ -263,6 +265,17 @@ wheel/caster class-alias normalization (silently-dropped rolling joints),
 F49 world-anchor FixedJoint for fixtures (Newton-compatible; replaces
 `kinematicEnabled=True` on fixtures — DrugCabinet + Fridge verified).
 
+**2026-04-21 — SurgicalChair struggle, still unresolved:** F68 bake rotated
+mount meshes inside caster brackets (handles both Euler ops and collapsed
+`TypeTransform` matrices via F43's snapshot-reset-reauthor pattern),
+F69 raise caster-swivel damping 2.0 → 15.0 (door default was starving a
+2-DOF chassis→bracket→tire chain of the friction it needs to absorb
+resonant whip). Both fixes ENFORCED in audit (C5 for F68, C6 for F69),
+both verified by direct-patch on the post-rebuild USD, and the asset
+still falls apart in teleop shift-drag. See the **"Next session work"**
+section below for what's been ruled out and what the remaining suspects
+are — we are not starting from zero on the next investigation.
+
 **Skill-library integration (2026-04-19):** 6 research bundles (2.8 MB,
 152 files) absorbed via 3-phase review (inventory → plan → execute).
 Results:
@@ -272,33 +285,80 @@ Results:
 - **Behaviors: 16 → 18** (added compliant_hinge + compliant_slider via Howell PRBM)
 - **+1,453 lines** of new skill content, all with provenance tags
 
-**Next session work (continuation of 2026-04-20 SurgicalChair fix wave):**
+**Next session work (continuation of 2026-04-21 SurgicalChair struggle):**
 
-1. **Integrate F67 as `flatten_redundant_xform_layers()` in apply_physics** —
-   detect the pattern (Xform with ArticulationRootAPI, child Xform with same
-   name carrying only identity/wrapper xformOps, grandchild with
-   RigidBodyAPI) and promote the grandchild's physics APIs + world transform
-   up into the inner Xform. Author decomposed `translate+rotateXYZ+scale`
-   ops, NOT `xformOp:transform` matrix (Isaac Lab's ArticulationCfg parses
-   the decomposed form correctly; the matrix form caused articulation
-   binding issues on SurgicalChair_A01_01 before manual decomposition).
-   Run as early phase in apply_physics, before joint authoring. Also
-   update joint body0/body1 relationships to point at the promoted prim.
-2. **Add C4 audit check for the redundant-Xform pattern** — FAIL if
+The SurgicalChair_A01_01 teleop problem has now outlasted seven F-number
+fixes (F64d, F64e, F65, F66, F67, F68, F69). Audit says 7/7; reality says
+parts still fly off. This section is the honest record of what's been
+ruled out and what's next, so we don't re-run the same experiments.
+
+**Ruled out so far (2026-04-20 → 2026-04-21):**
+- Chassis-collider authoring (F64d, preserve ≥1 collider)
+- Bracket misclassification as cube-wheel (F64e)
+- Swivel seat mis-dispatched as wheel (F65)
+- Non-adjacent bbox overlap → filterPairs (F66) + conditional F45 v2
+- Redundant-wrapper Xform + matrix xform (F67)
+- Rotated mount mesh in bracket via Euler ops (F68 initial)
+- Rotated mount mesh via `TypeTransform` matrix (F68 extended, 2026-04-21)
+- Bracket swivel damping too low (F69, 2.0 → 15.0, 2026-04-21)
+- Joint anchor authoring — verified 0.00mm mismatch on both chair and
+  trolley, so not a fly-apart-at-init problem
+
+**Still suspected (to investigate):**
+1. **F45 v2 disabled self-collision is hiding an intersecting-geometry bug,
+   not fixing it.** The trolley has `enabledSelfCollisions=True` and works;
+   the chair has it `False` specifically because F45 on-mode produced NaN
+   contact normals on bracket↔wheel hull overlaps. But turning self-
+   collision off just defers the problem: whatever hull pair was generating
+   NaN is still geometrically overlapping — it's just not being contact-
+   resolved. Task: identify the hull pair (likely bracket mount mesh
+   intersecting tire rim), fix the geometry with `physxCollision:
+   convexDecomposition` or mesh-volume split rather than disabling
+   self-collision globally.
+2. **No `physxScene:maxDepenetrationVelocity` cap ships with the asset**
+   (Tier 1 warning, F61). Frame-1 PhysX penetration → unbounded launch
+   velocity → visually the "parts fly off" symptom. Task: author a
+   `physxSceneAPI` on the default_prim with `maxDepenetrationVelocity=5.0`
+   as a per-asset safety cap (even though scene-level attrs usually live
+   host-side; some engines honor asset-level overrides).
+3. **Chassis mass 7.2 kg vs trolley 16 kg.** The chair's total mass is half
+   the trolley's. Every impulse impact is proportionally larger. Task:
+   check whether `estimate_mass` is under-weighting the pedestal/leg
+   assembly — a real surgical stool with steel base is 10–20 kg.
+4. **F68 + F69 only verified via direct USD patching, not end-to-end
+   rebuild.** A fresh `simready_agent.py` run of SurgicalChair was
+   triggered 2026-04-21 and produced AUDIT 7/7 in 480s — but the log did
+   NOT show F68's "normalized N mount(s)" output even though brackets
+   were created. Need to confirm F68 actually fires during a real rebuild
+   (subprocess stdout may be filtered) vs only firing on direct-apply. If
+   it's being silently skipped in the rebuild path, the rebuilt USD still
+   carries the rotated mounts.
+
+**Pre-F68/F69 reference USDs preserved:**
+- `~/SimReady_Output/simready/SurgicalChair_A01_01/SurgicalChair_A01_01_physics.usd` — rebuilt via simready_agent.py 2026-04-21, AUDIT 7/7, teleop FAIL
+- `SurgicalChair_A01_01_physics_f68.usd` — F68 mount-rotation direct-patch on top, C5 clean
+- `SurgicalChair_A01_01_physics_f68_f69.usd` — F68 + F69 damping direct-patch, all criteria PASS, teleop FAIL per user 2026-04-21
+
+**Previously planned work, still pending:**
+5. **Add C4 audit check for the redundant-Xform pattern** — FAIL if
    ArticulationRootAPI sits on a prim whose direct child is a same-named
    Xform with no RigidBody but a grandchild with one.
-3. **Validate SurgicalChair rebuild end-to-end** — rerun raw input through
-   simready_agent.py and confirm no manual patch needed. Current manually-
-   patched USD at `~/SimReady_Output/simready/SurgicalChair_A01_01/` is a
-   working reference for what the output should look like.
-4. **Unblocked pending assets:** `RoboticSystem_A01_01`,
+6. **Unblocked pending assets:** `RoboticSystem_A01_01`,
    `RoboticSystem_B01_Console_01`, `SurgicalChair_B01_01`,
    `SurgicalMicroScope_A01_01`. The drift detector + expanded audit
-   citations (F01–F66) should catch most asset-specific issues during
+   citations (F01–F69) should catch most asset-specific issues during
    classification + apply + audit.
-5. **Deformable-asset track** (bedsheets, IV tubing, surgical drapes,
+7. **Deformable-asset track** (bedsheets, IV tubing, surgical drapes,
    cables) still unblocked via `deformable-physics-robotics` — Newton VBD
    + MuJoCo Warp path. Needs asset pilot first.
+
+**The honest lesson from this saga:** Audit passing is necessary but not
+sufficient. The 2-DOF caster chain is a fragile topology that introduces
+runtime failure modes audit cannot see (solver iteration budget, hull-
+level NaN, unbounded depenetration velocity). Future work on 2-DOF
+assets (`SurgicalChair_B01_01`, office chairs) should start from a known-
+working reference and diff against it, rather than running new rebuilds
+and trusting 7/7 audits.
 
 ---
 

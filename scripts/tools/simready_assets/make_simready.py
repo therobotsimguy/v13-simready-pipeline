@@ -773,6 +773,48 @@ def audit(stage, classification=None):
                                   f"the same chassis will tunnel through each "
                                   f"other; fix in make_simready.py:apply_physics "
                                   f"(set EnabledSelfCollisions=True)")
+    # F67: redundant wrapper Xform between ArticulationRoot and a RigidBody
+    # descendant. On SurgicalChair_A01_01 the raw USD nested `/outer/inner/
+    # leg_01` where inner was a same-named pass-through Xform; RB landed on
+    # leg_01, ArtRoot on outer, Fabric composed the transform chain through
+    # the empty wrapper inconsistently → visual mesh stayed at rest pose
+    # while physics body moved. Pipeline fix: `flatten_redundant_xform_layers`
+    # in apply_physics collapses the layer pre-physics. Audit flags it
+    # post-hoc: ArtRoot prim with a direct-child Xform that has no RB but a
+    # grandchild with one, where the child Xform carries no mesh geometry
+    # (= pass-through wrapper, not a legitimate chassis-above-movable).
+    if dp_has_root:
+        dp_prim = stage.GetPrimAtPath(dp_path)
+        f67_wrappers = []
+        if dp_prim:
+            for child in dp_prim.GetChildren():
+                if child.GetTypeName() != "Xform":
+                    continue
+                if child.HasAPI(UsdPhysics.RigidBodyAPI):
+                    continue
+                has_mesh_direct = any(
+                    c.GetTypeName() == "Mesh" for c in child.GetChildren())
+                if has_mesh_direct:
+                    continue
+                xform_grandchildren = [
+                    c for c in child.GetChildren()
+                    if c.GetTypeName() == "Xform"]
+                if len(xform_grandchildren) != 1:
+                    continue
+                gc = xform_grandchildren[0]
+                if gc.HasAPI(UsdPhysics.RigidBodyAPI):
+                    f67_wrappers.append((str(child.GetPath()),
+                                         str(gc.GetPath())))
+        if f67_wrappers:
+            c4_pass = False
+            wrap_p, gc_p = f67_wrappers[0]
+            c4_detail += (
+                f" — F67: {len(f67_wrappers)} redundant-wrapper Xform(s) "
+                f"between ArticulationRoot and RigidBody (e.g. '{wrap_p}' "
+                f"has no RB but grandchild '{gc_p}' does, and the wrapper "
+                f"has no own mesh geometry); Fabric visual/physics "
+                f"divergence risk; fix in make_simready.py:"
+                f"flatten_redundant_xform_layers")
     results["C4 Flat Hierarchy"] = {"pass": c4_pass, "detail": c4_detail, "na": c4_na if len(rigid_bodies) <= 1 else False}
 
     # C5: Joints (existence + anchor validity + wheel split + wheel-in-footprint).
@@ -1111,6 +1153,76 @@ def audit(stage, classification=None):
                           f"likely misclassified a bracket/mount as movable; "
                           f"check classifier keyword filter or rebuild with "
                           f"split_wheel_structural_parts (F42)")
+        # F68: residual >5° rotation on direct children of a 2-DOF caster
+        # bracket. Offsets tire/hub mass laterally from the swivel axis, gives
+        # the solver a moment arm under drag force, and the bracket visually
+        # detaches during shift-drag teleop. Fix: normalize_caster_bracket_
+        # mount_rotation bakes the rotation into mesh vertex data using F43's
+        # snapshot-reset-reauthor pattern; world geometry unchanged.
+        AXIS_ROT_F68 = (UsdGeom.XformOp.TypeRotateX,
+                        UsdGeom.XformOp.TypeRotateY,
+                        UsdGeom.XformOp.TypeRotateZ)
+        EULER_ROT_F68 = (UsdGeom.XformOp.TypeRotateXYZ,
+                         UsdGeom.XformOp.TypeRotateXZY,
+                         UsdGeom.XformOp.TypeRotateYXZ,
+                         UsdGeom.XformOp.TypeRotateYZX,
+                         UsdGeom.XformOp.TypeRotateZXY,
+                         UsdGeom.XformOp.TypeRotateZYX)
+        bracket_mount_rot_issues = []
+        import math as _m
+        for prim in stage.Traverse():
+            name = prim.GetName().lower()
+            if not name.endswith("_bracket"):
+                continue
+            for child in prim.GetChildren():
+                if child.GetTypeName() not in ("Xform", "Mesh"):
+                    continue
+                if not child.IsA(UsdGeom.Xformable):
+                    continue
+                for op in UsdGeom.Xformable(child).GetOrderedXformOps():
+                    t = op.GetOpType()
+                    v = op.Get()
+                    if v is None:
+                        continue
+                    worst = 0.0
+                    if t in AXIS_ROT_F68:
+                        worst = abs(float(v))
+                    elif t == UsdGeom.XformOp.TypeOrient:
+                        im = v.GetImaginary()
+                        worst_sin = max(abs(float(im[0])), abs(float(im[1])),
+                                         abs(float(im[2])))
+                        worst = _m.degrees(
+                            2 * _m.asin(min(1.0, worst_sin)))
+                    elif t in EULER_ROT_F68:
+                        worst = max(abs(float(v[0])), abs(float(v[1])),
+                                     abs(float(v[2])))
+                    elif t == UsdGeom.XformOp.TypeTransform:
+                        # Upper-left 3x3 deviation from identity — max abs
+                        # off-diagonal maps to sin(theta) for axis-aligned
+                        # rotations; convert to degrees for the message.
+                        max_dev = 0.0
+                        for i in range(3):
+                            for j in range(3):
+                                expected = 1.0 if i == j else 0.0
+                                d_ = abs(float(v[i][j]) - expected)
+                                if d_ > max_dev:
+                                    max_dev = d_
+                        worst = _m.degrees(_m.asin(min(1.0, max_dev)))
+                    else:
+                        continue
+                    if worst > 5.0:
+                        bracket_mount_rot_issues.append(
+                            (str(child.GetPath()), worst))
+                        break
+        if bracket_mount_rot_issues:
+            c5_pass = False
+            p, w = bracket_mount_rot_issues[0]
+            c5_detail += (f" — F68: {len(bracket_mount_rot_issues)} caster "
+                          f"bracket child(ren) carry residual rotation >5° "
+                          f"(e.g. {p} at {w:.1f}°) — tire CoM offset from "
+                          f"swivel axis; bracket will detach under drag. Fix: "
+                          f"normalize_caster_bracket_mount_rotation in "
+                          f"split_wheel_structural_parts")
     else:
         c5_pass = True
         c5_detail = "no movable parts — joints N/A"
@@ -1139,6 +1251,33 @@ def audit(stage, classification=None):
                         val = attr.Get()
                         if val is not None and float(val) <= 0:
                             c6_detail += f" — WARNING: {prim.GetName()} has damping={val} (F32: should be >0)"
+        # F69: caster bracket swivel joints need damping ≥ 5 to absorb the
+        # resonant whip introduced by the bracket-tire 1:1 mass chain. At
+        # the default 2.0 value (inherited from door-hinge tuning), lateral
+        # chassis impulses propagate into oscillations that exceed the
+        # solver iteration budget and the bracket visually detaches.
+        undamped_caster_swivels = []
+        for prim in stage.Traverse():
+            if not prim.IsA(UsdPhysics.RevoluteJoint):
+                continue
+            if not prim.GetName().endswith("_bracket_joint"):
+                continue
+            a = prim.GetAttribute("drive:angular:physics:damping")
+            if not a or not a.HasAuthoredValue():
+                undamped_caster_swivels.append((prim.GetName(), None))
+                continue
+            val = a.Get()
+            if val is None or float(val) < 5.0:
+                undamped_caster_swivels.append((prim.GetName(), val))
+        if undamped_caster_swivels:
+            c6_pass = False
+            n, v = undamped_caster_swivels[0]
+            v_str = "unset" if v is None else f"{float(v):.1f}"
+            c6_detail += (f" — F69: {len(undamped_caster_swivels)} caster "
+                          f"bracket swivel joint(s) have damping < 5.0 "
+                          f"(e.g. {n}={v_str}) — bracket-tire whip will "
+                          f"detach under drag. Fix: make_revolute_joint "
+                          f"caster-swivel branch sets damping=15.0")
     else:
         c6_pass = True
         c6_detail = "no joints — drives N/A"
@@ -2796,7 +2935,8 @@ def make_revolute_joint(stage, joint_path, body0, body1, local_pos0, local_pos1,
                         axis="Z", hinge_edge="min_x", lower_deg=-120, upper_deg=120):
     joint = UsdPhysics.RevoluteJoint.Define(stage, joint_path)
     joint.CreateAxisAttr(axis)
-    if hinge_edge == "continuous":
+    is_caster_swivel = (hinge_edge == "continuous")
+    if is_caster_swivel:
         # Bidirectional unlimited swivel — used for 2-DOF caster brackets
         # (Z rotation tracks push direction). Light angular drive below
         # keeps the bracket from oscillating under gravity.
@@ -2813,8 +2953,21 @@ def make_revolute_joint(stage, joint_path, body0, body1, local_pos0, local_pos1,
     joint.CreateLocalPos0Attr(local_pos0)
     joint.CreateLocalPos1Attr(local_pos1)
     drive = UsdPhysics.DriveAPI.Apply(stage.GetPrimAtPath(joint_path), "angular")
-    # Low damping so Isaac viewport shift+drag can rotate hinged parts (skill: ~2 Nm·s/rad for doors)
-    drive.CreateDampingAttr(2.0)
+    # F69: caster-bracket swivel joints need higher damping than doors.
+    # Doors have a single joint between a heavy chassis and a heavy leaf, so
+    # a light dashpot (2.0) plus leaf mass is enough to settle motion. A
+    # 2-DOF caster is chassis → bracket → tire in series, and the bracket-
+    # tire mass ratio is typically ~1:1. Any lateral impulse to the chassis
+    # propagates down the chain and resonates: the tire's inertia whips the
+    # bracket around its swivel axis faster than a 2.0 N·m·s/rad dashpot can
+    # absorb, the joint solver budget blows, and the bracket visually
+    # detaches. Empirically, real caster bearings damp at 5–20 N·m·s/rad
+    # (grease + needle rollers + plastic bushing); 15.0 is a conservative
+    # middle value that kills the resonant whip without locking the swivel
+    # so you still get natural caster re-alignment under shift-drag.
+    # Surfaced on SurgicalChair_A01_01 (2026-04-21) after F68 mount-rotation
+    # fix did not resolve the detach.
+    drive.CreateDampingAttr(15.0 if is_caster_swivel else 2.0)
     # Always stiffness 0: a positional spring to 0° (old dynamic_body branch) locks doors closed and blocks drag/gripper.
     drive.CreateStiffnessAttr(0.0)
 
@@ -3214,7 +3367,186 @@ def split_wheel_structural_parts(stage, movables, body_path):
                 moved = reparent_prims_preserve_world_xform(
                     stage, structural_paths, body_path)
                 all_moved.update(moved)
+    # F68: after brackets are built, normalize any residual rotation on their
+    # direct children so the bracket-local frame matches world. Splayed star
+    # bases (office / surgical chairs) author mount meshes with ±70–75° Z
+    # rotation in the raw USD to face each leg; that rotation travels with the
+    # reparent into the bracket and leaves the tire's CoM off the swivel axis.
+    # See `normalize_caster_bracket_mount_rotation` for the snapshot-reset-
+    # reauthor pattern (same shape as F43 `bake_xform_scales`).
+    for wheel_name, bracket_path in caster_brackets.items():
+        n_norm = normalize_caster_bracket_mount_rotation(stage, bracket_path)
+        if n_norm:
+            print(f"    F68: normalized {n_norm} rotated mount child(ren) under "
+                  f"{wheel_name}_bracket")
     return all_moved, caster_brackets
+
+
+def normalize_caster_bracket_mount_rotation(stage, bracket_path):
+    """F68: bake out non-identity rotation on direct children of a 2-DOF
+    caster bracket, preserving world mesh geometry.
+
+    Splayed-star caster bases (5-star office chair, SurgicalChair_A01_01)
+    author each mount mesh with a Z rotation that faces its chassis leg
+    (e.g. wheel3 at +75°, wheel5 at -70°). After `split_wheel_structural_parts`
+    reparents these meshes into the bracket Xform, the rotation op stays on
+    the mount's local xform chain. The bracket itself sits at identity and
+    its revolute-Z joint to the chassis uses body0-local-Z = world-Z as the
+    swivel axis, which is correct — but the rotated mount shifts the tire /
+    hub mass distribution laterally relative to the bracket origin, giving
+    the solver a moment arm under any horizontal drag force. The small
+    bracket mass (~0.3 kg) then exceeds the joint iteration budget during
+    shift-drag teleop and the constraint visually detaches.
+
+    Algorithm (mirrors F43 `bake_xform_scales`):
+      A. For each direct child of the bracket, snapshot world points for
+         every descendant Mesh under that child.
+      B. Reset the child's rotate ops (TypeRotate{X,Y,Z,XYZ,…} / TypeOrient)
+         to identity. For TypeTransform matrix ops — which is what
+         `reparent_prims_preserve_world_xform` produces after collapsing the
+         original rotateXYZ + translate chain — extract the translation
+         column and replace the matrix with a translate-only matrix.
+      C. Recompute the child's L2W with rotations stripped and reauthor
+         each descendant Mesh's local points as new_w2l · world_points.
+         World geometry is preserved exactly.
+
+    Returns the count of direct-child prims that were normalized.
+
+    Idempotent: a second call finds no >5° rotations and returns 0.
+    """
+    bracket = stage.GetPrimAtPath(bracket_path)
+    if not bracket or not bracket.IsValid():
+        return 0
+
+    EULER_ROT_TYPES = (
+        UsdGeom.XformOp.TypeRotateXYZ,
+        UsdGeom.XformOp.TypeRotateXZY,
+        UsdGeom.XformOp.TypeRotateYXZ,
+        UsdGeom.XformOp.TypeRotateYZX,
+        UsdGeom.XformOp.TypeRotateZXY,
+        UsdGeom.XformOp.TypeRotateZYX,
+    )
+    AXIS_ROT_TYPES = (
+        UsdGeom.XformOp.TypeRotateX,
+        UsdGeom.XformOp.TypeRotateY,
+        UsdGeom.XformOp.TypeRotateZ,
+    )
+    EPS_DEG = 5.0
+    # Upper-left 3x3 identity tolerance: sin(5°) ≈ 0.087.
+    EPS_MAT = 0.087
+
+    def matrix_has_significant_rotation(mat):
+        # mat is Gf.Matrix4d. Rows 0..2 hold the 3x3 rotation/scale part.
+        for i in range(3):
+            for j in range(3):
+                expected = 1.0 if i == j else 0.0
+                if abs(float(mat[i][j]) - expected) > EPS_MAT:
+                    return True
+        return False
+
+    def child_has_significant_rotation(prim):
+        if not prim.IsA(UsdGeom.Xformable):
+            return False
+        for op in UsdGeom.Xformable(prim).GetOrderedXformOps():
+            t = op.GetOpType()
+            v = op.Get()
+            if v is None:
+                continue
+            if t in AXIS_ROT_TYPES:
+                if abs(float(v)) > EPS_DEG:
+                    return True
+            elif t == UsdGeom.XformOp.TypeOrient:
+                im = v.GetImaginary()
+                if (abs(float(im[0])) > 0.0436
+                        or abs(float(im[1])) > 0.0436
+                        or abs(float(im[2])) > 0.0436):
+                    return True
+            elif t in EULER_ROT_TYPES:
+                if (abs(float(v[0])) > EPS_DEG
+                        or abs(float(v[1])) > EPS_DEG
+                        or abs(float(v[2])) > EPS_DEG):
+                    return True
+            elif t == UsdGeom.XformOp.TypeTransform:
+                if matrix_has_significant_rotation(v):
+                    return True
+        return False
+
+    normalized = 0
+    for child in bracket.GetChildren():
+        if child.GetTypeName() not in ("Xform", "Mesh"):
+            continue
+        if not child_has_significant_rotation(child):
+            continue
+
+        # A. snapshot world points for every Mesh in the subtree
+        mesh_world_pts = {}
+        for d in Usd.PrimRange(child):
+            if not d.IsA(UsdGeom.Mesh):
+                continue
+            pts = d.GetAttribute("points")
+            if not pts or not pts.HasValue():
+                continue
+            l2w = UsdGeom.Xformable(d).ComputeLocalToWorldTransform(
+                Usd.TimeCode.Default())
+            mesh_world_pts[str(d.GetPath())] = [
+                l2w.TransformAffine(Gf.Vec3d(float(p[0]), float(p[1]),
+                                              float(p[2])))
+                for p in pts.Get()
+            ]
+
+        # B. reset rotate ops to identity on the direct child. For
+        # TypeTransform, extract the translation column and replace the
+        # matrix with a translate-only 4x4 so the child's origin stays put
+        # but the rotation component is dropped.
+        xf = UsdGeom.Xformable(child)
+        for op in xf.GetOrderedXformOps():
+            t = op.GetOpType()
+            if t in AXIS_ROT_TYPES:
+                op.Set(0.0)
+            elif t == UsdGeom.XformOp.TypeOrient:
+                op.Set(Gf.Quatf(1.0, 0.0, 0.0, 0.0))
+            elif t in EULER_ROT_TYPES:
+                v = op.Get()
+                if v is None:
+                    continue
+                if isinstance(v, Gf.Vec3d):
+                    op.Set(Gf.Vec3d(0.0, 0.0, 0.0))
+                else:
+                    op.Set(Gf.Vec3f(0.0, 0.0, 0.0))
+            elif t == UsdGeom.XformOp.TypeTransform:
+                m = op.Get()
+                if m is None:
+                    continue
+                trans_only = Gf.Matrix4d(1.0)
+                trans_only.SetRow3(3, Gf.Vec3d(
+                    float(m[3][0]), float(m[3][1]), float(m[3][2])))
+                op.Set(trans_only)
+
+        # C. reauthor each descendant mesh's local points so world pose is preserved
+        for path_str, world_pts in mesh_world_pts.items():
+            m = stage.GetPrimAtPath(path_str)
+            if not m:
+                continue
+            new_l2w = UsdGeom.Xformable(m).ComputeLocalToWorldTransform(
+                Usd.TimeCode.Default())
+            new_w2l = new_l2w.GetInverse()
+            new_local = [new_w2l.TransformAffine(wp) for wp in world_pts]
+            m.GetAttribute("points").Set(
+                [Gf.Vec3f(float(p[0]), float(p[1]), float(p[2]))
+                 for p in new_local]
+            )
+            ext_attr = m.GetAttribute("extent")
+            if ext_attr and new_local:
+                xs = [p[0] for p in new_local]
+                ys = [p[1] for p in new_local]
+                zs = [p[2] for p in new_local]
+                ext_attr.Set([
+                    Gf.Vec3f(float(min(xs)), float(min(ys)), float(min(zs))),
+                    Gf.Vec3f(float(max(xs)), float(max(ys)), float(max(zs))),
+                ])
+
+        normalized += 1
+    return normalized
 
 
 # --- Handle detection ---
@@ -3306,6 +3638,154 @@ def resolve_movable_parts(stage, body_path, dp_path, classification):
             "parent": parent_name,
         }
     return movables
+
+
+def _decompose_matrix_to_trs(mat):
+    """Decompose a Gf.Matrix4d into (translate, rotateXYZ-degrees, scale)
+    tuples. Returns (Gf.Vec3d, Gf.Vec3d, Gf.Vec3d).
+
+    Uses Gf.Transform which factors the matrix into translation + rotation
+    + scale + perspective. For our purpose (no skew/perspective in an
+    authored xformOp chain), this round-trips losslessly into decomposed
+    translate + rotateXYZ + scale ops.
+
+    The rotateXYZ convention is intrinsic X→Y→Z (rotate about X first,
+    then Y, then Z) — matches USD's xformOp:rotateXYZ. Gf.Rotation's
+    Decompose(X, Y, Z) returns angles in that same order.
+    """
+    xform = Gf.Transform(mat)
+    t = xform.GetTranslation()
+    s = xform.GetScale()
+    euler = xform.GetRotation().Decompose(
+        Gf.Vec3d.XAxis(), Gf.Vec3d.YAxis(), Gf.Vec3d.ZAxis())
+    return (
+        Gf.Vec3d(float(t[0]), float(t[1]), float(t[2])),
+        Gf.Vec3d(float(euler[0]), float(euler[1]), float(euler[2])),
+        Gf.Vec3d(float(s[0]), float(s[1]), float(s[2])),
+    )
+
+
+def flatten_redundant_xform_layers(stage, classification):
+    """F67: Collapse the redundant wrapper Xform layer that sits between the
+    default prim and the classified body.
+
+    Raw USD pattern surfaced on SurgicalChair_A01_01 (2026-04-20):
+
+        /sm_surgicalchair_a01_01                              default_prim
+          /sm_surgicalchair_a01_01/sm_surgicalchair_a01_01      wrapper (same name)
+            /sm_surgicalchair_a01_01/…/sm_surgicalchair_a01_leg_01  classified body
+
+    ArticulationRootAPI lands on default_prim; classifier picks `leg_01`
+    as chassis body so RB + MassAPI would land there. That leaves the
+    wrapper as an empty Xform between ArtRoot and the body, and Isaac
+    Lab's ArticulationCfg + Fabric runtime compose the articulation
+    transform chain inconsistently through it — physics updates the
+    chassis world pose but the visual mesh transforms (children of the
+    wrapper) don't propagate to Fabric. Render shows the chair static
+    while physics shows it moving (visual/physics divergence).
+
+    Matches trolley/table pattern after flatten:
+
+        /outer               ArtRoot (no RB, identity xformOps)
+          /outer/inner       RB + MassAPI, ABSORBED body transform
+            /outer/inner/leg_01  identity xformOps, same meshes
+
+    Absorb body's LOCAL transform up into the wrapper so world position
+    is preserved, then clear body's xformOps. Classification's `body`
+    field is rewritten to the wrapper's name so `resolve_body_xform`
+    picks the wrapper as the chassis root.
+
+    **Authors decomposed `translate + rotateXYZ + scale`, NOT
+    `xformOp:transform` matrix.** Isaac Lab's ArticulationCfg /
+    Fabric parse the decomposed form correctly; the matrix form caused
+    articulation binding issues on SurgicalChair_A01_01 before manual
+    decomposition — caster revolute joints don't fully constrain
+    translation when chassis carries a single matrix op.
+
+    Runs ONCE per call — handles a single layer of redundancy. If
+    deeper redundancy appears in future raw assets the caller can loop.
+
+    Returns True if a layer was flattened, False otherwise.
+    """
+    default_prim = stage.GetDefaultPrim()
+    if not default_prim:
+        return False
+    dp_path = default_prim.GetPath()
+    body_name = classification.get("body")
+    if not body_name:
+        return False
+
+    body_prim = None
+    for prim in stage.Traverse():
+        if prim.GetName() == body_name and prim.GetTypeName() == "Xform":
+            body_prim = prim
+            break
+    if body_prim is None:
+        return False
+
+    wrapper = body_prim.GetParent()
+    if not wrapper or wrapper.GetPath() == dp_path:
+        return False  # already a direct child — no wrapper to collapse
+    if wrapper.GetParent().GetPath() != dp_path:
+        return False  # deeper nesting than one wrapper — conservative skip
+
+    if any(c.GetTypeName() == "Mesh" for c in wrapper.GetChildren()):
+        return False  # wrapper carries its own geometry — not a pass-through
+
+    body_xf = UsdGeom.Xformable(body_prim)
+    wrapper_xf = UsdGeom.Xformable(wrapper)
+    body_local = body_xf.GetLocalTransformation()
+    wrapper_local = wrapper_xf.GetLocalTransformation()
+    new_wrapper_local = body_local * wrapper_local  # USD row-vector
+
+    # Compensation for wrapper's other Xform children (sibling movables like
+    # `seat_01` on SurgicalChair). After wrapper absorbs body_local, naïve
+    # siblings would move by body_local in world space. Apply inverse
+    # compensation so world positions stay fixed: X_local_new = X_local_old *
+    # inv(body_local). Grandchildren of body (wheels under leg_01) need no
+    # compensation — body becomes identity so their chain is unchanged.
+    body_local_inv = body_local.GetInverse()
+    sibling_children = [c for c in wrapper.GetChildren()
+                        if c.GetTypeName() == "Xform" and c != body_prim]
+
+    t_vec, r_euler_deg, s_vec = _decompose_matrix_to_trs(new_wrapper_local)
+
+    wrapper_xf.ClearXformOpOrder()
+    for prop_name in list(wrapper.GetPropertyNames()):
+        if prop_name.startswith("xformOp:"):
+            wrapper.RemoveProperty(prop_name)
+    wrapper_xf.AddTranslateOp(UsdGeom.XformOp.PrecisionDouble).Set(t_vec)
+    wrapper_xf.AddRotateXYZOp(UsdGeom.XformOp.PrecisionDouble).Set(r_euler_deg)
+    wrapper_xf.AddScaleOp(UsdGeom.XformOp.PrecisionDouble).Set(s_vec)
+
+    for sibling in sibling_children:
+        sx = UsdGeom.Xformable(sibling)
+        s_local_old = sx.GetLocalTransformation()
+        s_local_new = s_local_old * body_local_inv
+        st_vec, sr_euler, ss_vec = _decompose_matrix_to_trs(s_local_new)
+        sx.ClearXformOpOrder()
+        for prop_name in list(sibling.GetPropertyNames()):
+            if prop_name.startswith("xformOp:"):
+                sibling.RemoveProperty(prop_name)
+        sx.AddTranslateOp(UsdGeom.XformOp.PrecisionDouble).Set(st_vec)
+        sx.AddRotateXYZOp(UsdGeom.XformOp.PrecisionDouble).Set(sr_euler)
+        sx.AddScaleOp(UsdGeom.XformOp.PrecisionDouble).Set(ss_vec)
+
+    body_xf.ClearXformOpOrder()
+    for prop_name in list(body_prim.GetPropertyNames()):
+        if prop_name.startswith("xformOp:"):
+            body_prim.RemoveProperty(prop_name)
+
+    wrapper_name = wrapper.GetName()
+    classification["body"] = wrapper_name
+    print(f"    F67: flatten redundant layer — absorbed '{body_name}' local "
+          f"transform into wrapper '{wrapper_name}'; body rename "
+          f"'{body_name}' → '{wrapper_name}' ({len(sibling_children)} sibling "
+          f"Xform(s) compensated; decomposed ops: "
+          f"translate={tuple(round(float(v), 4) for v in t_vec)}, "
+          f"rotateXYZ={tuple(round(float(v), 3) for v in r_euler_deg)}, "
+          f"scale={tuple(round(float(v), 4) for v in s_vec)})")
+    return True
 
 
 def bake_xform_scales(stage):
@@ -3537,6 +4017,16 @@ def apply_physics(stage, classification, output_usd, dynamic_body=False,
     n_j, n_a, n_m = strip_existing_physics(stage)
     if n_j + n_a + n_m > 0:
         print(f"\n  STRIPPED: {n_j} joints, {n_a} physics attrs, {n_m} materials")
+
+    # F67: collapse the redundant-wrapper Xform layer before resolving body.
+    # Rewrites classification["body"] to the wrapper's name when the pattern
+    # matches so the body is a direct child of default_prim after flatten
+    # (matches trolley/table). Authors decomposed translate+rotateXYZ+scale
+    # ops on the wrapper — Isaac Lab/Fabric parse that form reliably; the
+    # matrix form caused articulation binding issues on SurgicalChair_A01_01
+    # before manual decomposition. Surfaced 2026-04-20.
+    if flatten_redundant_xform_layers(stage, classification):
+        print(f"\n  FLATTEN (F67): redundant wrapper layer collapsed")
 
     body_path = resolve_body_xform(stage, default_prim, classification["body"])
     movables = resolve_movable_parts(stage, body_path, dp_path, classification)
